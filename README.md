@@ -1,5 +1,13 @@
 # SAMD_QMS
 
+[![CI](https://github.com/tartarini/eQMS/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tartarini/eQMS/actions/workflows/ci.yml?query=branch%3Amain)
+[![Tests](https://raw.githubusercontent.com/tartarini/eQMS/badges/tests.svg)](https://github.com/tartarini/eQMS/actions/workflows/ci.yml?query=branch%3Amain)
+[![Coverage](https://raw.githubusercontent.com/tartarini/eQMS/badges/coverage.svg)](https://github.com/tartarini/eQMS/actions/workflows/ci.yml?query=branch%3Amain)
+[![OQ](https://raw.githubusercontent.com/tartarini/eQMS/badges/oq.svg)](docs/developer-guide.md#validation)
+![Python 3.13](https://img.shields.io/badge/python-3.13-3776ab?logo=python&logoColor=white)
+![Django 5.2](https://img.shields.io/badge/django-5.2-092e20?logo=django&logoColor=white)
+![PostgreSQL 16](https://img.shields.io/badge/postgresql-16-4169e1?logo=postgresql&logoColor=white)
+
 A quality management system for organisations that make software as a medical device (SaMD),
 written in Django. One installation manages the QMS for any number of devices.
 It enforces the process rather than just recording it: workflows, roles, electronic signatures,

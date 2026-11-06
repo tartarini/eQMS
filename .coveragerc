@@ -1,0 +1,21 @@
+# Test coverage of the application code (used by CI and `make coverage`).
+[run]
+branch = True
+source =
+    qms
+    config
+omit =
+    */migrations/*
+    qms/test*.py
+    qms/tests.py
+    config/asgi.py
+    config/wsgi.py
+
+[report]
+show_missing = True
+skip_covered = True
+skip_empty = True
+precision = 1
+exclude_also =
+    if __name__ == .__main__.:
+    raise NotImplementedError

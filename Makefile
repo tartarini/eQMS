@@ -5,7 +5,7 @@ ANSIBLE := cd deploy/ansible && ansible-playbook
 ENV ?= staging
 VERSION ?=
 
-.PHONY: help dev dev-down dev-reset demo shell manage test oq jobs logs \
+.PHONY: help dev dev-down dev-reset demo shell manage test oq jobs logs coverage \
         check provision deploy restore-test
 
 help:  ## Show this help
@@ -33,6 +33,11 @@ manage:  ## Run a management command: make manage CMD="createsuperuser"
 
 test:  ## Run the test suite on the dev PostgreSQL
 	$(COMPOSE) exec app python manage.py test qms
+
+coverage:  ## Test coverage on this machine (SQLite); needs: pip install -r requirements-dev.txt
+	coverage run manage.py test qms
+	coverage report
+	coverage html && echo "Report: htmlcov/index.html"
 
 oq:  ## Write OQ evidence to ./oq_evidence: make oq NAME="Your Name"
 	$(COMPOSE) exec app python manage.py run_oq --executed-by "$(NAME)" --release dev --output oq_evidence

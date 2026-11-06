@@ -438,7 +438,18 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 python manage.py test qms                 # 134 tests, ~90 s on SQLite
 python manage.py run_oq --executed-by "Name" --release 1.0.0 --output oq_evidence/
 python manage.py test qms.test_modules.SSOTests
+make coverage                             # coverage report and htmlcov/ (pip install -r requirements-dev.txt)
 ```
+
+**Coverage.** `.coveragerc` measures `qms` and `config` with branch coverage, leaving out
+migrations and the tests themselves. CI runs the OQ under `coverage`, puts the report in the run's
+summary, keeps the HTML report as an artifact, and fails if total coverage drops below 75%
+(81% at the time of writing).
+
+**Badges.** On each push to `main`, CI writes `tests.svg`, `coverage.svg` and `oq.svg` with
+`.github/scripts/badges.py` (no third-party service) and force-pushes them to the orphan `badges`
+branch, which the README links to. The "Publish badges" job is the only one with write access, and
+runs even when tests fail so the badges show it.
 
 What's covered: every record workflow rule (required fields, roles, links, comments, independence,
 signatures), locking and no-delete, audit attribution, immutability and tamper detection,

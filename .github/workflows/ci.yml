@@ -1,8 +1,9 @@
 # Continuous integration for SAMD_QMS.
 #
-# Every push and pull request: checks, the full test suite on PostgreSQL 16, OQ evidence
-# (kept as a build artifact), infrastructure checks, and an image build with a smoke test.
-# On main: the image is pushed as :main and :sha-<commit> (for staging).
+# Every push and pull request: checks, the full test suite on PostgreSQL 16 with test coverage,
+# OQ evidence (kept as a build artifact), infrastructure checks, and an image build with a smoke
+# test. On main: the image is pushed as :main and :sha-<commit> (for staging), and the README
+# badges (tests, coverage, OQ) are published to the `badges` branch.
 # On a version tag (v1.0.0): the image is pushed as :1.0.0 — the tag you deploy and validate.
 name: CI
 
@@ -46,7 +47,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Django checks
         run: |
@@ -60,9 +61,9 @@ jobs:
           DJANGO_SECRET_KEY: ci-only-but-long-enough-to-pass-the-deployment-check-1234567890
         run: python manage.py check --deploy --fail-level ERROR
 
-      - name: Operational qualification (all tests, traced to requirements)
+      - name: Operational qualification (all tests, traced to requirements, with coverage)
         run: >
-          python manage.py run_oq
+          coverage run manage.py run_oq
           --release "${{ github.ref_type == 'tag' && github.ref_name || format('sha-{0}', github.sha) }}"
           --executed-by "GitHub Actions run ${{ github.run_id }} (${{ github.actor }})"
           --output oq_evidence
@@ -74,6 +75,58 @@ jobs:
           name: oq-evidence-${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
           path: oq_evidence/
           retention-days: 90
+
+      - name: Coverage report
+        id: coverage
+        if: always() && hashFiles('.coverage') != ''
+        run: |
+          coverage json -q
+          coverage html -q
+          { echo "## Test coverage"; echo; coverage report --format=markdown; } >> "$GITHUB_STEP_SUMMARY"
+          coverage report --fail-under=75 --format=total > /dev/null \
+            || { echo "::error::Test coverage fell below 75%"; exit 1; }
+
+      - name: Badges
+        if: always() && hashFiles('coverage.json', 'oq_evidence/oq_results.json') != ''
+        run: python .github/scripts/badges.py coverage.json oq_evidence/oq_results.json badges
+
+      - name: Keep the coverage report and badges
+        if: always() && hashFiles('coverage.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: |
+            htmlcov/
+            coverage.json
+            badges/
+          retention-days: 30
+
+  badges:
+    name: Publish badges
+    needs: [test]
+    # Only from main, and also when tests fail, so the badges show it.
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test.result != 'skipped'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # this job only: pushes the badge images to the `badges` branch
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: result
+
+      - name: Push to the badges branch
+        run: |
+          git init -q site && cd site
+          git checkout -q --orphan badges
+          cp ../result/badges/*.svg .
+          printf '# Badges\n\nWritten by CI from %s (run %s). Do not edit.\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" > README.md
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "Badges for ${GITHUB_SHA::12}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" badges
 
   infrastructure:
     name: Infrastructure checks
@@ -149,7 +202,7 @@ jobs:
             -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
             -e DATABASE_URL=sqlite:////tmp/smoke.sqlite3 -e QMS_MIGRATE_ON_START=1 \
             samd_qms:ci
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/healthz; then echo; break; fi
             sleep 2
           done

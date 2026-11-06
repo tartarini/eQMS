@@ -9,3 +9,11 @@ oq_evidence/
 deploy/app.env
 deploy/.env
 # Commit group_vars/qms/vault.yml only when encrypted (ansible-vault)
+
+# test coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.json
+coverage.xml
+badges/
