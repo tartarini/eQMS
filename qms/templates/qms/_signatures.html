@@ -1,0 +1,9 @@
+<div class="panel">
+  <h2 style="margin-top:0">Signatures</h2>
+  {% for s in signatures %}
+  <p class="small"><strong>{{ s.signer_name }}</strong> – {{ s.meaning }}{% if not s.record_id %} <span class="muted">({{ s.object_ref }})</span>{% endif %}<br>
+    <span class="muted">{{ s.signed_at|date:"d M Y H:i:s" }}{% if s.from_status %} · {{ s.from_status }} → {{ s.to_status }}{% endif %}</span>
+    {% if s.comment %}<br><em>“{{ s.comment }}”</em>{% endif %}<br>
+    <code title="{{ s.record_state_hash }}">{{ s.record_state_hash|truncatechars:20 }}</code></p>
+  {% empty %}<p class="muted small">None yet.</p>{% endfor %}
+</div>

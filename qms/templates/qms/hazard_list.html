@@ -1,0 +1,39 @@
+{% extends "qms/base.html" %}
+{% block title %}Risk register – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>Risk register</h1>
+  <a class="btn" href="{% url 'qms:hazard_create' %}">New hazard</a>
+</div>
+<p class="muted small">{% if current_device %}{{ current_device.name }}. {% else %}All devices; choose one in the header to see its risk file. {% endif %}Score = severity × probability. Green: acceptable · Amber: reduce as far as possible · Red: unacceptable.</p>
+
+<div class="grid">
+  <div class="panel">
+    <h2 style="margin-top:0">Before risk controls</h2>
+    {% include "qms/_risk_matrix.html" with matrix=matrix_initial %}
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Residual risk</h2>
+    {% include "qms/_risk_matrix.html" with matrix=matrix_residual %}
+  </div>
+</div>
+
+<p class="small"><a href="?status=active">Active</a> · <a href="?status=all">Include retired</a></p>
+<div class="panel">
+<table>
+  <tr><th>Ref</th><th>Device</th><th>Hazard</th><th>Harm</th><th>Initial</th><th>Controls</th><th>Residual</th><th>Status</th></tr>
+  {% for h in hazards %}
+  <tr>
+    <td><a href="{% url 'qms:hazard_detail' h.ref %}">{{ h.ref }}</a></td>
+    <td class="small">{{ h.device.code }}</td>
+    <td>{{ h.title }}<br><span class="small muted">{{ h.software_item }}</span></td>
+    <td class="small">{{ h.harm|truncatechars:80 }}</td>
+    <td><span class="badge lvl-{{ h.initial_level }}">{{ h.initial_score }}</span></td>
+    <td class="small">{{ h.controls.all|length }}</td>
+    <td>{% if h.residual_score %}<span class="badge lvl-{{ h.residual_level }}">{{ h.residual_score }}</span>{% else %}—{% endif %}</td>
+    <td><span class="badge {% if h.status == 'accepted' %}done{% endif %}">{{ h.get_status_display }}</span></td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="muted">No hazards yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

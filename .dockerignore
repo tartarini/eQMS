@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+**/__pycache__
+**/*.pyc
+db.sqlite3
+media/
+staticfiles/
+oq_evidence/
+backups/
+deploy/ansible/
+deploy/env/*.env
+!deploy/env/dev.env
+*.zip
+.env

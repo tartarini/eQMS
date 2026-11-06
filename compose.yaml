@@ -1,0 +1,72 @@
+# Development stack: PostgreSQL, a mail catcher and the app with live reload.
+#
+#   docker compose up --build          # http://localhost:8000, mail at http://localhost:8025
+#   docker compose exec app python manage.py load_demo_data
+#   docker compose --profile jobs up   # also run the scheduler
+#
+# Uses the same image as production, with the source mounted and Django's dev server.
+name: samd_qms_dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: qms
+      POSTGRES_USER: qms
+      POSTGRES_PASSWORD: qms
+    volumes:
+      - dev_pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qms -d qms"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mail:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:8025:8025"   # web UI showing every email the app sends
+
+  app:
+    build:
+      context: .
+      args:
+        QMS_VERSION: dev
+    image: samd_qms:dev
+    env_file: deploy/env/dev.env
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - ./:/app                  # live code reload
+      - dev_media:/data/media
+      - dev_backups:/backups
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
+
+  scheduler:
+    image: samd_qms:dev
+    profiles: ["jobs"]
+    env_file: deploy/env/dev.env
+    environment:
+      QMS_MIGRATE_ON_START: "0"
+    command: ["python", "manage.py", "run_scheduler"]
+    volumes:
+      - ./:/app
+      - dev_media:/data/media
+      - dev_backups:/backups
+    healthcheck:
+      disable: true
+    depends_on:
+      app:
+        condition: service_started
+
+volumes:
+  dev_pgdata:
+  dev_media:
+  dev_backups:

@@ -1,0 +1,76 @@
+{% extends "qms/base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Open quality records for {% if device %}<a href="{% url 'qms:device_detail' device.code %}">{{ device.name }}</a>{% else %}all devices{% endif %}.
+  {% if sees_all_devices %}Audit trail: {% if chain_ok %}<span class="badge done">intact</span>{% else %}<span class="badge bad">tampering detected at event {{ bad_id }}</span>{% endif %}
+  · <a href="{% url 'qms:audit_export' %}">export full audit trail (CSV)</a>{% endif %}</p>
+
+{% if not all_devices %}<div class="msg info">You're not on any device team yet, so you only see QMS-wide documents and your training. Ask QA to add you to a device team.</div>{% endif %}
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+  {% for code, label, n in by_type %}
+  <div class="panel">
+    <div class="muted small">{{ label }}</div>
+    <div class="stat"><a href="{% url 'qms:record_list' %}?type={{ code }}" style="text-decoration:none">{{ n }}</a></div>
+    <a class="small" href="{% url 'qms:record_create' code %}">+ New</a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2 style="margin-top:0">Upcoming and overdue deadlines</h2>
+    <table>
+      <tr><th>Record</th><th>Due</th></tr>
+      {% for r in deadlines %}
+      <tr><td><a href="{% url 'qms:record_detail' r.ref %}">{{ r.ref }}</a> {{ r.title }}</td>
+          <td>{% if r.is_overdue %}<span class="badge bad">{{ r.next_deadline|date:"d M Y" }}</span>{% else %}{{ r.next_deadline|date:"d M Y" }}{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="2" class="muted">Nothing due.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Open with patient-safety impact</h2>
+    <table>
+      <tr><th>Record</th><th>Status</th></tr>
+      {% for r in safety %}
+      <tr><td><a href="{% url 'qms:record_detail' r.ref %}">{{ r.ref }}</a> {{ r.title }}</td><td><span class="badge warn">{{ r.get_status_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="2" class="muted">None.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">My training</h2>
+    <table>
+      <tr><th>Document</th><th>Due</th></tr>
+      {% for a in my_training %}
+      <tr><td><a href="{% url 'qms:my_training' %}">{{ a.version }}</a> {{ a.version.document.title }}</td>
+          <td>{% if a.status == "overdue" %}<span class="badge bad">{{ a.due_date|date:"d M Y" }}</span>{% else %}{{ a.due_date|date:"d M Y" }}{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="2" class="muted">All done.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Documents</h2>
+    <table>
+      {% for d in docs_in_review %}<tr><td><a href="{% url 'qms:document_detail' d.number %}">{{ d.number }}</a> {{ d.title }}</td><td><span class="badge warn">in review</span></td></tr>{% endfor %}
+      {% for d in docs_due %}<tr><td><a href="{% url 'qms:document_detail' d.number %}">{{ d.number }}</a> {{ d.title }}</td><td>{% if d.review_overdue %}<span class="badge bad">review {{ d.next_review_date|date:"d M Y" }}</span>{% else %}review {{ d.next_review_date|date:"d M Y" }}{% endif %}</td></tr>{% endfor %}
+      {% if not docs_in_review and not docs_due %}<tr><td class="muted">Nothing awaiting review.</td></tr>{% endif %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Risk and suppliers</h2>
+    <table>
+      {% for h in unacceptable %}<tr><td><a href="{% url 'qms:hazard_detail' h.ref %}">{{ h.ref }}</a> {{ h.title }}</td><td><span class="badge bad">unacceptable</span></td></tr>{% endfor %}
+      {% for s in suppliers_due %}<tr><td><a href="{% url 'qms:supplier_detail' s.pk %}">{{ s.name }}</a></td><td><span class="badge warn">evaluation due</span></td></tr>{% endfor %}
+      {% if soup_due %}<tr><td><a href="{% url 'qms:supplier_list' %}">SOUP anomaly review</a></td><td><span class="badge warn">{{ soup_due }} overdue</span></td></tr>{% endif %}
+      {% if not unacceptable and not suppliers_due and not soup_due %}<tr><td class="muted">Nothing flagged.</td></tr>{% endif %}
+    </table>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0">Assigned to me</h2>
+    <table>
+      <tr><th>Record</th><th>Status</th></tr>
+      {% for r in mine %}
+      <tr><td><a href="{% url 'qms:record_detail' r.ref %}">{{ r.ref }}</a> {{ r.title }}</td><td><span class="badge">{{ r.get_status_display }}</span></td></tr>
+      {% empty %}<tr><td colspan="2" class="muted">Nothing assigned.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

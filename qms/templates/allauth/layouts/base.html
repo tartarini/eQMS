@@ -1,0 +1,9 @@
+{% extends "qms/base.html" %}
+{% comment %}Wraps allauth pages (connected accounts, SSO errors) in the QMS layout.{% endcomment %}
+{% block title %}{% block head_title %}{% endblock %} – SAMD_QMS{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:640px;margin:20px auto">
+  {% block body %}{% endblock %}
+  {% block extra_body %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "qms/base.html" %}
+{% block title %}Training matrix – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>Training matrix</h1>
+<p class="muted small">Current effective version of each document with training requirements, for everyone with a QMS role.</p>
+<div class="panel" style="overflow-x:auto">
+<table>
+  <tr><th>Person</th>{% for d in docs %}<th title="{{ d.title }}"><a href="{% url 'qms:document_detail' d.number %}">{{ d.number }}</a></th>{% endfor %}</tr>
+  {% for user, cells in rows %}
+  <tr><td>{{ user.get_full_name|default:user.username }}</td>
+    {% for status, a in cells %}
+    <td>{% if status == "completed" %}<span class="badge done" title="{{ a.completed_at|date:'d M Y' }}">✓ {{ a.completed_at|date:"d M" }}</span>
+      {% elif status == "overdue" %}<span class="badge bad">overdue</span>
+      {% elif status == "due" %}<span class="badge warn">due {{ a.due_date|date:"d M" }}</span>
+      {% elif status == "n/a" %}<span class="muted">–</span>
+      {% else %}<span class="muted small">{{ status }}</span>{% endif %}</td>
+    {% endfor %}</tr>
+  {% empty %}<tr><td class="muted">No one has a QMS role yet.</td></tr>{% endfor %}
+</table>
+{% if not docs %}<p class="muted">No documents have training requirements yet. Add them on a document's page.</p>{% endif %}
+</div>
+{% endblock %}

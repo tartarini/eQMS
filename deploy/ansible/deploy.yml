@@ -1,0 +1,135 @@
+# Deploy (or upgrade to) a SAMD_QMS release on a provisioned server.
+#
+#   ansible-playbook deploy.yml --limit production -e qms_version=1.0.0
+#
+# Sequence, so a release is controlled and recoverable:
+#   1. check secrets are real          5. apply database migrations
+#   2. write configuration (0600)      6. start / replace the containers
+#   3. pull the release image          7. wait for /healthz, verify the audit chain
+#   4. back up (if already running)    8. record what was deployed and when
+#
+# To roll back: deploy the previous qms_version. If the new release ran migrations, restore
+# the "pre-deploy" backup first (see docs/deployment.md) - migrations are not reversed.
+- name: Deploy SAMD_QMS
+  hosts: qms
+  become: true
+  become_user: "{{ deploy_user }}"
+  gather_facts: false
+  serial: 1
+
+  vars:
+    compose: "docker compose --project-directory {{ qms_dir }} -f {{ qms_dir }}/compose.prod.yaml"
+
+  pre_tasks:
+    - name: Refuse to deploy with missing or placeholder secrets
+      ansible.builtin.assert:
+        that:
+          - vault_django_secret_key is defined and vault_django_secret_key | length >= 40
+          - vault_postgres_password is defined and vault_postgres_password | length >= 24
+          - vault_postgres_password is match('^[A-Za-z0-9_-]+$')
+          - "'CHANGE-ME' not in (vault_django_secret_key ~ vault_postgres_password ~ vault_smtp_password)"
+        fail_msg: >-
+          Secrets are missing or still placeholders. Create group_vars/qms/vault.yml from
+          vault.example.yml and encrypt it with ansible-vault.
+      no_log: true
+
+    - name: Refuse an unpinned release
+      ansible.builtin.assert:
+        that: qms_version not in ['latest', 'main', '']
+        fail_msg: "Deploy a specific, validated release tag (qms_version), not '{{ qms_version }}'."
+
+  tasks:
+    - name: Install the Compose file and Caddy configuration
+      ansible.builtin.copy:
+        src: "../{{ item }}"
+        dest: "{{ qms_dir }}/{{ item }}"
+        mode: "0640"
+      loop: [compose.prod.yaml, Caddyfile]
+
+    - name: Write Compose variables (.env)
+      ansible.builtin.template:
+        src: templates/compose.env.j2
+        dest: "{{ qms_dir }}/.env"
+        mode: "0600"
+      no_log: true
+
+    - name: Write application settings and secrets (app.env)
+      ansible.builtin.template:
+        src: templates/app.env.j2
+        dest: "{{ qms_dir }}/app.env"
+        mode: "0600"
+      no_log: true
+
+    - name: Log in to the image registry
+      ansible.builtin.shell: >
+        set -o pipefail &&
+        printf '%s' "$TOKEN" | docker login {{ qms_image.split('/')[0] }}
+        --username "{{ vault_registry_user }}" --password-stdin
+      args:
+        executable: /bin/bash
+      environment:
+        TOKEN: "{{ vault_registry_token }}"
+      when: vault_registry_token | default('') | length > 0
+      changed_when: false
+      no_log: true
+
+    - name: Pull the release images
+      ansible.builtin.command: "{{ compose }} pull --quiet"
+      changed_when: true
+
+    - name: Is the app already running?
+      ansible.builtin.command: "{{ compose }} ps --status running --services"
+      register: running
+      changed_when: false
+
+    - name: Back up before changing anything
+      ansible.builtin.command: "{{ compose }} exec -T app /app/deploy/scripts/backup.sh pre-deploy"
+      when: "'app' in running.stdout_lines"
+      changed_when: true
+
+    - name: Start the database
+      ansible.builtin.command: "{{ compose }} up -d --wait db"
+      changed_when: true
+
+    - name: Apply database migrations
+      ansible.builtin.command: "{{ compose }} run --rm --no-deps app python manage.py migrate --noinput"
+      register: migrate
+      changed_when: "'No migrations to apply' not in migrate.stdout"
+
+    - name: Ensure roles and PMS schedules exist
+      ansible.builtin.command: "{{ compose }} run --rm --no-deps app python manage.py seed_qms"
+      changed_when: false
+
+    - name: Start or replace all services
+      ansible.builtin.command: "{{ compose }} up -d --remove-orphans --wait"
+      changed_when: true
+
+    - name: Wait until the site answers over HTTPS
+      ansible.builtin.uri:
+        url: "https://{{ qms_domain }}/healthz"
+        return_content: true
+      register: health
+      until: health.status == 200 and health.json.version == qms_version
+      retries: 30
+      delay: 5
+      become: false
+      delegate_to: localhost
+
+    - name: Verify the audit trail
+      ansible.builtin.command: "{{ compose }} exec -T app python manage.py verify_audit"
+      register: audit
+      changed_when: false
+
+    - name: Record the deployment
+      ansible.builtin.lineinfile:
+        path: "{{ qms_dir }}/DEPLOYMENTS.log"
+        line: >-
+          {{ now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ') }} version={{ qms_version }}
+          image={{ qms_image }} by={{ lookup('env', 'USER') }} migrations={{ migrate.changed }}
+          {{ audit.stdout }}
+        create: true
+        mode: "0640"
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: "SAMD_QMS {{ qms_version }} is live at https://{{ qms_domain }} — {{ audit.stdout }}"

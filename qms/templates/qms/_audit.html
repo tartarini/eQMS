@@ -1,0 +1,15 @@
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="margin:0">Audit trail</h2>
+    {% if export_url %}<a class="small" href="{{ export_url }}">Export CSV</a>{% endif %}
+  </div>
+  <table class="small">
+    <tr><th>When</th><th>Who</th><th>What</th></tr>
+    {% for e in events %}
+    <tr><td style="white-space:nowrap">{{ e.timestamp|date:"d M Y H:i:s" }}</td><td>{{ e.actor_name }}</td>
+        <td><strong>{{ e.get_action_display }}</strong>{% if show_subject %} <span class="muted">{{ e.subject }}</span>{% endif %}
+          {% for k, v in e.change_lines %}<div><span class="muted">{{ k }}:</span> {{ v|truncatechars:300 }}</div>{% endfor %}
+          {% if e.comment %}<div><em>“{{ e.comment }}”</em></div>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="3" class="muted">No events.</td></tr>{% endfor %}
+  </table>
+</div>

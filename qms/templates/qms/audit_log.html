@@ -1,0 +1,19 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}Audit trail – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>Audit trail</h1>
+  <a class="btn secondary" href="{% url 'qms:audit_export' %}">Export all (CSV)</a>
+</div>
+<p class="muted small">Integrity: {% if chain_ok %}<span class="badge done">hash chain intact</span>{% else %}<span class="badge bad">tampering detected at event {{ bad_id }}</span>{% endif %} · Showing the latest 300 events.</p>
+<form method="get" class="panel filters">
+  <div><span class="label-row"><label for="f-kind">Show</label>{% help_for "auditfilter" "kind" %}</span><select name="kind" id="f-kind">
+    <option value="" {% if not kind %}selected{% endif %}>All events</option>
+    <option value="security" {% if kind == "security" %}selected{% endif %}>Security (logins, roles, SSO)</option>
+    <option value="signatures" {% if kind == "signatures" %}selected{% endif %}>Signatures</option></select></div>
+  <div><span class="label-row"><label for="f-q">Search</label>{% help_for "auditfilter" "q" %}</span><input name="q" id="f-q" value="{{ q }}" placeholder="Ref or user"></div>
+  <div><button class="btn">Filter</button></div>
+</form>
+{% include "qms/_audit.html" with show_subject=True %}
+{% endblock %}

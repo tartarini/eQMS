@@ -1,0 +1,111 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}{{ device.name }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small">Medical device · {{ device.code }}</p>
+<h1>{{ device.name }}</h1>
+<p class="small muted">{{ device.get_classification_display }} · Software safety {{ device.get_software_safety_class_display|default:"class not set" }} · Version {{ device.current_version|default:"—" }} · {{ device.get_regulatory_status_display }}{% if device.markets %} · {{ device.markets }}{% endif %}</p>
+
+<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(300px,1fr)">
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Regulatory particulars</h2>
+        {% if is_qa %}<a class="btn secondary" href="{% url 'qms:device_edit' device.code %}">Edit</a>{% endif %}
+      </div>
+      <table>
+        <tr><th style="width:32%">Intended purpose</th><td style="white-space:pre-wrap">{{ device.intended_purpose|default:"—" }}</td></tr>
+        <tr><th>Intended users</th><td style="white-space:pre-wrap">{{ device.intended_users|default:"—" }}</td></tr>
+        <tr><th>Patient population</th><td style="white-space:pre-wrap">{{ device.patient_population|default:"—" }}</td></tr>
+        <tr><th>Classification rationale</th><td style="white-space:pre-wrap">{{ device.classification_rule|default:"—" }}</td></tr>
+        <tr><th>Software items</th><td>{% for i in device.software_item_list %}{{ i }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">None listed. QA can add them under Edit.</span>{% endfor %}</td></tr>
+        <tr><th>Basic UDI-DI</th><td>{{ device.basic_udi_di|default:"—" }}</td></tr>
+        <tr><th>Manufacturer</th><td style="white-space:pre-wrap">{{ device.manufacturer|default:"—" }}</td></tr>
+        <tr><th>Owner</th><td>{{ device.owner|default:"—" }}</td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Team</h2>
+      <p class="small muted">Only team members, and people with All-device access, can see or act on this device's records, risks, documents and technical files. People can be on several teams.</p>
+      <table>
+        <tr><th>Person</th><th>Roles</th><th>Responsibility</th><th></th></tr>
+        {% for m in team %}
+        <tr><td>{{ m.user.get_full_name|default:m.user.username }}</td>
+          <td class="small">{% for g in m.user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+          <td class="small">{{ m.note|default:"—" }}</td>
+          <td style="width:1%">{% if can_manage_team %}<form method="post" action="{% url 'qms:team_remove' m.pk %}">{% csrf_token %}<button class="btn secondary" style="padding:2px 8px">Remove</button></form>{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No team members yet.</td></tr>{% endfor %}
+      </table>
+      {% if can_manage_team %}
+      <form method="post" action="{% url 'qms:team_add' device.code %}" class="filters" style="margin-top:10px">
+        {% csrf_token %}
+        <div><span class="label-row"><label for="{{ team_form.user.id_for_label }}">Person</label>{% help_icon team_form.user %}</span>{{ team_form.user }}</div>
+        <div style="flex:1;min-width:180px"><span class="label-row"><label for="{{ team_form.note.id_for_label }}">Responsibility (optional)</label>{% help_icon team_form.note %}</span>{{ team_form.note }}</div>
+        <div><button class="btn secondary">Add to team</button></div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Quality records</h2>
+      <table>
+        <tr><th>Type</th><th>Open</th><th>Total</th></tr>
+        {% for label, open, total, t in counts %}<tr><td>{{ label }}</td><td>{{ open }}</td><td>{{ total }}</td></tr>{% endfor %}
+      </table>
+      <p class="small">{{ data.hazards|length }} active hazard(s) · {{ data.soup|length }} SOUP item(s) · {{ data.pms_open|length }} scheduled PMS activit{{ data.pms_open|length|pluralize:"y,ies" }}</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Technical file contents</h2>
+      <p class="small muted">Effective documents tagged with a technical file section, for this device or QMS-wide. Tag a document on its edit page.</p>
+      <table>
+        {% for code, label, versions in sections %}
+        <tr><th style="width:42%">{{ label }}</th>
+          <td>{% for v in versions %}<a href="{% url 'qms:document_detail' v.document.number %}">{{ v.document.number }}</a> {{ v.document.title }} v{{ v.version }}<br>{% empty %}<span class="muted">—</span>{% endfor %}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    {% include "qms/_audit.html" with show_subject=True %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2 style="margin-top:0">Technical file</h2>
+      <p class="small">
+        {% if errors %}<span class="badge bad">{{ errors|length }} error{{ errors|length|pluralize }}</span>{% endif %}
+        {% if warnings %}<span class="badge warn">{{ warnings|length }} warning{{ warnings|length|pluralize }}</span>{% endif %}
+        {% if not errors and not warnings %}<span class="badge done">complete</span>{% endif %}
+      </p>
+      {% if errors %}<p class="small"><strong>Must fix before approval</strong></p><ul class="blockers">{% for c in errors %}<li>§{{ c.section }}: {{ c.message }}</li>{% endfor %}</ul>{% endif %}
+      {% if warnings %}<details><summary class="small"><strong>Warnings</strong></summary><ul class="small" style="padding-left:18px">{% for c in warnings %}<li>§{{ c.section }}: {{ c.message }}</li>{% endfor %}</ul></details>{% endif %}
+      <div class="actions" style="margin-top:12px">
+        <a class="btn secondary" href="{% url 'qms:techfile_preview' device.code %}" target="_blank" rel="noopener">Preview</a>
+        <form method="post" action="{% url 'qms:techfile_generate' device.code %}">{% csrf_token %}<button class="btn">Generate package</button></form>
+      </div>
+      <p class="helptext">The package is a ZIP with the technical file (Word and HTML), CSV registers, every effective document file and a checksummed manifest. Each build is frozen; QA approves it with a signature.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Builds</h2>
+      {% for b in builds %}
+      <div class="transition">
+        <strong><a href="{% url 'qms:techfile_download' b.pk %}">{{ b.label }}</a></strong>
+        <span class="badge {% if b.status == 'approved' %}done{% endif %}">{{ b.get_status_display }}</span>
+        <div class="small muted">{{ b.generated_at|date:"d M Y H:i" }} by {{ b.generated_by }} · v{{ b.software_version|default:"—" }} · {{ b.size|filesizeformat }}<br>
+          {{ b.error_count }} error(s), {{ b.warning_count }} warning(s) · <code title="SHA-256 {{ b.sha256 }}">{{ b.sha256|truncatechars:14 }}</code></div>
+        {% if b.status == "generated" and is_qa %}
+        <details class="action"><summary>Approve <span class="badge warn">signature</span></summary>
+          <form method="post" action="{% url 'qms:techfile_approve' b.pk %}">{% csrf_token %}
+            <p><span class="label-row"><label for="tc-{{ b.pk }}">Comment{% if b.warning_count %} (required: why the warnings are acceptable){% endif %}</label>{% help_for "sign" "comment" %}</span><textarea name="comment" rows="2" id="tc-{{ b.pk }}"></textarea></p>
+            <p><span class="label-row"><label for="tp-{{ b.pk }}">Password or signing PIN</label>{% help_for "sign" "password" %}</span><input type="password" name="password" id="tp-{{ b.pk }}" autocomplete="current-password"></p>
+            <button class="btn">Approve and sign</button></form></details>
+        {% endif %}
+      </div>
+      {% empty %}<p class="muted small">No builds yet.</p>{% endfor %}
+    </div>
+    {% include "qms/_signatures.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "qms/base.html" %}
+{% block title %}Documents – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>Controlled documents</h1>
+  <div><a class="btn" href="{% url 'qms:document_create' %}">New document</a>
+    <a class="btn secondary" href="{% url 'qms:training_matrix' %}">Training matrix</a></div>
+</div>
+<p class="small"><a href="?show=current">Current</a> · <a href="?show=all">Include obsolete</a></p>
+<div class="panel">
+<table>
+  <tr><th>Number</th><th>Title</th><th>Applies to</th><th>Effective</th><th>In progress</th><th>Owner</th><th>Next review</th></tr>
+  {% for d in documents %}
+  {% with eff=d.effective_version open=d.open_version %}
+  <tr>
+    <td><a href="{% url 'qms:document_detail' d.number %}">{{ d.number }}</a></td>
+    <td>{{ d.title }}{% if d.obsolete %} <span class="badge">obsolete</span>{% endif %}{% if d.tech_file_section %}<br><span class="small muted">Tech file: {{ d.get_tech_file_section_display }}</span>{% endif %}</td>
+    <td class="small">{{ d.device.code|default:"All devices" }}</td>
+    <td>{% if eff %}v{{ eff.version }} <span class="muted small">since {{ eff.effective_date|date:"d M Y" }}</span>{% else %}—{% endif %}</td>
+    <td>{% if open %}v{{ open.version }} <span class="badge warn">{{ open.get_status_display }}</span>{% else %}—{% endif %}</td>
+    <td>{{ d.owner|default:"—" }}</td>
+    <td>{% if d.next_review_date %}{% if d.review_overdue %}<span class="badge bad">{{ d.next_review_date|date:"d M Y" }}</span>{% else %}{{ d.next_review_date|date:"d M Y" }}{% endif %}{% else %}—{% endif %}</td>
+  </tr>
+  {% endwith %}
+  {% empty %}<tr><td colspan="7" class="muted">No documents yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

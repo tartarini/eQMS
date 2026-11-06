@@ -1,0 +1,116 @@
+# Production stack for a single Linux server: Caddy (HTTPS), app (gunicorn), scheduler
+# (daily jobs and backups) and PostgreSQL. Installed to /opt/samd_qms by Ansible, which also
+# writes .env (values substituted below) and app.env (application settings and secrets).
+#
+#   docker compose -f compose.prod.yaml up -d
+#
+# The database is on an internal network with no route out and no published port.
+name: samd_qms
+
+x-app: &app
+  image: ${QMS_IMAGE:?set QMS_IMAGE}:${QMS_VERSION:?set QMS_VERSION}
+  env_file: app.env
+  environment:
+    DATABASE_URL: postgres://qms:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/qms
+    QMS_VERSION: ${QMS_VERSION}
+    DJANGO_ALLOWED_HOSTS: ${QMS_DOMAIN:?set QMS_DOMAIN},app,127.0.0.1,localhost
+    DJANGO_CSRF_TRUSTED_ORIGINS: https://${QMS_DOMAIN}
+    QMS_BASE_URL: https://${QMS_DOMAIN}
+    DJANGO_DEBUG: "0"
+    QMS_MIGRATE_ON_START: "0"
+  volumes:
+    - media:/data/media
+    - ${BACKUP_HOST_DIR:-/var/backups/samd_qms}:/backups
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+  networks:
+    - backend
+    - web
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "10"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: qms
+      POSTGRES_USER: qms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qms -d qms"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    shm_size: 256mb
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  app:
+    <<: *app
+    # Health check comes from the image (GET /healthz).
+
+  scheduler:
+    <<: *app
+    command: ["python", "manage.py", "run_scheduler"]
+    healthcheck:
+      disable: true
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      QMS_DOMAIN: ${QMS_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - web
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "10"
+
+networks:
+  backend:
+    internal: true     # database traffic only; no internet access
+  web:                 # Caddy <-> app, and the app's outbound email and SSO calls
+
+volumes:
+  pgdata:
+  media:
+  caddy_data:          # TLS certificates; back up with the server
+  caddy_config:

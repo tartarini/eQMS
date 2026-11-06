@@ -1,0 +1,41 @@
+{% extends "qms/base.html" %}
+{% block title %}{{ s.name }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small">Supplier · {{ s.get_category_display }}</p>
+<h1>{{ s.name }}</h1>
+<p class="small muted"><span class="badge {% if s.status == 'approved' %}done{% elif s.status == 'disqualified' %}bad{% elif s.status == 'conditional' %}warn{% endif %}">{{ s.get_status_display }}</span>
+  · Last evaluated {{ s.last_evaluated|date:"d M Y"|default:"never" }}
+  {% if s.next_evaluation %}· Next {% if s.evaluation_overdue %}<span class="badge bad">{{ s.next_evaluation|date:"d M Y" }}</span>{% else %}{{ s.next_evaluation|date:"d M Y" }}{% endif %}{% endif %}</p>
+
+<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Details</h2><a class="btn secondary" href="{% url 'qms:supplier_edit' s.pk %}">Edit</a>
+      </div>
+      <table>
+        <tr><th style="width:35%">Criticality</th><td>{{ s.get_criticality_display }}</td></tr>
+        <tr><th>Scope</th><td style="white-space:pre-wrap">{{ s.scope }}</td></tr>
+        <tr><th>Contact</th><td>{{ s.contact|default:"—" }}</td></tr>
+        <tr><th>Re-evaluate every</th><td>{{ s.evaluation_interval_months }} months</td></tr>
+        <tr><th>Notes</th><td style="white-space:pre-wrap">{{ s.notes|default:"—" }}</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">SOUP items</h2><a class="btn secondary" href="{% url 'qms:soup_create' %}?supplier={{ s.pk }}">Add SOUP item</a>
+      </div>
+      {% for i in soup %}<p><a href="{% url 'qms:soup_edit' i.pk %}">{{ i }}</a> <span class="small muted">{{ i.software_item }}</span></p>
+      {% empty %}<p class="muted">None.</p>{% endfor %}
+    </div>
+    {% include "qms/_audit.html" %}
+  </div>
+  <div>
+    <div class="panel">
+      <h2 style="margin-top:0">Evaluate <span class="badge warn">signature</span></h2>
+      <form method="post" action="{% url 'qms:supplier_evaluate' s.pk %}">{% csrf_token %}{{ eval_form.as_p }}<button class="btn">Record evaluation</button></form>
+    </div>
+    {% include "qms/_signatures.html" %}
+  </div>
+</div>
+{% endblock %}

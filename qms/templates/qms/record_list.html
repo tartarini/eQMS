@@ -1,0 +1,32 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block content %}
+<h1>Records</h1>
+<form method="get" class="panel filters">
+  <div><span class="label-row"><label for="f-type">Type</label>{% help_for "recordfilter" "type" %}</span><select name="type" id="f-type"><option value="">All</option>
+    {% for code, label in record_types %}<option value="{{ code }}" {% if code == record_type %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  <div><span class="label-row"><label for="f-status">Status</label>{% help_for "recordfilter" "status" %}</span><select name="status" id="f-status">
+    <option value="open" {% if status == "open" %}selected{% endif %}>Open</option>
+    <option value="closed" {% if status == "closed" %}selected{% endif %}>Closed / rejected</option>
+    <option value="all" {% if status == "all" %}selected{% endif %}>All</option></select></div>
+  <div><span class="label-row"><label for="f-q">Search</label>{% help_for "recordfilter" "q" %}</span><input name="q" id="f-q" value="{{ q }}" placeholder="Ref or text"></div>
+  <div><button class="btn">Filter</button></div>
+</form>
+<div class="panel">
+<table>
+  <tr><th>Ref</th><th>Device</th><th>Title</th><th>Type</th><th>Status</th><th>Owner</th><th>Due</th><th>Updated</th></tr>
+  {% for r in records %}
+  <tr>
+    <td><a href="{% url 'qms:record_detail' r.ref %}">{{ r.ref }}</a></td>
+    <td class="small">{{ r.device.code }}</td>
+    <td>{{ r.title }}{% if r.patient_safety_impact == "yes" %} <span class="badge warn">safety</span>{% endif %}</td>
+    <td>{{ r.type_label }}</td>
+    <td><span class="badge {% if r.is_locked %}done{% endif %}">{{ r.get_status_display }}</span></td>
+    <td>{{ r.owner|default:"—" }}</td>
+    <td>{% if r.next_deadline %}{% if r.is_overdue %}<span class="badge bad">{{ r.next_deadline|date:"d M Y" }}</span>{% else %}{{ r.next_deadline|date:"d M Y" }}{% endif %}{% else %}—{% endif %}</td>
+    <td class="small muted">{{ r.updated_at|date:"d M Y H:i" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="muted">No records match.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

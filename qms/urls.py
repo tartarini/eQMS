@@ -1,0 +1,77 @@
+from django.urls import path
+
+from . import views, views_devices, views_docs, views_help, views_risk
+
+app_name = "qms"
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    # Quality records
+    path("records/", views.record_list, name="record_list"),
+    path("records/new/<str:record_type>/", views.record_create, name="record_create"),
+    path("records/<str:ref>/", views.record_detail, name="record_detail"),
+    path("records/<str:ref>/edit/", views.record_edit, name="record_edit"),
+    path("records/<str:ref>/transition/<str:name>/", views.record_transition,
+         name="record_transition"),
+    path("records/<str:ref>/link/", views.record_link, name="record_link"),
+    path("records/<str:ref>/unlink/<int:link_id>/", views.record_unlink, name="record_unlink"),
+    path("records/<str:ref>/attach/", views.record_attach, name="record_attach"),
+    path("records/<str:ref>/audit.csv", views.audit_export, name="record_audit_export"),
+    path("attachments/<int:pk>/", views.attachment_download, name="attachment_download"),
+    # Document control and training
+    path("documents/", views_docs.document_list, name="document_list"),
+    path("documents/new/", views_docs.document_create, name="document_create"),
+    path("documents/<str:number>/", views_docs.document_detail, name="document_detail"),
+    path("documents/<str:number>/edit/", views_docs.document_edit, name="document_edit"),
+    path("documents/<str:number>/new-version/", views_docs.version_create, name="version_create"),
+    path("documents/<str:number>/obsolete/", views_docs.document_obsolete,
+         name="document_obsolete"),
+    path("documents/<str:number>/training/", views_docs.requirement_add, name="requirement_add"),
+    path("versions/<int:pk>/edit/", views_docs.version_edit, name="version_edit"),
+    path("versions/<int:pk>/download/", views_docs.version_download, name="version_download"),
+    path("versions/<int:pk>/<str:action>/", views_docs.version_action, name="version_action"),
+    path("training-requirements/<int:pk>/remove/", views_docs.requirement_remove,
+         name="requirement_remove"),
+    path("training/", views_docs.my_training, name="my_training"),
+    path("training/<int:pk>/complete/", views_docs.training_complete, name="training_complete"),
+    path("training/matrix/", views_docs.training_matrix, name="training_matrix"),
+    # Risk management
+    path("risk/", views_risk.hazard_list, name="hazard_list"),
+    path("risk/new/", views_risk.hazard_create, name="hazard_create"),
+    path("risk/<str:ref>/", views_risk.hazard_detail, name="hazard_detail"),
+    path("risk/<str:ref>/edit/", views_risk.hazard_edit, name="hazard_edit"),
+    path("risk/<str:ref>/controls/new/", views_risk.control_add, name="control_add"),
+    path("risk/<str:ref>/<str:action>/", views_risk.hazard_action, name="hazard_action"),
+    path("controls/<int:pk>/edit/", views_risk.control_edit, name="control_edit"),
+    # Suppliers and SOUP
+    path("suppliers/", views_risk.supplier_list, name="supplier_list"),
+    path("suppliers/new/", views_risk.supplier_create, name="supplier_create"),
+    path("suppliers/<int:pk>/", views_risk.supplier_detail, name="supplier_detail"),
+    path("suppliers/<int:pk>/edit/", views_risk.supplier_edit, name="supplier_edit"),
+    path("suppliers/<int:pk>/evaluate/", views_risk.supplier_evaluate, name="supplier_evaluate"),
+    path("soup/new/", views_risk.soup_create, name="soup_create"),
+    path("soup/<int:pk>/edit/", views_risk.soup_edit, name="soup_edit"),
+    # Devices and technical files
+    path("devices/", views_devices.device_list, name="device_list"),
+    path("devices/new/", views_devices.device_create, name="device_create"),
+    path("devices/select/", views_devices.set_device, name="set_device"),
+    path("devices/<str:code>/", views_devices.device_detail, name="device_detail"),
+    path("devices/<str:code>/edit/", views_devices.device_edit, name="device_edit"),
+    path("devices/<str:code>/team/add/", views_devices.team_add, name="team_add"),
+    path("team/<int:pk>/remove/", views_devices.team_remove, name="team_remove"),
+    path("devices/<str:code>/technical-file/preview/", views_devices.techfile_preview,
+         name="techfile_preview"),
+    path("devices/<str:code>/technical-file/generate/", views_devices.techfile_generate,
+         name="techfile_generate"),
+    path("technical-files/<int:pk>/download/", views_devices.techfile_download,
+         name="techfile_download"),
+    path("technical-files/<int:pk>/approve/", views_devices.techfile_approve,
+         name="techfile_approve"),
+    # Audit and account
+    path("audit/", views.audit_log, name="audit_log"),
+    path("audit.csv", views.audit_export, name="audit_export"),
+    path("account/signing-pin/", views.signing_pin, name="signing_pin"),
+    # Help (no login needed; contains no QMS data)
+    path("help/", views_help.help_index, name="help_index"),
+    path("help/<slug:topic>/", views_help.help_topic, name="help_topic"),
+]

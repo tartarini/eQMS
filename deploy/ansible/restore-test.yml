@@ -1,0 +1,79 @@
+# Prove the latest backup can be restored (validation step IQ-08; repeat quarterly).
+#
+#   ansible-playbook restore-test.yml --limit production
+#
+# Restores the newest backup into a throwaway PostgreSQL container and scratch file folder
+# on the same server, checks file checksums, the audit chain and the latest audit hash, then
+# removes everything it created. Production data and containers are not touched.
+- name: Restore test of the latest SAMD_QMS backup
+  hosts: qms
+  become: true
+  become_user: "{{ deploy_user }}"
+  gather_facts: false
+
+  vars:
+    net: samd_qms_restore_test
+    pg: samd_qms_restore_db
+    pw: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=32) }}"
+    image: "{{ qms_image }}:{{ qms_version }}"
+
+  tasks:
+    - name: Find the newest complete backup
+      ansible.builtin.shell: >
+        set -o pipefail &&
+        find {{ backup_host_dir }} -mindepth 1 -maxdepth 1 -type d -name '20*' ! -name '*.partial'
+        | sort | tail -1
+      args:
+        executable: /bin/bash
+      register: newest
+      changed_when: false
+      failed_when: newest.stdout == ""
+
+    - name: Run the restore test
+      block:
+        - name: Create a private network
+          ansible.builtin.command: "docker network create --internal {{ net }}"
+          changed_when: true
+
+        - name: Start a scratch PostgreSQL
+          ansible.builtin.command: >
+            docker run -d --name {{ pg }} --network {{ net }}
+            -e POSTGRES_DB=qms -e POSTGRES_USER=qms -e POSTGRES_PASSWORD={{ pw }}
+            --health-cmd "pg_isready -U qms -d qms" --health-interval 2s postgres:16-alpine
+          changed_when: true
+          no_log: true
+
+        - name: Wait for it to accept connections
+          ansible.builtin.command: "docker inspect -f '{{ '{{' }}.State.Health.Status{{ '}}' }}' {{ pg }}"
+          register: pg_health
+          until: pg_health.stdout == 'healthy'
+          retries: 30
+          delay: 2
+          changed_when: false
+
+        - name: Restore and verify
+          ansible.builtin.command: >
+            docker run --rm --network {{ net }}
+            -e DATABASE_URL=postgres://qms:{{ pw }}@{{ pg }}:5432/qms
+            -e DJANGO_SECRET_KEY=restore-test-only -e DJANGO_DEBUG=0
+            -e DJANGO_MEDIA_ROOT=/tmp/restored_media
+            -v {{ backup_host_dir }}:/backups:ro
+            --entrypoint /app/deploy/scripts/restore.sh
+            {{ image }} /backups/{{ newest.stdout | basename }}
+          register: restore
+          changed_when: false
+
+        - name: Result
+          ansible.builtin.debug:
+            msg: "{{ restore.stdout_lines | last }} (backup {{ newest.stdout | basename }})"
+
+      always:
+        - name: Remove the scratch database
+          ansible.builtin.command: "docker rm -f -v {{ pg }}"
+          changed_when: true
+          failed_when: false
+
+        - name: Remove the private network
+          ansible.builtin.command: "docker network rm {{ net }}"
+          changed_when: true
+          failed_when: false

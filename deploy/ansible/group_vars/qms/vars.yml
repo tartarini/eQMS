@@ -1,0 +1,41 @@
+# Non-secret settings for every SAMD_QMS server. Override per environment in
+# host_vars/<host>.yml or group_vars/production/, group_vars/staging/.
+# Secrets live in vault.yml (encrypted with ansible-vault): see vault.example.yml.
+
+# --- release ---------------------------------------------------------------------
+qms_image: ghcr.io/YOUR-ORG/samd_qms          # built and pushed by CI
+qms_version: "1.0.0"                           # the validated release to run (image tag)
+
+# --- site ------------------------------------------------------------------------
+qms_domain: "{{ inventory_hostname }}"         # DNS must point here before first deploy
+acme_email: it-ops@example.org                 # Let's Encrypt account / expiry notices
+qms_sso_allowed_domains: example.org
+
+# --- email -----------------------------------------------------------------------
+smtp_host: smtp.example.org
+smtp_port: 587
+smtp_user: samd-qms@example.org
+smtp_tls: true
+from_email: samd-qms@example.org
+alert_emails: it-ops@example.org,qa@example.org
+
+# --- single sign-on: client ids here, secrets in the vault; leave blank to disable --
+sso_microsoft_client_id: ""
+sso_microsoft_tenant: organizations            # or your tenant id to allow only your org
+sso_google_client_id: ""
+sso_github_client_id: ""
+sso_orcid_client_id: ""
+sso_linkedin_client_id: ""
+
+# --- server ----------------------------------------------------------------------
+qms_dir: /opt/samd_qms
+backup_host_dir: /var/backups/samd_qms
+backup_retention_days: 30
+gunicorn_workers: 3
+deploy_user: qmsdeploy                         # owns /opt/samd_qms; member of docker group
+admin_ssh_keys: []                             # public keys allowed to log in as deploy_user
+ssh_port: 22
+
+# Optional off-site copy of /var/backups/samd_qms with rsync over SSH, nightly at 04:15 UTC.
+# Leave empty to disable. The target host must accept deploy_user's SSH key.
+backup_offsite_target: ""                      # e.g. backup@backup.example.org:/srv/samd_qms/

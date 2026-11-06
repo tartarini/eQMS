@@ -1,0 +1,23 @@
+# Secrets. Copy to vault.yml, fill in, then encrypt:
+#
+#   cp vault.example.yml group_vars/qms/vault.yml
+#   ansible-vault encrypt group_vars/qms/vault.yml   # uses ~/.samd_qms_vault_pass (see ansible.cfg)
+#
+# Generate random values with:  python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+# The database password must be letters, digits, - or _ only (it is placed in a URL).
+
+vault_django_secret_key: "CHANGE-ME"
+vault_postgres_password: "CHANGE-ME"
+vault_smtp_password: "CHANGE-ME"
+
+# Registry token able to pull the image (GitHub: a fine-grained token with read:packages).
+# Leave empty if the image is public.
+vault_registry_user: ""
+vault_registry_token: ""
+
+# Single sign-on client secrets (only for providers whose client id is set in vars.yml)
+vault_sso_microsoft_secret: ""
+vault_sso_google_secret: ""
+vault_sso_github_secret: ""
+vault_sso_orcid_secret: ""
+vault_sso_linkedin_secret: ""

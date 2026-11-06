@@ -1,0 +1,72 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}{{ h.ref }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small"><a href="{% url 'qms:device_detail' h.device.code %}">{{ h.device.name }}</a> · Hazard</p>
+<h1>{{ h.ref }} · {{ h.title }}</h1>
+<p class="small muted">Owner: {{ h.owner|default:"unassigned" }} · <span class="badge {% if h.status == 'accepted' %}done{% endif %}">{{ h.get_status_display }}</span></p>
+
+<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Analysis</h2>
+        {% if not h.is_locked %}<a class="btn secondary" href="{% url 'qms:hazard_edit' h.ref %}">Edit</a>{% endif %}
+      </div>
+      <table>
+        <tr><th style="width:35%">Hazard</th><td style="white-space:pre-wrap">{{ h.hazard }}</td></tr>
+        <tr><th>Sequence of events</th><td style="white-space:pre-wrap">{{ h.cause|default:"—" }}</td></tr>
+        <tr><th>Hazardous situation</th><td style="white-space:pre-wrap">{{ h.hazardous_situation|default:"—" }}</td></tr>
+        <tr><th>Harm</th><td style="white-space:pre-wrap">{{ h.harm }}</td></tr>
+        <tr><th>Software item</th><td>{{ h.software_item|default:"—" }}</td></tr>
+        <tr><th>Initial risk</th><td>S{{ h.severity_initial }} × P{{ h.probability_initial }} = <span class="badge lvl-{{ h.initial_level }}">{{ h.initial_score }} {{ h.initial_level_label }}</span></td></tr>
+        <tr><th>Residual risk</th><td>{% if h.residual_score %}S{{ h.severity_residual }} × P{{ h.probability_residual }} = <span class="badge lvl-{{ h.residual_level }}">{{ h.residual_score }} {{ h.residual_level_label }}</span>{% else %}Not scored{% endif %}</td></tr>
+        <tr><th>Benefit-risk rationale</th><td style="white-space:pre-wrap">{{ h.benefit_risk_rationale|default:"—" }}</td></tr>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Risk controls</h2>
+        {% if not h.is_locked %}<a class="btn secondary" href="{% url 'qms:control_add' h.ref %}">Add control</a>{% endif %}
+      </div>
+      <table>
+        <tr><th>Control</th><th>Type</th><th>Implemented by</th><th>Verified</th></tr>
+        {% for c in controls %}
+        <tr><td style="white-space:pre-wrap">{{ c.description }}{% if not h.is_locked %} <a class="small" href="{% url 'qms:control_edit' c.pk %}">edit</a>{% endif %}</td>
+          <td class="small">{{ c.get_control_type_display }}</td>
+          <td class="small">{% if c.implemented_by %}<a href="{% url 'qms:record_detail' c.implemented_by.ref %}">{{ c.implemented_by.ref }}</a>{% else %}—{% endif %}</td>
+          <td class="small">{% if c.verified %}<span class="badge done">yes</span><br>{{ c.verification_evidence|urlize }}{% else %}<span class="badge warn">no</span>{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No controls yet.</td></tr>{% endfor %}
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Linked quality records</h2>
+      {% for r in records %}<p><a href="{% url 'qms:record_detail' r.ref %}">{{ r.ref }}</a> {{ r.title }} <span class="badge">{{ r.get_status_display }}</span></p>
+      {% empty %}<p class="muted">None. Link hazards from a Problem Report, Incident, CAPA or Change Request.</p>{% endfor %}
+    </div>
+
+    {% include "qms/_audit.html" with show_subject=True %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2 style="margin-top:0">Next steps</h2>
+      {% if h.status == "open" %}
+        <strong>Accept residual risk</strong> <span class="badge warn">signature</span>
+        {% if blockers %}<ul class="blockers">{% for b in blockers %}<li>{{ b }}</li>{% endfor %}</ul>
+        {% else %}<form method="post" action="{% url 'qms:hazard_action' h.ref 'accept' %}" style="margin-top:8px">{% csrf_token %}{{ sign_form.as_p }}<button class="btn">Accept and sign</button></form>{% endif %}
+      {% else %}
+        <details class="action" open><summary>Reopen for changes</summary>
+          <form method="post" action="{% url 'qms:hazard_action' h.ref 'reopen' %}">{% csrf_token %}<p><span class="label-row"><label for="ro-{{ h.pk }}">Reason</label>{% help_for "sign" "comment" %}</span><textarea name="comment" rows="2" id="ro-{{ h.pk }}"></textarea></p><button class="btn secondary">Reopen</button></form></details>
+      {% endif %}
+      {% if h.status != "retired" %}
+      <details class="action"><summary>Retire hazard <span class="badge warn">signature</span></summary>
+        <form method="post" action="{% url 'qms:hazard_action' h.ref 'retire' %}">{% csrf_token %}{{ sign_form.as_p }}<button class="btn secondary">Retire</button></form></details>
+      {% endif %}
+    </div>
+    {% include "qms/_signatures.html" %}
+  </div>
+</div>
+{% endblock %}

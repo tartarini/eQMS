@@ -1,0 +1,54 @@
+{% extends "qms/base.html" %}
+{% load socialaccount qms_help %}
+{% comment %}Replaces allauth's "Account Connections" page: QMS wording, POST buttons, and an
+explanation when no sign-in provider is switched on.{% endcomment %}
+{% block title %}Connected accounts – SAMD_QMS{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:640px;margin:20px auto">
+  <h1>Connected accounts</h1>
+  <p class="muted small">Sign in with an account you already have elsewhere (Google, Microsoft,
+    LinkedIn, ORCID or GitHub) instead of your SAMD_QMS password. Connecting an account gives
+    no extra access: your role and device teams still decide what you can see.</p>
+
+  <h2 class="label-row">Connected {% help_for "connections" "account" %}</h2>
+  {% if form.accounts %}
+  <form method="post" action="{% url 'socialaccount_connections' %}">
+    {% csrf_token %}
+    {% for account in form.accounts %}
+    <p><label><input type="radio" name="account" value="{{ account.pk }}" required>
+      {% with provider=account.get_provider %}{% if provider.id == "orcid" %}ORCID{% else %}{{ provider.name }}{% endif %}{% endwith %}:
+      {{ account.get_provider_account }}</label></p>
+    {% endfor %}
+    {{ form.non_field_errors }}
+    <button class="btn secondary" type="submit">Remove selected</button>
+  </form>
+  {% else %}
+  <p>No accounts connected yet.</p>
+  {% endif %}
+
+  <h2>Connect another account</h2>
+  {% get_providers as providers %}
+  {% if providers %}
+  <div class="sso">
+    {% for provider in providers %}
+    <form method="post" action="{% provider_login_url provider process='connect' %}">
+      {% csrf_token %}
+      <button class="btn secondary" type="submit">Connect {% if provider.id == "orcid" %}ORCID{% else %}{{ provider.name }}{% endif %}</button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="helptext">You will be sent to the provider to sign in, then brought back here.</p>
+  {% else %}
+  <p>No sign-in providers are switched on for this site, so there is nothing to connect yet.</p>
+  {% if user.is_superuser %}
+  <p class="helptext">Administrators: register an app with each provider and set its
+    <code>SSO_&lt;PROVIDER&gt;_CLIENT_ID</code> and <code>SSO_&lt;PROVIDER&gt;_SECRET</code> environment
+    variables (in production, the SSO client ids in Ansible <code>vars.yml</code> and the secrets in
+    the vault), then restart. The README's "Single sign-on" section lists the variables and
+    redirect URLs for each provider.</p>
+  {% else %}
+  <p class="helptext">Ask your SAMD_QMS administrator if you would like to use single sign-on.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

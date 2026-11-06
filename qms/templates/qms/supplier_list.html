@@ -1,0 +1,38 @@
+{% extends "qms/base.html" %}
+{% block title %}Suppliers – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>Approved supplier list</h1>
+  <a class="btn" href="{% url 'qms:supplier_create' %}">New supplier</a>
+</div>
+<div class="panel">
+<table>
+  <tr><th>Supplier</th><th>Category</th><th>Criticality</th><th>Status</th><th>Next evaluation</th></tr>
+  {% for s in suppliers %}
+  <tr><td><a href="{% url 'qms:supplier_detail' s.pk %}">{{ s.name }}</a></td>
+    <td class="small">{{ s.get_category_display }}</td><td class="small">{{ s.get_criticality_display }}</td>
+    <td><span class="badge {% if s.status == 'approved' %}done{% elif s.status == 'disqualified' %}bad{% elif s.status == 'conditional' %}warn{% endif %}">{{ s.get_status_display }}</span></td>
+    <td>{% if s.evaluation_overdue %}<span class="badge bad">{{ s.next_evaluation|date:"d M Y"|default:"not evaluated" }}</span>{% else %}{{ s.next_evaluation|date:"d M Y"|default:"—" }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No suppliers yet.</td></tr>{% endfor %}
+</table>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1 style="margin-top:24px">SOUP list</h1>
+  <a class="btn" href="{% url 'qms:soup_create' %}">New SOUP item</a>
+</div>
+<p class="muted small">Software of unknown provenance (IEC 62304 §8.1.2). Review published anomalies at least every {{ soup_days|default:"35" }} days; the monthly SOUP PMS activity is a good moment.</p>
+<div class="panel">
+<table>
+  <tr><th>Item</th><th>Devices</th><th>Supplier</th><th>Used in</th><th>Class</th><th>Licence</th><th>Last anomaly review</th></tr>
+  {% for i in soup %}
+  <tr><td><a href="{% url 'qms:soup_edit' i.pk %}">{{ i.name }} {{ i.version }}</a>{% if not i.active %} <span class="badge">inactive</span>{% endif %}</td>
+    <td class="small">{% for d in i.devices.all %}{{ d.code }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+    <td class="small">{% if i.supplier %}<a href="{% url 'qms:supplier_detail' i.supplier.pk %}">{{ i.supplier }}</a>{% else %}—{% endif %}</td>
+    <td class="small">{{ i.software_item|default:"—" }}</td><td class="small">{{ i.safety_class|default:"—" }}</td>
+    <td class="small">{{ i.licence|default:"—" }}</td>
+    <td>{% if i.review_overdue %}<span class="badge bad">{{ i.last_anomaly_review|date:"d M Y"|default:"never" }}</span>{% else %}{{ i.last_anomaly_review|date:"d M Y" }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">No SOUP items yet.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+.env
+.venv/
+staticfiles/
+oq_evidence/
+deploy/app.env
+deploy/.env
+# Commit group_vars/qms/vault.yml only when encrypted (ansible-vault)

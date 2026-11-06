@@ -1,0 +1,112 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}{{ record.ref }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small"><a href="{% url 'qms:device_detail' record.device.code %}">{{ record.device.name }}</a> · {{ record.type_label }}</p>
+<h1>{{ record.ref }} · {{ record.title }}</h1>
+<div class="stepper">
+  {% for s, label in states %}<span class="{% if s == record.status %}current{% endif %}">{{ label }}</span>{% endfor %}
+</div>
+<p class="small muted">Created by {{ record.created_by|default:"system" }} on {{ record.created_at|date:"d M Y H:i" }} · Owner: {{ record.owner|default:"unassigned" }}
+  {% if record.next_deadline %}· Due {% if record.is_overdue %}<span class="badge bad">{{ record.next_deadline|date:"d M Y" }}</span>{% else %}{{ record.next_deadline|date:"d M Y" }}{% endif %}{% endif %}
+  {% if record.is_locked %}· <span class="badge done">locked</span>{% endif %}</p>
+
+<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Details</h2>
+        {% if not record.is_locked %}<a class="btn secondary" href="{% url 'qms:record_edit' record.ref %}">Edit</a>{% endif %}
+      </div>
+      <p style="white-space:pre-wrap">{{ record.description|default:"No description." }}</p>
+      <table>
+        {% for name, label, value in fields %}
+        <tr><th style="width:40%">{{ label }}</th><td style="white-space:pre-wrap">{% if name == "hazards" %}{% for h in value %}<a href="{% url 'qms:hazard_detail' h.ref %}">{{ h.ref }}</a> {{ h.title }}<br>{% empty %}—{% endfor %}{% else %}{{ value|default_if_none:"—"|default:"—" }}{% endif %}</td></tr>
+        {% endfor %}
+        {% if record.report_due %}<tr><th>Report due (from date aware)</th><td>{{ record.report_due|date:"d M Y" }}</td></tr>{% endif %}
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Traceability</h2>
+      <table>
+        {% for l in outgoing %}
+        <tr><td>{{ record.ref }} <em>{{ l.get_link_type_display }}</em> <a href="{% url 'qms:record_detail' l.target.ref %}">{{ l.target.ref }}</a> {{ l.target.title }}</td>
+            <td style="width:1%">{% if not record.is_locked %}<form method="post" action="{% url 'qms:record_unlink' record.ref l.id %}">{% csrf_token %}<button class="btn secondary" style="padding:2px 8px">Remove</button></form>{% endif %}</td></tr>
+        {% endfor %}
+        {% for l in incoming %}
+        <tr><td><a href="{% url 'qms:record_detail' l.source.ref %}">{{ l.source.ref }}</a> <em>{{ l.get_link_type_display }}</em> {{ record.ref }} <span class="muted small">{{ l.source.title }}</span></td><td></td></tr>
+        {% endfor %}
+        {% for v in doc_versions %}
+        <tr><td>Authorised document revision <a href="{% url 'qms:document_detail' v.document.number %}">{{ v }}</a> <span class="badge">{{ v.get_status_display }}</span></td><td></td></tr>
+        {% endfor %}
+        {% for c in risk_controls %}
+        <tr><td>Implements risk control on <a href="{% url 'qms:hazard_detail' c.hazard.ref %}">{{ c.hazard.ref }}</a>: {{ c.description|truncatechars:80 }}</td><td></td></tr>
+        {% endfor %}
+        {% if not outgoing and not incoming and not doc_versions and not risk_controls %}<tr><td class="muted">No links yet.</td></tr>{% endif %}
+      </table>
+      {% if not record.is_locked %}
+      <form method="post" action="{% url 'qms:record_link' record.ref %}" class="filters" style="margin-top:12px">
+        {% csrf_token %}
+        <div><span class="label-row"><label for="{{ link_form.link_type.id_for_label }}">{{ record.ref }}…</label>{% help_icon link_form.link_type %}</span>{{ link_form.link_type }}</div>
+        <div><span class="label-row"><label for="{{ link_form.target_ref.id_for_label }}">Record</label>{% help_icon link_form.target_ref %}</span>{{ link_form.target_ref }}</div>
+        <div><button class="btn secondary">Add link</button></div>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Attachments</h2>
+      <table class="small">
+        {% for a in record.attachments.all %}
+        <tr><td><a href="{% url 'qms:attachment_download' a.pk %}">{{ a.original_name }}</a>{% if a.description %} – {{ a.description }}{% endif %}</td>
+            <td class="muted">{{ a.size|filesizeformat }}</td>
+            <td class="muted">{{ a.uploaded_by }} · {{ a.uploaded_at|date:"d M Y" }}</td>
+            <td><code title="SHA-256 {{ a.sha256 }}">{{ a.sha256|truncatechars:14 }}</code></td></tr>
+        {% empty %}<tr><td class="muted">No files.</td></tr>{% endfor %}
+      </table>
+      {% if not record.is_locked %}
+      <form method="post" enctype="multipart/form-data" action="{% url 'qms:record_attach' record.ref %}" style="margin-top:12px">
+        {% csrf_token %}
+        <div class="filters">
+          <div><span class="label-row"><label for="{{ attachment_form.file.id_for_label }}">File</label>{% help_icon attachment_form.file %}</span>{{ attachment_form.file }}</div>
+          <div style="flex:1;min-width:200px"><span class="label-row"><label for="{{ attachment_form.description.id_for_label }}">Description</label>{% help_icon attachment_form.description %}</span>{{ attachment_form.description }}</div>
+        </div>
+        <p class="small inline-field" style="margin-top:8px"><label style="display:inline;font-weight:400">{{ attachment_form.confirm_no_participant_data }} {{ attachment_form.confirm_no_participant_data.label }}</label>{% help_icon attachment_form.confirm_no_participant_data %}</p>
+        <button class="btn secondary">Upload</button>
+        <span class="helptext">Files can't be changed or removed after upload. Each is checksummed.</span>
+      </form>
+      {% endif %}
+    </div>
+
+    {% url 'qms:record_audit_export' record.ref as export_url %}
+    {% include "qms/_audit.html" with export_url=export_url %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2 style="margin-top:0">Next steps</h2>
+      {% for opt in transitions %}
+      <div class="transition">
+        <form method="post" action="{% url 'qms:record_transition' record.ref opt.transition.name %}">
+          {% csrf_token %}
+          <strong>{{ opt.transition.label }}</strong>
+          {% if opt.transition.signature %}<span class="badge warn">signature: {{ opt.transition.signature }}</span>{% endif %}
+          {% if opt.blockers %}<ul class="blockers">{% for b in opt.blockers %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
+          {% if opt.allowed %}
+            <p style="margin-top:8px"><span class="label-row"><label for="c-{{ opt.transition.name }}">Comment{% if opt.transition.comment_required %} (required){% endif %}</label>{% help_for "sign" "comment" %}</span>
+              <textarea name="comment" rows="2" id="c-{{ opt.transition.name }}"></textarea></p>
+            {% if opt.transition.signature %}
+            <p><span class="label-row"><label for="p-{{ opt.transition.name }}">Password or signing PIN</label>{% help_for "sign" "password" %}</span><input type="password" name="password" id="p-{{ opt.transition.name }}" autocomplete="current-password">
+              <span class="helptext">By signing you confirm: {{ opt.transition.signature }}.</span></p>
+            {% endif %}
+            <button class="btn">{{ opt.transition.label }}</button>
+          {% endif %}
+        </form>
+      </div>
+      {% empty %}<p class="muted">No further steps. This record is {{ record.get_status_display|lower }}.</p>{% endfor %}
+    </div>
+    {% include "qms/_signatures.html" %}
+  </div>
+</div>
+{% endblock %}

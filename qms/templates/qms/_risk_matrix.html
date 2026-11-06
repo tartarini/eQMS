@@ -1,0 +1,9 @@
+<table class="matrix">
+  <tr><th style="text-align:left;white-space:nowrap" title="Rows: severity. Columns: probability.">S ↓ · P →</th>{% for p in "12345" %}<th style="text-align:center">{{ p }}</th>{% endfor %}</tr>
+  {% for s, cells in matrix %}
+  <tr><th>{{ s }}</th>
+    {% for p, hazards, level in cells %}
+    <td class="lvl-{{ level }}">{% for h in hazards %}<a href="{% url 'qms:hazard_detail' h.ref %}" title="{{ h.title }}">{{ h.ref|slice:"4:" }}</a>{% if not forloop.last %} {% endif %}{% empty %}<span class="muted">·</span>{% endfor %}</td>
+    {% endfor %}</tr>
+  {% endfor %}
+</table>

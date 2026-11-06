@@ -1,0 +1,27 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}My training – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>My training</h1>
+  <a class="btn secondary" href="{% url 'qms:training_matrix' %}">Training matrix</a>
+</div>
+<div class="panel">
+<table>
+  <tr><th>Document</th><th>Status</th><th>Due</th><th></th></tr>
+  {% for a in assignments %}
+  <tr>
+    <td><a href="{% url 'qms:document_detail' a.version.document.number %}">{{ a.version }}</a> {{ a.version.document.title }}
+      {% if a.version.file %}<br><a class="small" href="{% url 'qms:version_download' a.version.pk %}">Download to read</a>{% endif %}</td>
+    <td><span class="badge {% if a.status == 'completed' %}done{% elif a.status == 'overdue' %}bad{% endif %}">{{ a.status|capfirst }}</span>
+      {% if a.completed_at %}<br><span class="small muted">{{ a.completed_at|date:"d M Y" }}</span>{% endif %}</td>
+    <td>{{ a.due_date|date:"d M Y" }}</td>
+    <td style="min-width:260px">{% if not a.completed_at and a.version.status == "effective" %}
+      <form method="post" action="{% url 'qms:training_complete' a.pk %}">{% csrf_token %}
+        <span class="label-row"><label for="t-{{ a.pk }}">Password or signing PIN</label>{% help_for "sign" "password" %}</span><input type="password" name="password" id="t-{{ a.pk }}" autocomplete="current-password">
+        <button class="btn" style="margin-top:6px">I have read and understood</button></form>{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="4" class="muted">No training assigned.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

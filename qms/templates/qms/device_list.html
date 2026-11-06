@@ -1,0 +1,25 @@
+{% extends "qms/base.html" %}
+{% block title %}Devices – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>Medical devices</h1>
+  <a class="btn" href="{% url 'qms:device_create' %}">New device</a>
+</div>
+<p class="muted small">Each device has its own records, risk file, PMS schedule, SOUP list and technical file. QMS-wide procedures and training apply to all of them.</p>
+<div class="panel">
+<table>
+  <tr><th>Device</th><th>Class</th><th>Software class</th><th>Version</th><th>Status</th><th>Open records</th><th>Approved technical file</th></tr>
+  {% for d, open_counts, approved in rows %}
+  <tr>
+    <td><a href="{% url 'qms:device_detail' d.code %}">{{ d.name }}</a> <span class="muted small">{{ d.code }}</span>{% if not d.active %} <span class="badge">inactive</span>{% endif %}</td>
+    <td>{{ d.get_classification_display }}</td>
+    <td>{{ d.software_safety_class|default:"—" }}</td>
+    <td>{{ d.current_version|default:"—" }}</td>
+    <td class="small">{{ d.get_regulatory_status_display }}</td>
+    <td class="small">{% for t, n in open_counts %}{{ n }} {{ t }}{% if not forloop.last %}, {% endif %}{% empty %}none{% endfor %}</td>
+    <td>{% if approved %}<span class="badge done">{{ approved.label }}</span>{% else %}<span class="muted">none</span>{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="7" class="muted">No devices yet. Add the first one.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+# HTTPS reverse proxy. Caddy obtains and renews the TLS certificate automatically
+# (Let's Encrypt) for QMS_DOMAIN; ports 80 and 443 must be reachable from the internet.
+{
+	email {$ACME_EMAIL}
+}
+
+{$QMS_DOMAIN} {
+	encode zstd gzip
+
+	# Uploads and document files are limited to 25 MB by the app; allow a margin.
+	request_body {
+		max_size 30MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# Uploaded files are only ever served through login-protected app views.
+	@media path /media/*
+	respond @media 404
+
+	reverse_proxy app:8000 {
+		health_uri /healthz
+		health_interval 30s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -1,0 +1,94 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}{{ doc.number }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small">{{ doc.get_doc_type_display }} · {% if doc.device %}<a href="{% url 'qms:device_detail' doc.device.code %}">{{ doc.device.name }}</a>{% else %}QMS-wide{% endif %}{% if doc.tech_file_section %} · Technical file: {{ doc.get_tech_file_section_display }}{% endif %}</p>
+<h1>{{ doc.number }} · {{ doc.title }}</h1>
+<p class="small muted">Owner: {{ doc.owner|default:"unassigned" }} · Review every {{ doc.review_period_months }} months
+  {% if doc.next_review_date %}· Next review {% if doc.review_overdue %}<span class="badge bad">{{ doc.next_review_date|date:"d M Y" }}</span>{% else %}{{ doc.next_review_date|date:"d M Y" }}{% endif %}{% endif %}
+  {% if doc.obsolete %}· <span class="badge">obsolete</span>{% endif %}</p>
+
+<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+  <div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Versions</h2>
+        <div>{% if not doc.obsolete %}<a class="btn secondary" href="{% url 'qms:document_edit' doc.number %}">Edit details</a>
+          {% if not open_version %}<a class="btn" href="{% url 'qms:version_create' doc.number %}">New version</a>{% endif %}{% endif %}</div>
+      </div>
+      {% if doc.description %}<p style="white-space:pre-wrap">{{ doc.description }}</p>{% endif %}
+      <table>
+        <tr><th>Version</th><th>Status</th><th>Change</th><th>Author</th><th>Dates</th></tr>
+        {% for v in versions %}
+        <tr>
+          <td><strong>v{{ v.version }}</strong>{% if v.file %}<br><a class="small" href="{% url 'qms:version_download' v.pk %}">{{ v.original_name|truncatechars:28 }}</a>{% endif %}</td>
+          <td><span class="badge {% if v.status == 'effective' %}done{% elif v.status == 'in_review' or v.status == 'approved' %}warn{% endif %}">{{ v.get_status_display }}</span></td>
+          <td class="small" style="white-space:pre-wrap">{{ v.change_summary|truncatechars:160 }}{% if v.change_request %}<br>Authorised by <a href="{% url 'qms:record_detail' v.change_request.ref %}">{{ v.change_request.ref }}</a>{% endif %}</td>
+          <td class="small">{{ v.author|default:"—" }}</td>
+          <td class="small muted">{% if v.effective_date %}Effective {{ v.effective_date|date:"d M Y" }}{% elif v.approved_at %}Approved {{ v.approved_at|date:"d M Y" }}{% elif v.submitted_at %}Submitted {{ v.submitted_at|date:"d M Y" }}{% else %}Created {{ v.created_at|date:"d M Y" }}{% endif %}</td>
+        </tr>
+        {% empty %}<tr><td colspan="5" class="muted">No versions yet. Add the first one.</td></tr>{% endfor %}
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Training requirements</h2>
+      <p class="small muted">People in these roles are assigned training each time a new version becomes effective.</p>
+      <table>
+        {% for r in requirements %}
+        <tr><td>{{ r.group.name }}</td><td style="width:1%">{% if is_qa %}<form method="post" action="{% url 'qms:requirement_remove' r.pk %}">{% csrf_token %}<button class="btn secondary" style="padding:2px 8px">Remove</button></form>{% endif %}</td></tr>
+        {% empty %}<tr><td class="muted">No training required.</td></tr>{% endfor %}
+      </table>
+      {% if is_qa and not doc.obsolete %}
+      <form method="post" action="{% url 'qms:requirement_add' doc.number %}" class="filters" style="margin-top:10px">
+        {% csrf_token %}<div><span class="label-row"><label for="{{ req_form.group.id_for_label }}">Role that must be trained</label>{% help_icon req_form.group %}</span>{{ req_form.group }}</div><div><button class="btn secondary">Require training</button></div>
+      </form>
+      {% endif %}
+    </div>
+
+    {% include "qms/_audit.html" with show_subject=True %}
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2 style="margin-top:0">Next steps</h2>
+      {% if doc.obsolete %}<p class="muted">This document is withdrawn.</p>{% endif %}
+      {% with v=open_version %}
+      {% if v %}
+        <p class="small">Working on <strong>v{{ v.version }}</strong> ({{ v.get_status_display|lower }}).</p>
+        {% if v.status == "draft" %}
+          <div class="actions">
+            <a class="btn secondary" href="{% url 'qms:version_edit' v.pk %}">Edit draft</a>
+            <form method="post" action="{% url 'qms:version_action' v.pk 'submit' %}">{% csrf_token %}<button class="btn">Submit for review</button></form>
+          </div>
+        {% elif v.status == "in_review" %}
+          {% if is_qa %}
+          <details class="action" open><summary>Approve <span class="badge warn">signature</span></summary>
+            <form method="post" action="{% url 'qms:version_action' v.pk 'approve' %}">{% csrf_token %}{{ sign_form.as_p }}<button class="btn">Approve and sign</button></form></details>
+          <details class="action"><summary>Return for changes</summary>
+            <form method="post" action="{% url 'qms:version_action' v.pk 'return' %}">{% csrf_token %}<p><span class="label-row"><label for="rc-{{ v.pk }}">What needs to change</label>{% help_for "sign" "comment" %}</span><textarea name="comment" rows="2" id="rc-{{ v.pk }}"></textarea></p><button class="btn secondary">Return to draft</button></form></details>
+          {% else %}<p class="muted small">Waiting for QA review.</p>{% endif %}
+        {% elif v.status == "approved" %}
+          {% if is_qa %}
+          <form method="post" action="{% url 'qms:version_action' v.pk 'effective' %}">{% csrf_token %}
+            <button class="btn">Make effective today</button>
+            <span class="helptext">Supersedes the current version and assigns training.</span></form>
+          {% else %}<p class="muted small">Approved; waiting for QA to make it effective.</p>{% endif %}
+        {% endif %}
+      {% elif not doc.obsolete %}
+        <p class="small muted">No revision in progress.</p>
+      {% endif %}
+      {% endwith %}
+      {% if effective and is_qa and not open_version %}
+        <details class="action"><summary>Periodic review: no change needed <span class="badge warn">signature</span></summary>
+          <form method="post" action="{% url 'qms:version_action' effective.pk 'review' %}">{% csrf_token %}{{ sign_form.as_p }}<button class="btn secondary">Record review</button></form></details>
+      {% endif %}
+      {% if is_qa and not doc.obsolete %}
+        <details class="action"><summary>Withdraw document <span class="badge warn">signature</span></summary>
+          <form method="post" action="{% url 'qms:document_obsolete' doc.number %}">{% csrf_token %}{{ sign_form.as_p }}<button class="btn secondary">Make obsolete</button></form></details>
+      {% endif %}
+    </div>
+    {% include "qms/_signatures.html" %}
+  </div>
+</div>
+{% endblock %}

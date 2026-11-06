@@ -1,0 +1,12 @@
+{% extends "qms/base.html" %}
+{% block title %}{{ title }} – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if intro %}<p class="muted small" style="max-width:720px">{{ intro }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="panel" style="max-width:720px">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn">Save</button>
+  <a class="btn secondary" href="{{ cancel_url }}">Cancel</a>
+</form>
+{% endblock %}
