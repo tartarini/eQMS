@@ -177,16 +177,18 @@ class TeamTests(TestCase):
 
     def test_qa_on_team_manages_it_and_changes_are_audited(self):
         self.login(self.eng_a)
-        self.client.post(reverse("qms:team_add", args=["DA"]), {"user": self.eng_b.pk})
+        self.client.post(reverse("qms:team_add", args=["DA"]),
+                         {"user": self.eng_b.pk, "roles": [wf.ENGINEER]})
         self.assertFalse(can_access(self.eng_b, self.a))           # engineers can't
 
         self.login(self.qa_b)                                      # QA, but not on A
         self.assertEqual(self.client.post(reverse("qms:team_add", args=["DA"]),
-                                          {"user": self.eng_b.pk}).status_code, 404)
+                                          {"user": self.eng_b.pk, "roles": [wf.ENGINEER]})
+                         .status_code, 404)
 
         self.login(self.qa_a)
         self.client.post(reverse("qms:team_add", args=["DA"]),
-                         {"user": self.eng_b.pk, "note": "ASR support"})
+                         {"user": self.eng_b.pk, "roles": [wf.ENGINEER], "note": "Support"})
         self.assertTrue(can_access(self.eng_b, self.a))
         m = DeviceMembership.objects.get(device=self.a, user=self.eng_b)
         self.client.post(reverse("qms:team_remove", args=[m.pk]))

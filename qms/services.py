@@ -6,9 +6,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from . import notifications
@@ -26,10 +24,10 @@ class TransitionError(Exception):
 
 # --- shared helpers -------------------------------------------------------------
 
-def user_has_role(user, roles) -> bool:
-    if user.is_superuser:
-        return True
-    return user.groups.filter(name__in=roles).exists()
+def user_has_role(user, roles, device=None) -> bool:
+    """Role on ``device``; ``None`` for QMS-wide items (role held anywhere). See qms.roles."""
+    from .roles import has_role
+    return has_role(user, roles, device)
 
 
 def require(errors: list, condition: bool, message: str):
@@ -43,8 +41,11 @@ def _device_error(user, device):
     return [] if can_access(user, device) else ["You are not on this device's team."]
 
 
-def _role_error(user, roles):
-    return [] if user_has_role(user, roles) else ["Requires role: " + " or ".join(roles) + "."]
+def _role_error(user, roles, device=None):
+    if user_has_role(user, roles, device):
+        return []
+    where = f" on {device.name}" if device is not None else ""
+    return ["Requires role: " + " or ".join(roles) + where + "."]
 
 
 def sign(obj, user, secret: str, meaning: str, *, from_status="", to_status="",
@@ -90,7 +91,7 @@ def check_transition(record: Record, transition: wf.Transition, user, comment: s
     if record.status not in transition.sources:
         return [f"Not available from status '{record.get_status_display()}'."]
     errors += _device_error(user, record.device)
-    errors += _role_error(user, transition.roles)
+    errors += _role_error(user, transition.roles, record.device)
     for name in transition.required:
         value = getattr(record, name)
         if value in (None, "", False) or (name == "risk_file_updated" and value == "pending"):
@@ -246,7 +247,8 @@ def submit_version(version: DocumentVersion, user) -> DocumentVersion:
 
 
 def return_version(version: DocumentVersion, user, comment: str) -> DocumentVersion:
-    errors = _device_error(user, version.document.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, version.document.device) + _role_error(
+        user, [wf.QA], version.document.device)
     require(errors, version.status in ("in_review", "approved"),
             "Only versions in review or approved can be returned.")
     require(errors, bool(comment.strip()), "Say what needs to change.")
@@ -259,7 +261,8 @@ def return_version(version: DocumentVersion, user, comment: str) -> DocumentVers
 
 
 def approve_version(version: DocumentVersion, user, secret: str, comment="") -> DocumentVersion:
-    errors = _device_error(user, version.document.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, version.document.device) + _role_error(
+        user, [wf.QA], version.document.device)
     require(errors, version.status == "in_review", "Only versions in review can be approved.")
     _independent(errors, user, version.author)
     require(errors, version.verify(), "File integrity check failed: the file changed after "
@@ -275,7 +278,8 @@ def approve_version(version: DocumentVersion, user, secret: str, comment="") -> 
 
 
 def make_effective(version: DocumentVersion, user, effective: date = None) -> DocumentVersion:
-    errors = _device_error(user, version.document.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, version.document.device) + _role_error(
+        user, [wf.QA], version.document.device)
     require(errors, version.status == "approved", "Only approved versions can become effective.")
     if errors:
         raise TransitionError(errors)
@@ -292,7 +296,8 @@ def make_effective(version: DocumentVersion, user, effective: date = None) -> Do
 
 def review_no_change(version: DocumentVersion, user, secret: str, comment: str):
     """Periodic review concluding the document is still correct; resets the review date."""
-    errors = _device_error(user, version.document.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, version.document.device) + _role_error(
+        user, [wf.QA], version.document.device)
     require(errors, version.status == "effective", "Only the effective version can be reviewed.")
     require(errors, bool(comment.strip()), "Record what was reviewed.")
     _check_secret(errors, user, secret)
@@ -306,7 +311,7 @@ def review_no_change(version: DocumentVersion, user, secret: str, comment: str):
 
 
 def obsolete_document(document: Document, user, secret: str, comment: str):
-    errors = _device_error(user, document.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, document.device) + _role_error(user, [wf.QA], document.device)
     require(errors, not document.obsolete, "Already obsolete.")
     require(errors, bool(comment.strip()), "Give the reason for withdrawal.")
     _check_secret(errors, user, secret)
@@ -324,20 +329,13 @@ def obsolete_document(document: Document, user, secret: str, comment: str):
 
 # --- training -------------------------------------------------------------------------
 
-def _team_filter(users, device):
-    """Narrow users to a device's team (plus All-device access); QMS-wide when device is None."""
-    if device is None:
-        return users
-    return users.filter(Q(device_memberships__device=device, device_memberships__active=True)
-                        | Q(groups__name=wf.ALL_DEVICES) | Q(is_superuser=True)).distinct()
-
-
 def _required_users(document):
-    """People in a required role, and on the team if the document belongs to a device."""
-    User = get_user_model()
-    groups = TrainingRequirement.objects.filter(document=document, active=True).values("group")
-    users = User.objects.filter(is_active=True, groups__in=groups).distinct()
-    return _team_filter(users, document.device)
+    """People holding a required role: on the document's device, or anywhere for a QMS-wide
+    document."""
+    from .roles import users_with_roles
+    roles = list(TrainingRequirement.objects.filter(document=document, active=True)
+                 .values_list("group__name", flat=True))
+    return users_with_roles(roles, document.device) if roles else []
 
 
 def assign_training_for_version(version: DocumentVersion) -> list:
@@ -381,15 +379,14 @@ def complete_training(assignment: TrainingAssignment, user, secret: str):
 
 def training_matrix(viewer=None):
     """Rows: users in any QMS role. Columns: documents with training requirements."""
-    User = get_user_model()
     from .access import can_access
     docs = [d for d in Document.objects.filter(obsolete=False, training_requirements__active=True)
             .distinct() if viewer is None or can_access(viewer, d.device)]
-    users = list(User.objects.filter(is_active=True, groups__name__in=wf.ANY_ROLE)
-                 .distinct().order_by("username"))
-    required = {(r.document_id, r.group_id)
-                for r in TrainingRequirement.objects.filter(active=True)}
-    user_groups = {u.pk: set(u.groups.values_list("pk", flat=True)) for u in users}
+    from .roles import device_roles, users_with_roles
+    users = users_with_roles(wf.ANY_ROLE)
+    required = {}
+    for r in TrainingRequirement.objects.filter(active=True).select_related("group"):
+        required.setdefault(r.document_id, set()).add(r.group.name)
     effective = {d.pk: d.effective_version for d in docs}
     assignments = {(a.user_id, a.version_id): a for a in TrainingAssignment.objects.filter(
         version__in=[v for v in effective.values() if v])}
@@ -399,7 +396,7 @@ def training_matrix(viewer=None):
         for d in docs:
             if d.device_id and not can_access(u, d.device):
                 cells.append(("n/a", None))
-            elif not any((d.pk, g) in required for g in user_groups[u.pk]):
+            elif not (device_roles(u, d.device) & required.get(d.pk, set())):
                 cells.append(("n/a", None))
             elif not effective[d.pk]:
                 cells.append(("no effective version", None))
@@ -431,7 +428,7 @@ def hazard_acceptance_blockers(hazard: Hazard) -> list:
 
 
 def accept_hazard(hazard: Hazard, user, secret: str, comment: str = ""):
-    errors = (_device_error(user, hazard.device) + _role_error(user, [wf.QA])
+    errors = (_device_error(user, hazard.device) + _role_error(user, [wf.QA], hazard.device)
               + hazard_acceptance_blockers(hazard))
     _check_secret(errors, user, secret)
     if errors:
@@ -444,7 +441,7 @@ def accept_hazard(hazard: Hazard, user, secret: str, comment: str = ""):
 
 
 def reopen_hazard(hazard: Hazard, user, comment: str):
-    errors = _device_error(user, hazard.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, hazard.device) + _role_error(user, [wf.QA], hazard.device)
     require(errors, hazard.status != "open", "Already open.")
     require(errors, bool(comment.strip()), "Give the reason for reopening.")
     if errors:
@@ -454,7 +451,7 @@ def reopen_hazard(hazard: Hazard, user, comment: str):
 
 
 def retire_hazard(hazard: Hazard, user, secret: str, comment: str):
-    errors = _device_error(user, hazard.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, hazard.device) + _role_error(user, [wf.QA], hazard.device)
     require(errors, hazard.status != "retired", "Already retired.")
     require(errors, bool(comment.strip()), "Explain why the hazard no longer applies.")
     _check_secret(errors, user, secret)

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_devices, views_docs, views_help, views_risk
+from . import views, views_devices, views_docs, views_help, views_invitations, views_risk
 
 app_name = "qms"
 
@@ -59,6 +59,15 @@ urlpatterns = [
     path("devices/<str:code>/edit/", views_devices.device_edit, name="device_edit"),
     path("devices/<str:code>/team/add/", views_devices.team_add, name="team_add"),
     path("team/<int:pk>/remove/", views_devices.team_remove, name="team_remove"),
+    path("team/<int:pk>/roles/", views_devices.team_roles, name="team_roles"),
+    # Invitations (the accept page is open: the emailed link is the credential)
+    path("invitations/", views_invitations.invitation_list, name="invitation_list"),
+    path("invitations/new/", views_invitations.invitation_create, name="invitation_create"),
+    path("invitations/<int:pk>/revoke/", views_invitations.invitation_revoke,
+         name="invitation_revoke"),
+    path("invitations/<int:pk>/resend/", views_invitations.invitation_resend,
+         name="invitation_resend"),
+    path("invite/<str:token>/", views_invitations.invitation_accept, name="invitation_accept"),
     path("devices/<str:code>/technical-file/preview/", views_devices.techfile_preview,
          name="techfile_preview"),
     path("devices/<str:code>/technical-file/generate/", views_devices.techfile_generate,

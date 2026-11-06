@@ -3,12 +3,17 @@ from .access import accessible_devices, current_device, is_member, sees_all_devi
 
 
 def devices(request):
-    """Device switcher data for every page."""
-    if not getattr(request, "user", None) or not is_member(request.user):
+    """Device switcher data, and whether to show Invitations, for every page."""
+    from .roles import managed_devices
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
         return {}
-    return {"all_devices": accessible_devices(request.user).filter(active=True),
-            "current_device": current_device(request),
-            "sees_all_devices": sees_all_devices(request.user)}
+    data = {"manages_teams": bool(managed_devices(user))}
+    if is_member(user):
+        data.update({"all_devices": accessible_devices(user).filter(active=True),
+                     "current_device": current_device(request),
+                     "sees_all_devices": sees_all_devices(user)})
+    return data
 
 
 def page_help(request):

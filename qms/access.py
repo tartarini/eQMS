@@ -11,16 +11,36 @@ from .models import ImmutableError
 
 
 def is_member(user) -> bool:
-    return user.is_authenticated and (
-        user.is_superuser or user.groups.filter(name__in=wf.ANY_ROLE).exists())
+    """Holds a working role (Engineer, QA, Clinical Safety Officer) on some device or
+    organisation-wide."""
+    from .roles import all_roles
+    return user.is_authenticated and bool(all_roles(user) & set(wf.ANY_ROLE))
+
+
+def has_any_role(user) -> bool:
+    """Holds any role, including Device admin."""
+    from .roles import all_roles
+    return user.is_authenticated and bool(all_roles(user))
 
 
 def qms_member(view):
-    """Signed in AND holding a QMS role. SSO accounts without a role see a holding page."""
+    """Signed in AND holding a working QMS role. Others see a holding page."""
     @login_required
     @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not is_member(request.user):
+            return render(request, "qms/access_pending.html", status=403)
+        return view(request, *args, **kwargs)
+    return wrapped
+
+
+def team_member(view):
+    """Signed in AND holding any role, Device admin included: for device and team pages, so a
+    device admin who has no working role can still manage their teams."""
+    @login_required
+    @wraps(view)
+    def wrapped(request, *args, **kwargs):
+        if not has_any_role(request.user):
             return render(request, "qms/access_pending.html", status=403)
         return view(request, *args, **kwargs)
     return wrapped

@@ -21,7 +21,8 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 
 | Module | What it does | Standard |
 | --- | --- | --- |
-| Device teams | People are on one or more device teams and only see and act on those devices; an All-device access role covers heads of quality and auditors. Enforced in pages, forms, business rules, emails and training | ISO 13485 §4.2.5, §6.2 |
+| Device teams and roles | People are on one or more device teams with **roles per device** (Engineer, QA, Clinical Safety Officer, Device admin), so someone can be QA on one device and an Engineer on another. They only see and act on their devices; an All-device access role covers heads of quality and auditors. Enforced in pages, forms, business rules, emails and training | ISO 13485 §4.2.5, §6.2 |
+| Invitations | Device admins and QA invite people by email, with roles on each device they manage. The link is single use, expires (14 days by default), works only for the invited address, and can be resent or revoked. New people create an account or use single sign-on | ISO 13485 §6.2 |
 | Validation support | User requirements traced to automated tests; `run_oq` writes signed-off-ready OQ evidence for the validation plan | ISO 13485 §4.1.6 |
 | Devices | Manage any number of medical devices. Each has its own regulatory particulars, software items, quality records, risk file, PMS schedule, SOUP list and technical file; QMS-wide procedures and training are shared. A header switcher focuses every page on one device | ISO 13485 §4.2.3 |
 | Technical file | One click builds a device's technical documentation (MDR Annex II/III structure) from live QMS data: Word and HTML documents, CSV registers, every effective document file, and a checksummed manifest, in a frozen ZIP. A completeness check lists gaps; QA approves a build with a signature | EU MDR Annex II, III; UK MDR |
@@ -63,13 +64,17 @@ python manage.py load_demo_data
 python manage.py runserver
 ```
 
-Sign in as `engineer`, `qa`, `qa2` or `cso` (password `demo-pass-123`): `engineer` is on both
-device teams, `qa` has All-device access, `qa2` and `cso` are on the SkinCheck demo device only. For a clean
-install use `seed_qms` instead of `load_demo_data`, create a superuser, add people to the
-Engineer, QA or Clinical Safety Officer group (and `All-device access` for anyone who must see
-every device), add your devices, and put people on each device's team from the device page.
+Sign in as `engineer`, `qa`, `qa2` or `cso` (password `demo-pass-123`). Roles are per device:
+`engineer` is an Engineer on SkinCheck but Engineer, QA and Device admin on RespiTrack; `qa` is the
+head of quality (QA organisation-wide, with All-device access); `qa2` (QA) and `cso` (Clinical
+Safety Officer) are on SkinCheck only.
 
-Run the tests: `python manage.py test qms` (102 tests). For validation evidence:
+For a clean install use `seed_qms` instead of `load_demo_data`, create a superuser, and give
+your head of quality an account with the QA group and `All-device access` in Admin. They add the
+devices (becoming QA and Device admin on each) and **invite** everyone else from each device's
+page, choosing their roles on that device.
+
+Run the tests: `python manage.py test qms` (134 tests). For validation evidence:
 `python manage.py run_oq --executed-by "Your Name" --release 1.0.0`.
 
 ## Deployment
@@ -100,8 +105,9 @@ redirect (callback) URLs, replacing the host with yours:
 
 Because these are public identity providers, access is controlled separately:
 
-- Signing in gives no access. A person needs a QMS role; until then they see "Access pending",
-  and QA is emailed.
+- Signing in gives no access. A person needs a role on a device team; until then they see
+  "Access pending", and QA is emailed. The usual route in is an invitation from a Device admin or
+  QA, which can also create the account through single sign-on for the invited address.
 - An SSO login joins an existing account when the provider confirms the email address is
   verified and it matches. So the safest set-up is: an admin creates the account with the
   person's email, and they sign in with SSO.

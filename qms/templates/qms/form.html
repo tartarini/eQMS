@@ -6,7 +6,7 @@
 <form method="post" enctype="multipart/form-data" class="panel" style="max-width:720px">
   {% csrf_token %}
   {{ form.as_p }}
-  <button class="btn">Save</button>
+  <button class="btn">{{ submit_label|default:"Save" }}</button>
   <a class="btn secondary" href="{{ cancel_url }}">Cancel</a>
 </form>
 {% endblock %}

@@ -3,6 +3,7 @@ import os
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.validators import MaxValueValidator
 
 from . import workflow as wf
 from .models import (Attachment, Device, Document, DocumentVersion, Hazard, Record,
@@ -265,8 +266,22 @@ class SoupItemForm(DeviceScopedForm, forms.ModelForm):
 
 # --- devices -----------------------------------------------------------------------------
 
+ROLE_CHOICES = [(r, r) for r in wf.ROLES]
+
+
+class RolesField(forms.MultipleChoiceField):
+    """Tick-boxes for the roles a person holds on one device."""
+    widget = forms.CheckboxSelectMultiple
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("choices", ROLE_CHOICES)
+        kwargs.setdefault("label", "Roles on this device")
+        super().__init__(**kwargs)
+
+
 class TeamMemberForm(forms.Form):
     user = forms.ModelChoiceField(queryset=None, label="Person")
+    roles = RolesField()
     note = forms.CharField(max_length=200, required=False, label="Responsibility (optional)")
 
     def __init__(self, *args, device=None, **kwargs):
@@ -274,8 +289,13 @@ class TeamMemberForm(forms.Form):
         from django.contrib.auth import get_user_model
         current = device.memberships.filter(active=True).values("user") if device else []
         self.fields["user"].queryset = get_user_model().objects.filter(
-            is_active=True, groups__name__in=wf.ANY_ROLE).exclude(pk__in=current) \
-            .distinct().order_by("username")
+            is_active=True).exclude(pk__in=current).order_by("username")
+
+
+class TeamRolesForm(forms.Form):
+    roles = RolesField(required=False,
+                       help_text="Untick every role to keep someone on the team with no role.")
+    note = forms.CharField(max_length=200, required=False, label="Responsibility (optional)")
 
 
 class DeviceForm(forms.ModelForm):
@@ -310,4 +330,82 @@ class SigningPinForm(forms.Form):
         if "current_password" in self.fields and not self.user.check_password(
                 data.get("current_password") or ""):
             self.add_error("current_password", "Password not recognised.")
+        return data
+
+
+# --- invitations ---------------------------------------------------------------------------
+
+class InvitationForm(forms.Form):
+    """Email, roles on each device the inviter manages, expiry and an optional message."""
+    email = forms.EmailField(label="Email address")
+    expires_in_days = forms.IntegerField(label="Link expires after (days)", min_value=1)
+    message = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False,
+                              label="Message (optional)")
+
+    def __init__(self, *args, devices=(), first=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["expires_in_days"].initial = settings.QMS_INVITATION_DAYS
+        self.fields["expires_in_days"].validators.append(
+            MaxValueValidator(settings.QMS_INVITATION_MAX_DAYS))
+        self.fields["expires_in_days"].widget.attrs["max"] = settings.QMS_INVITATION_MAX_DAYS
+        self.devices = sorted(devices, key=lambda d: (d != first, d.name))
+        for d in self.devices:
+            self.fields[f"roles_{d.pk}"] = RolesField(
+                required=False, label=f"Roles on {d.name} ({d.code})")
+        order = ["email"] + [f"roles_{d.pk}" for d in self.devices] + ["expires_in_days",
+                                                                        "message"]
+        self.order_fields(order)
+
+    @staticmethod
+    def help_field_name(name):
+        return "roles" if name.startswith("roles_") else name
+
+    def grants(self) -> dict:
+        return {d: self.cleaned_data.get(f"roles_{d.pk}") or [] for d in self.devices}
+
+    def clean(self):
+        data = super().clean()
+        if self.devices and not any(data.get(f"roles_{d.pk}") for d in self.devices):
+            raise forms.ValidationError("Tick at least one role on at least one device.")
+        return data
+
+
+class InvitationSignupForm(forms.Form):
+    """Create an account from an invitation. The email address comes from the invitation."""
+    username = forms.CharField(max_length=150, help_text="Letters, digits and @ . + - _ only.")
+    first_name = forms.CharField(max_length=150)
+    last_name = forms.CharField(max_length=150)
+    password1 = forms.CharField(label="Password", widget=forms.PasswordInput(
+        attrs={"autocomplete": "new-password"}))
+    password2 = forms.CharField(label="Repeat password", widget=forms.PasswordInput(
+        attrs={"autocomplete": "new-password"}))
+
+    def __init__(self, *args, email="", **kwargs):
+        self.email = email
+        super().__init__(*args, **kwargs)
+
+    def clean_username(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.validators import UnicodeUsernameValidator
+        username = self.cleaned_data["username"].strip()
+        UnicodeUsernameValidator()(username)
+        if get_user_model().objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("That username is taken. Choose another.")
+        return username
+
+    def clean(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.password_validation import validate_password
+        data = super().clean()
+        p1, p2 = data.get("password1"), data.get("password2")
+        if p1 and p2 and p1 != p2:
+            self.add_error("password2", "The passwords do not match.")
+        elif p1:
+            user = get_user_model()(username=data.get("username", ""), email=self.email,
+                                    first_name=data.get("first_name", ""),
+                                    last_name=data.get("last_name", ""))
+            try:
+                validate_password(p1, user)
+            except forms.ValidationError as exc:
+                self.add_error("password1", exc)
         return data

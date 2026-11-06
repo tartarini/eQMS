@@ -93,6 +93,12 @@ PAGE_HELP = {
     "set_device": ("devices", "choose-a-device"),
     "team_add": ("devices", "device-teams"),
     "team_remove": ("devices", "device-teams"),
+    "team_roles": ("devices", "roles-on-each-device"),
+    "invitation_list": ("devices", "manage-invitations"),
+    "invitation_create": ("devices", "invite-people"),
+    "invitation_revoke": ("devices", "manage-invitations"),
+    "invitation_resend": ("devices", "manage-invitations"),
+    "invitation_accept": ("getting-started", "accept-an-invitation"),
     "techfile_preview": ("devices", "generate-and-approve-a-technical-file"),
     "techfile_generate": ("devices", "generate-and-approve-a-technical-file"),
     "techfile_download": ("devices", "generate-and-approve-a-technical-file"),
@@ -323,10 +329,44 @@ FIELD_HELP = {
         "active": ("Active", "Untick when the item is no longer used. It stays on record."),
     }),
     "team": ("devices", "Team fields", {
-        "user": ("Person", "Someone with a QMS role who is not yet on this team. People can be "
-                 "on several teams."),
-        "note": ("Responsibility", "Optional: their role on this device, for example "
+        "user": ("Person", "Someone who already has a SAMD_QMS account and isn't on this team "
+                 "yet. To add someone new, use Invite people instead."),
+        "roles": ("Roles on this device", "What they can do on this device only: Engineer, QA, "
+                  "Clinical Safety Officer, and Device admin (invites people and manages this "
+                  "team). Tick as many as apply; they can hold different roles on other "
+                  "devices."),
+        "note": ("Responsibility", "Optional: their responsibility on this device, for example "
                  "\"Clinical safety\" or \"Lead developer\"."),
+    }),
+    "teamroles": ("devices", "Change roles fields", {
+        "roles": ("Roles on this device", "Tick the roles this person holds on this device. "
+                  "Changes take effect immediately and are in the audit trail. You can't change "
+                  "your own roles, and a device always keeps at least one Device admin or QA."),
+        "note": ("Responsibility", "Optional: their responsibility on this device."),
+    }),
+    "invitation": ("devices", "Invitation fields", {
+        "email": ("Email address", "Where the invitation is sent. Only an account with this "
+                  "email address can accept it, so use the address the person signs in with "
+                  "(for single sign-on, their work email)."),
+        "roles": ("Roles on a device", "The roles to give them on that device. Leave a device "
+                  "blank to leave them off its team. You can only grant roles on devices whose "
+                  "team you manage."),
+        "expires_in_days": ("Link expires after (days)", "How long the link works, from "
+                            "today: {invite_days} days by default, at most {invite_max_days}. "
+                            "After that, resend it."),
+        "message": ("Message", "Optional note included in the email, for example why you're "
+                    "inviting them. Don't include passwords or patient data."),
+    }),
+    "signup": ("getting-started", "Account fields (from an invitation)", {
+        "email": ("Email", "The address the invitation was sent to. It becomes your account's "
+                  "email address and can't be changed here."),
+        "username": ("Username", "What you'll type to sign in. Letters, digits and @ . + - _ "
+                     "only."),
+        "first_name": ("First name", "Shown on records you create and signatures you make."),
+        "last_name": ("Last name", "Shown on records you create and signatures you make."),
+        "password1": ("Password", "At least 8 characters, not too similar to your name or "
+                      "email, and not a common or all-numeric password."),
+        "password2": ("Repeat password", "Type the same password again."),
     }),
     "device": ("devices", "Device fields", {
         "name": ("Name", "The device's name as on its label."),
@@ -405,6 +445,8 @@ FORM_GROUPS = {
     "VersionForm": "documentversion", "TrainingRequirementForm": "training",
     "SupplierEvaluationForm": "suppliereval", "TeamMemberForm": "team",
     "SigningPinForm": "signingpin", "AuthenticationForm": "login",
+    "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
+    "InvitationSignupForm": "signup",
 }
 
 
@@ -418,6 +460,8 @@ def help_vars() -> dict:
         "training_days": settings.QMS_TRAINING_DUE_DAYS,
         "soup_days": settings.QMS_SOUP_REVIEW_DAYS,
         "acceptable_max": settings.QMS_RISK_ACCEPTABLE_MAX,
+        "invite_days": settings.QMS_INVITATION_DAYS,
+        "invite_max_days": settings.QMS_INVITATION_MAX_DAYS,
     }
 
 
@@ -442,8 +486,10 @@ def help_url(topic: str, anchor: str = "") -> str:
 
 
 def field_help(form, field_name: str):
-    """(label, text, url) for a field of a form, or None if no help is registered."""
-    return group_field_help(group_for_form(form), field_name)
+    """(label, text, url) for a field of a form, or None if no help is registered.
+    Forms with generated field names (roles_3, roles_7) map them with ``help_field_name``."""
+    name = getattr(form, "help_field_name", lambda n: n)(field_name)
+    return group_field_help(group_for_form(form), name)
 
 
 def group_field_help(group: str, field_name: str):

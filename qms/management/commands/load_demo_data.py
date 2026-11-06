@@ -24,7 +24,6 @@ class Command(BaseCommand):
             "first_name": "QA reviewer", "email": "qa2@example.org"})
         qa2.set_password(PW)
         qa2.save()
-        qa2.groups.add(Group.objects.get(name=wf.QA))
 
         skn = Device(
             name="SkinCheck", code="SKN", owner=eng, current_version="2.3.1",
@@ -55,11 +54,17 @@ class Command(BaseCommand):
         for d in (skn, resp):
             services.setup_device_pms(d)
         cso = User.objects.get(username="cso")
-        # Teams: engineer works on both devices; cso and qa2 only on SkinCheck.
+        # Roles are per device. engineer: Engineer on SkinCheck, but Engineer, QA and Device
+        # admin on RespiTrack. qa2 (QA) and cso (Clinical Safety Officer): SkinCheck only.
         # qa is head of quality with All-device access.
-        for device, members in [(skn, [eng, qa, qa2, cso]), (resp, [eng, qa])]:
-            for u in members:
-                DeviceMembership(device=device, user=u).save(_actor=qa)
+        teams = [(skn, [(eng, [wf.ENGINEER]), (qa, [wf.DEVICE_ADMIN]), (qa2, [wf.QA]),
+                        (cso, [wf.CLINICAL_SAFETY])]),
+                 (resp, [(eng, [wf.ENGINEER, wf.QA, wf.DEVICE_ADMIN]), (qa, [])])]
+        for device, members in teams:
+            for u, roles in members:
+                m = DeviceMembership(device=device, user=u)
+                m.set_roles(roles)
+                m.save(_actor=qa)
         qa.groups.add(Group.objects.get(name=wf.ALL_DEVICES))
 
         def doc(title, doc_type, section, device, author=eng, approver=qa, effective=True,
@@ -141,5 +146,7 @@ class Command(BaseCommand):
                title="App crashes when microphone permission denied", severity="minor").save()
         services.generate_pms_activities()
         self.stdout.write(self.style.SUCCESS(
-            f"Demo data loaded for {skn} and {resp}. Sign in as engineer (both teams), qa "
-            f"(All-device access), qa2 or cso (SkinCheck only) with password {PW}."))
+            f"Demo data loaded for {skn} and {resp}. Sign in with password {PW} as engineer "
+            "(Engineer on SkinCheck; Engineer, QA and Device admin on RespiTrack), qa (head of "
+            "quality: QA everywhere, All-device access), qa2 (QA) or cso (Clinical Safety "
+            "Officer), both on SkinCheck only."))

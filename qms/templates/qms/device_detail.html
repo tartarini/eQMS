@@ -26,24 +26,46 @@
     </div>
 
     <div class="panel">
-      <h2 style="margin-top:0">Team</h2>
-      <p class="small muted">Only team members, and people with All-device access, can see or act on this device's records, risks, documents and technical files. People can be on several teams.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Team</h2>
+        {% if can_manage_team %}<a class="btn" href="{% url 'qms:invitation_create' %}?device={{ device.code }}">Invite people</a>{% endif %}
+      </div>
+      <p class="small muted">Only team members, and people with All-device access, can see or act on this device's records, risks, documents and technical files. Roles apply to this device only: someone can hold different roles on other devices.</p>
       <table>
-        <tr><th>Person</th><th>Roles</th><th>Responsibility</th><th></th></tr>
-        {% for m in team %}
-        <tr><td>{{ m.user.get_full_name|default:m.user.username }}</td>
-          <td class="small">{% for g in m.user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        <tr><th style="min-width:170px">Person</th><th>Roles on {{ device.code }}</th><th>Responsibility</th>{% if can_manage_team %}<th></th>{% endif %}</tr>
+        {% for m, form, org in team %}
+        <tr><td>{{ m.user.get_full_name|default:m.user.username }}<br><span class="small muted">{{ m.user.email|default:m.user.username }}</span></td>
+          <td class="small">{% for r in m.role_list %}<span class="badge">{{ r }}</span> {% empty %}<span class="muted">No role</span>{% endfor %}
+            {% if org %}<br><span class="muted" title="Set by an administrator; applies on every device this person can see">Organisation-wide: {{ org|join:", " }}</span>{% endif %}</td>
           <td class="small">{{ m.note|default:"—" }}</td>
-          <td style="width:1%">{% if can_manage_team %}<form method="post" action="{% url 'qms:team_remove' m.pk %}">{% csrf_token %}<button class="btn secondary" style="padding:2px 8px">Remove</button></form>{% endif %}</td></tr>
+          {% if can_manage_team %}<td style="width:1%;white-space:nowrap">
+            {% if form %}<details class="action" style="border:0;padding:0"><summary class="small">Change</summary>
+              <form method="post" action="{% url 'qms:team_roles' m.pk %}" style="margin-top:6px;min-width:220px">{% csrf_token %}{{ form.as_p }}<button class="btn secondary" style="padding:2px 10px">Save roles</button></form>
+              <form method="post" action="{% url 'qms:team_remove' m.pk %}" style="margin-top:6px">{% csrf_token %}<button class="btn secondary" style="padding:2px 10px">Remove from team</button></form>
+            </details>{% else %}<span class="small muted" title="You can't change your own roles">You</span>{% endif %}
+          </td>{% endif %}</tr>
         {% empty %}<tr><td colspan="4" class="muted">No team members yet.</td></tr>{% endfor %}
       </table>
       {% if can_manage_team %}
-      <form method="post" action="{% url 'qms:team_add' device.code %}" class="filters" style="margin-top:10px">
+      {% if invitations %}
+      <h3 style="font-size:14px;margin:14px 0 4px">Invitations not yet accepted</h3>
+      <table class="small">
+        {% for inv in invitations %}<tr><td>{{ inv.email }}</td><td>{% for code, roles in inv.grant_lines %}{% if code == device.code %}{{ roles }}{% endif %}{% endfor %}</td>
+          <td>{% if inv.is_expired %}<span class="badge bad">Expired</span>{% else %}Expires {{ inv.expires_at|date:"d M Y" }}{% endif %}</td>
+          <td><a href="{% url 'qms:invitation_list' %}">Manage</a></td></tr>{% endfor %}
+      </table>
+      {% endif %}
+      <details class="action" style="margin-top:10px"><summary class="small">Add someone who already has an account</summary>
+      <form method="post" action="{% url 'qms:team_add' device.code %}" style="margin-top:8px">
         {% csrf_token %}
-        <div><span class="label-row"><label for="{{ team_form.user.id_for_label }}">Person</label>{% help_icon team_form.user %}</span>{{ team_form.user }}</div>
-        <div style="flex:1;min-width:180px"><span class="label-row"><label for="{{ team_form.note.id_for_label }}">Responsibility (optional)</label>{% help_icon team_form.note %}</span>{{ team_form.note }}</div>
-        <div><button class="btn secondary">Add to team</button></div>
+        <div class="filters">
+          <div><span class="label-row"><label for="{{ team_form.user.id_for_label }}">Person</label>{% help_icon team_form.user %}</span>{{ team_form.user }}</div>
+          <div style="flex:1;min-width:180px"><span class="label-row"><label for="{{ team_form.note.id_for_label }}">Responsibility (optional)</label>{% help_icon team_form.note %}</span>{{ team_form.note }}</div>
+        </div>
+        <div style="margin-top:8px"><span class="label-row"><label>Roles on {{ device.code }}</label>{% help_icon team_form.roles %}</span><div class="checks">{{ team_form.roles }}</div></div>
+        <button class="btn secondary" style="margin-top:8px">Add to team</button>
       </form>
+      </details>
       {% endif %}
     </div>
 

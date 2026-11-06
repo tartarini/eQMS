@@ -9,7 +9,11 @@
 
 | Problem | What to do |
 | --- | --- |
-| "Access pending" after signing in | You have no role yet. Ask QA to add you. |
+| "Access pending" after signing in | You have no role yet. Ask a Device admin or QA to add you to a device team. |
+| Invitation link says it isn't valid or has expired | Ask the person who invited you to resend it. Each resend replaces the previous link. |
+| "This invitation is for …, but you're signed in as …" | Sign out, then open the link again and use (or create) the account with the invited email address. |
+| "Requires role: QA on …" | You don't hold that role on this device, even if you do on another. Ask a Device admin or QA on its team. |
+| "You can't change your own roles" | Ask another Device admin or QA on the device. |
 | ORCID sign-in says sign-up is closed | Sign in another way, then connect ORCID under Connected accounts. |
 | Connected accounts has nothing to connect | Single sign-on isn't switched on for this site. Ask your administrator. |
 | A step's button is missing | Read the red reasons under the step: fill in the field, add the link, or ask someone with the right role. |

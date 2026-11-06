@@ -94,15 +94,20 @@ class Device(AuditedModel):
 
 
 class DeviceMembership(AuditedModel):
-    """A person on a device's team. People can be on any number of teams."""
-    AUDITED = ["device_id", "user_id", "active", "note"]
+    """A person on a device's team, with their roles on that device. People can be on any
+    number of teams, with different roles on each."""
+    AUDITED = ["device_id", "user_id", "active", "roles", "note"]
 
     device = models.ForeignKey(Device, on_delete=models.PROTECT, related_name="memberships")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                              related_name="device_memberships")
     active = models.BooleanField(default=True)
+    roles = models.CharField(
+        max_length=200, blank=True,
+        help_text="Roles on this device, separated by commas: Engineer, QA, Clinical Safety "
+                  "Officer, Device admin.")
     note = models.CharField(max_length=200, blank=True,
-                            help_text="Responsibility on this device, e.g. 'ASR lead'.")
+                            help_text="Responsibility on this device, e.g. 'Lead developer'.")
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -111,6 +116,28 @@ class DeviceMembership(AuditedModel):
 
     def __str__(self):
         return f"{self.user.get_username()} @ {self.device.code}"
+
+    def role_list(self) -> list:
+        """Roles on this device, in the standard order."""
+        from .. import workflow as wf
+        held = {r.strip() for r in (self.roles or "").split(",") if r.strip()}
+        return [r for r in wf.ROLES if r in held]
+
+    def clean(self):
+        """Admin edits the roles as text: refuse names that aren't roles."""
+        from django.core.exceptions import ValidationError
+        from .. import workflow as wf
+        unknown = {r.strip() for r in (self.roles or "").split(",") if r.strip()} - set(wf.ROLES)
+        if unknown:
+            raise ValidationError({"roles": f"Unknown role(s): {', '.join(sorted(unknown))}. "
+                                            f"Use: {', '.join(wf.ROLES)}."})
+
+    def set_roles(self, roles) -> None:
+        from .. import workflow as wf
+        unknown = set(roles) - set(wf.ROLES)
+        if unknown:
+            raise ValueError(f"Unknown role(s): {', '.join(sorted(unknown))}")
+        self.roles = ", ".join(r for r in wf.ROLES if r in set(roles))
 
 
 def techfile_path(instance, filename):

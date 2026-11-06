@@ -5,7 +5,8 @@ Rules, because these are public identity providers:
   * No self-service local sign-up.
   * An SSO login joins an existing account when the provider reports a *verified* email that
     matches it (pre-provisioned users).
-  * A brand-new account is created only for verified emails in QMS_SSO_ALLOWED_DOMAINS.
+  * A brand-new account is created only for verified emails in QMS_SSO_ALLOWED_DOMAINS, or
+    for the verified email of a pending invitation whose link was opened in this browser.
   * A new account has no QMS role, so it can see nothing until QA or an admin assigns a role.
   * ORCID does not share email addresses: connect ORCID from "Connected accounts" while
     signed in another way, then use it to sign in.
@@ -32,7 +33,12 @@ class AccountAdapter(DefaultAccountAdapter):
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_open_for_signup(self, request, sociallogin):
-        return any(email_domain_allowed(e) for e in _verified_emails(sociallogin))
+        emails = _verified_emails(sociallogin)
+        if any(email_domain_allowed(e) for e in emails):
+            return True
+        from .invitations import pending_for_session
+        invitation = pending_for_session(request)
+        return bool(invitation and invitation.email.lower() in emails)
 
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)

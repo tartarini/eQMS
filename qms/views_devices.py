@@ -11,8 +11,10 @@ from django.views.decorators.http import require_POST
 from . import services, techfile
 from . import workflow as wf
 from .access import (SESSION_DEVICE_KEY, accessible_devices, form_page, qms_member,
-                     require_access, run, sees_all_devices)
-from .forms import DeviceForm, SignForm, TeamMemberForm
+                     require_access, run, team_member)
+from .forms import DeviceForm, SignForm, TeamMemberForm, TeamRolesForm
+from .invitations import device_invitations
+from .roles import can_manage_team
 from .models import AuditEvent, Device, DeviceMembership, Signature, TechnicalFileBuild
 
 
@@ -31,7 +33,7 @@ def set_device(request):
     return redirect(nxt)
 
 
-@qms_member
+@team_member
 def device_list(request):
     devices = accessible_devices(request.user)
     rows = []
@@ -53,8 +55,9 @@ def device_create(request):
     if request.method == "POST" and form.is_valid():
         device = form.save(commit=False)
         device.save(_actor=request.user)
-        DeviceMembership(device=device, user=request.user, note="Created the device") \
-            .save(_actor=request.user)
+        creator = DeviceMembership(device=device, user=request.user, note="Created the device")
+        creator.set_roles([wf.QA, wf.DEVICE_ADMIN])
+        creator.save(_actor=request.user)
         schedules = services.setup_device_pms(device)
         request.session[SESSION_DEVICE_KEY] = device.pk
         messages.success(request, f"{device.name} added with {len(schedules)} PMS activities "
@@ -69,8 +72,8 @@ def device_create(request):
 def device_edit(request, code):
     device = get_object_or_404(Device, code=code)
     require_access(request, device)
-    if not services.user_has_role(request.user, [wf.QA]):
-        messages.error(request, "Requires role: QA.")
+    if not services.user_has_role(request.user, [wf.QA], device):
+        messages.error(request, f"Requires role: QA on {device.name}.")
         return redirect("qms:device_detail", code=code)
     form = DeviceForm(request.POST or None, instance=device)
     if request.method == "POST" and form.is_valid():
@@ -82,7 +85,7 @@ def device_edit(request, code):
                      reverse("qms:device_detail", args=[code]))
 
 
-@qms_member
+@team_member
 def device_detail(request, code):
     device = get_object_or_404(Device, code=code)
     require_access(request, device)
@@ -99,60 +102,117 @@ def device_detail(request, code):
         "errors": [c for c in checks if c["level"] == "error"],
         "warnings": [c for c in checks if c["level"] == "warning"],
         "builds": builds, "sign_form": SignForm(),
-        "is_qa": services.user_has_role(request.user, [wf.QA]),
+        "is_qa": services.user_has_role(request.user, [wf.QA], device),
         "signatures": Signature.objects.filter(object_type="Technical File Build",
                                                object_ref__in=[b.label for b in builds]),
         "events": AuditEvent.objects.filter(
             Q(object_ref__in=[device.code] + [b.label for b in builds])
             | Q(object_type="Device Membership", object_ref__endswith=f"@ {device.code}"))
             .order_by("-id")[:50],
-        "team": device.memberships.filter(active=True).select_related("user"),
+        "team": _team_rows(request.user, device),
         "team_form": TeamMemberForm(device=device),
-        "can_manage_team": _can_manage_team(request.user, device),
+        "can_manage_team": can_manage_team(request.user, device),
+        "invitations": device_invitations(device) if can_manage_team(request.user, device)
+        else [],
     })
 
 
-def _can_manage_team(user, device):
-    """QA on the device's team, or anyone with All-device access, manages its team."""
-    return sees_all_devices(user) or (
-        services.user_has_role(user, [wf.QA])
-        and device.memberships.filter(user=user, active=True).exists())
+def _team_rows(viewer, device):
+    """(membership, roles form, organisation-wide roles) for each member. The form is only
+    there when the viewer may change that person's roles (never their own)."""
+    from .roles import org_roles
+    rows = []
+    for m in device.memberships.filter(active=True).select_related("user"):
+        editable = can_manage_team(viewer, device) and m.user_id != viewer.pk
+        form = TeamRolesForm(initial={"roles": m.role_list(), "note": m.note},
+                             prefix=f"m{m.pk}") if editable else None
+        org = [r for r in wf.ROLES if r in org_roles(m.user) and not m.user.is_superuser]
+        rows.append((m, form, org))
+    return rows
 
 
-@qms_member
+def _managers_left(device, without=None, new_roles=None):
+    """How many team members could still manage the team after removing ``without`` (or
+    giving it ``new_roles``). Organisation-wide roles count too."""
+    from .roles import org_roles
+    count = 0
+    for m in device.memberships.filter(active=True).select_related("user"):
+        if without and m.pk == without.pk:
+            if new_roles is None:
+                continue
+            roles = set(new_roles) | org_roles(m.user)
+        else:
+            roles = set(m.role_list()) | org_roles(m.user)
+        if roles & set(wf.TEAM_MANAGERS):
+            count += 1
+    return count
+
+
+@team_member
 @require_POST
 def team_add(request, code):
     device = get_object_or_404(Device, code=code)
     require_access(request, device)
-    if not _can_manage_team(request.user, device):
-        messages.error(request, "Only QA on this device's team can change it.")
+    if not can_manage_team(request.user, device):
+        messages.error(request, "Only Device admins and QA on this device can change its team.")
         return redirect("qms:device_detail", code=code)
     form = TeamMemberForm(request.POST, device=device)
     if form.is_valid():
         user = form.cleaned_data["user"]
-        m, created = DeviceMembership.objects.get_or_create(
-            device=device, user=user, defaults={"note": form.cleaned_data["note"]})
-        if not created:
-            m.active = True
-            m.note = form.cleaned_data["note"] or m.note
-            m.save(_actor=request.user)
+        m = (DeviceMembership.objects.filter(device=device, user=user).first()
+             or DeviceMembership(device=device, user=user))
+        m.active = True
+        m.note = form.cleaned_data["note"] or m.note
+        m.set_roles(set(m.role_list()) | set(form.cleaned_data["roles"]))
+        m.save(_actor=request.user, _comment="Added to team")
         services.sync_training()
         messages.success(request, f"{user.get_full_name() or user.username} added to the "
-                                  f"{device.name} team.")
+                                  f"{device.name} team as {', '.join(m.role_list())}.")
     else:
-        messages.error(request, "Choose a person to add.")
+        messages.error(request, "Choose a person and at least one role.")
     return redirect("qms:device_detail", code=code)
 
 
-@qms_member
+@team_member
+@require_POST
+def team_roles(request, pk):
+    m = get_object_or_404(DeviceMembership, pk=pk, active=True)
+    require_access(request, m.device)
+    form = TeamRolesForm(request.POST, prefix=f"m{m.pk}")
+    if not can_manage_team(request.user, m.device):
+        messages.error(request, "Only Device admins and QA on this device can change its team.")
+    elif m.user_id == request.user.pk:
+        messages.error(request, "You can't change your own roles. Ask another Device admin or QA.")
+    elif not form.is_valid():
+        messages.error(request, "Choose valid roles.")
+    elif _managers_left(m.device, without=m, new_roles=form.cleaned_data["roles"]) == 0:
+        messages.error(request, "A device needs at least one Device admin or QA on its team.")
+    else:
+        before = m.role_list()
+        m.set_roles(form.cleaned_data["roles"])
+        m.note = form.cleaned_data["note"]
+        m.save(_actor=request.user, _comment="Roles changed")
+        services.sync_training()
+        name = m.user.get_full_name() or m.user.get_username()
+        if before != m.role_list():
+            messages.success(request, f"{name}'s roles on {m.device.name}: "
+                                      f"{', '.join(m.role_list()) or 'none'}.")
+        else:
+            messages.success(request, "Saved.")
+    return redirect("qms:device_detail", code=m.device.code)
+
+
+@team_member
 @require_POST
 def team_remove(request, pk):
     m = get_object_or_404(DeviceMembership, pk=pk)
     require_access(request, m.device)
-    if not _can_manage_team(request.user, m.device):
-        messages.error(request, "Only QA on this device's team can change it.")
+    if not can_manage_team(request.user, m.device):
+        messages.error(request, "Only Device admins and QA on this device can change its team.")
     elif m.device.memberships.filter(active=True).count() == 1:
         messages.error(request, "A device needs at least one team member.")
+    elif _managers_left(m.device, without=m) == 0:
+        messages.error(request, "A device needs at least one Device admin or QA on its team.")
     else:
         m.active = False
         m.save(_actor=request.user, _comment="Removed from team")

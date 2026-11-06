@@ -77,7 +77,10 @@ qms/
   views.py              dashboard, records, attachments, audit, signing PIN
   views_docs.py         documents and training
   views_risk.py         hazards, controls, suppliers, SOUP
-  views_devices.py      devices, device switcher, technical file preview/generate/approve
+  views_devices.py      devices, device switcher, teams and roles, technical file pages
+  views_invitations.py  invite people, invitations list, the accept page (/invite/<token>/)
+  roles.py              who holds which role on which device (every role check uses it)
+  invitations.py        invitation rules: create, resend, revoke, accept
   techfile.py           technical file: gather, completeness checks, outline, HTML/DOCX, ZIP
   help.py               help topics, page → help section map, help text for every form field
   help/                 the help topics (Markdown), served at /help/
@@ -106,6 +109,8 @@ qms/
   test_teams.py         device-team isolation, multi-team members, All-device access (13 tests)
   test_ops.py           health check, scheduler and alerts (8 tests)
   test_help.py          every page and form field has help; help pages and icons (11 tests)
+  test_roles.py         roles per device, Device admin, team pages, the 0004 migration (16 tests)
+  test_invitations.py   inviting, the emailed link, expiry, resend, revoke, accepting (16 tests)
   management/commands/run_oq.py   operational qualification run and traced evidence
 ```
 
@@ -317,10 +322,15 @@ Signature meanings in use: *Approval*, *Reportability decision*, *Regulatory sub
 
 ### Roles
 
-Three Django groups, created by `seed_qms`: `Engineer`, `QA`, `Clinical Safety Officer`
-(constants in `workflow.py`). Roles gate actions in services; pages are gated by
-`access.qms_member`, which requires login **and** membership of at least one QMS group
-(superusers always pass). A signed-in user without a role gets `access_pending.html` with HTTP 403.
+Four roles (constants in `workflow.py`): the working roles `Engineer`, `QA` and
+`Clinical Safety Officer` (`wf.ANY_ROLE`), and `Device admin`, which invites people and manages a
+device's team but has no approval powers (`wf.ROLES` is all four; `wf.TEAM_MANAGERS` is Device
+admin and QA). Roles are held **per device**; see [Roles per device](#roles-per-device).
+
+Pages are gated by `access.qms_member` (login **and** a working role on some device or
+organisation-wide; superusers always pass) or, for device and team pages, `access.team_member`
+(any role, so a Device admin with no working role can still manage their teams). A signed-in user
+without a role gets `access_pending.html` with HTTP 403.
 
 The admin site is for staff users only. `seed_qms` gives the QA group all `qms` model permissions;
 make QA leads `is_staff` so they can manage users and roles.
@@ -394,6 +404,8 @@ the media directory publicly.
 | `QMS_REQUIRE_INDEPENDENT_APPROVAL` | `True` | Enforce `independent` transitions and author ≠ approver for documents |
 | `QMS_PMS_HORIZON_DAYS` | `30` | How far ahead PMS activities are created |
 | `QMS_TRAINING_DUE_DAYS` | `14` | Training due date after assignment |
+| `QMS_INVITATION_DAYS` | `14` | Default expiry of an invitation link |
+| `QMS_INVITATION_MAX_DAYS` | `30` | Longest expiry an inviter can choose |
 | `QMS_SOUP_REVIEW_DAYS` | `35` | SOUP anomaly review is overdue after this |
 | `QMS_RISK_ACCEPTABLE_MAX` | `4` | Score ≤ this is acceptable |
 | `QMS_RISK_UNACCEPTABLE_MIN` | `10` | Score ≥ this is unacceptable |
@@ -423,7 +435,7 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 ## Testing
 
 ```bash
-python manage.py test qms                 # 102 tests, ~70 s on SQLite
+python manage.py test qms                 # 134 tests, ~90 s on SQLite
 python manage.py run_oq --executed-by "Name" --release 1.0.0 --output oq_evidence/
 python manage.py test qms.test_modules.SSOTests
 ```
@@ -533,14 +545,63 @@ devices they may do it on. A person can be on any number of teams.
   by Change Requests of the hazard's device.
 - **Services:** `_device_error(user, device)` is added to every rule check (transitions, document
   workflow, hazards, technical files), so direct calls can't bypass the UI.
-- **Training:** for a device-specific document, required roles are narrowed to the team
-  (`services._team_filter`). **Notifications:** `notifications.users_in_roles(roles, device)` does
-  the same, so emails never reach other teams.
+- **Training:** required roles are matched on the document's device (anywhere for QMS-wide
+  documents) through `roles.users_with_roles`. **Notifications:** `notifications.users_in_roles(
+  roles, device)` uses the same function, so emails go only to people holding the role on that
+  device.
 - **Audit:** the full audit trail page and CSV export require All-device access; each object's
   own trail follows its access.
-- **Managing teams:** QA on the team, or All-device holders, add and remove members on the device
-  page (`team_add`, `team_remove`). The creator of a device joins its team. A device always keeps
-  at least one member. Adding someone runs `sync_training()` so they get the device's training.
+- **Managing teams:** Device admins and QA on the device (`roles.can_manage_team`) add existing
+  users with roles (`team_add`), change roles (`team_roles`) and remove members (`team_remove`) on
+  the device page, and invite new people. Nobody changes their own roles. The creator of a device
+  joins its team as QA and Device admin. A device always keeps a member, and one who can manage
+  it (`views_devices._managers_left`, which counts organisation-wide roles too). Changes run
+  `sync_training()`.
+
+### Roles per device
+
+`DeviceMembership.roles` holds a person's roles on that device as text (`"Engineer, QA"`);
+`role_list()` reads it and `set_roles()` validates and orders it, as does `clean()` for Admin.
+Everything else goes through `qms/roles.py`:
+
+| Function | Meaning |
+| --- | --- |
+| `org_roles(user)` | Organisation-wide roles: the `auth.Group`s of the same names, set in Admin |
+| `device_roles(user, device)` | Roles on a device: its membership roles plus organisation-wide roles, but only if the person can see the device. `None` means QMS-wide: roles held anywhere |
+| `has_role(user, roles, device=None)` | The one check every rule uses (`services.user_has_role` and `_role_error` delegate to it) |
+| `users_with_roles(roles, device=None)` | Recipients for emails and training |
+| `can_manage_team(user, device)`, `managed_devices(user)` | Device admin or QA there |
+
+Every service check passes the item's device: records (`record.device`), document versions
+(`document.device`, `None` for QMS-wide), hazards, technical file builds. QMS-wide actions
+(supplier evaluation, QMS-wide documents, creating a device) accept the role on any device.
+
+Migration `0004` copied each person's groups onto each of their active memberships, removed the
+working groups from people on a team who lack All-device access (so nobody gained or lost a
+permission, and roles are now per device), kept organisation-wide roles for All-device holders,
+and made each device's QA members (or else its first member) its Device admin.
+
+### Invitations
+
+`qms/invitations.py` holds the rules; `views_invitations.py` the pages; `models/invitations.py`
+the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
+
+- `create_invitation(inviter, email, {device: roles}, days, message)`: the inviter must manage each
+  device's team; one pending invitation per address and device; expiry 1 to
+  `QMS_INVITATION_MAX_DAYS` days (default `QMS_INVITATION_DAYS`). The token is
+  `secrets.token_urlsafe(32)`; only its SHA-256 (`token_hash`) is stored. The email
+  (`notifications.invitation`) carries `https://HOST/invite/<token>/`.
+- `invitation_accept` (`/invite/<token>/`) needs no login: the link is the credential. Signed in,
+  the account must have the invited address (`user.email` or a verified allauth `EmailAddress`).
+  Signed out, the person creates a local account (`InvitationSignupForm`, Django's password
+  validators; the address is recorded as verified) or uses single sign-on: opening the link stores
+  the token in the session, and `sso.SocialAccountAdapter.is_open_for_signup` allows a new account
+  for that verified address.
+- `accept()` re-checks every grant (`valid_grants`: device active, inviter still manages it),
+  adds roles to existing memberships (never removes any), marks the invitation accepted under
+  `select_for_update` so it can't be used twice, and runs `sync_training()`.
+- `resend()` issues a new token and expiry (the old link stops working); `revoke()` closes it.
+  Either is allowed for the inviter or anyone who manages every device in it.
 
 ## Technical file generation
 

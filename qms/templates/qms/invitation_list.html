@@ -1,0 +1,39 @@
+{% extends "qms/base.html" %}
+{% block title %}Invitations – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+  <h1>Invitations</h1>
+  {% if can_invite %}<a class="btn" href="{% url 'qms:invitation_create' %}">Invite people</a>{% endif %}
+</div>
+<p class="muted small" style="max-width:760px">Invitations you sent, or to devices whose team you manage. A link works once, only for the invited email address, until it expires. Resending creates a new link and the old one stops working.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Waiting to be accepted</h2>
+  <table>
+    <tr><th>Ref</th><th>Email</th><th>Devices and roles</th><th>Invited by</th><th>Expires</th><th></th></tr>
+    {% for inv in open %}
+    <tr><td>{{ inv.ref }}</td><td>{{ inv.email }}</td>
+      <td class="small">{% for code, roles in inv.grant_lines %}<strong>{{ code }}</strong>: {{ roles }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+      <td class="small">{{ inv.invited_by.get_full_name|default:inv.invited_by.username }}<br><span class="muted">{{ inv.last_sent_at|date:"d M Y" }}</span></td>
+      <td class="small">{% if inv.is_expired %}<span class="badge bad">Expired</span>{% else %}{{ inv.expires_at|date:"d M Y H:i" }}{% endif %}</td>
+      <td style="white-space:nowrap">{% if inv.pk in can_administer %}
+        <form method="post" action="{% url 'qms:invitation_resend' inv.pk %}" style="display:inline">{% csrf_token %}<button class="btn secondary" style="padding:2px 10px">Resend</button></form>
+        <form method="post" action="{% url 'qms:invitation_revoke' inv.pk %}" style="display:inline">{% csrf_token %}<button class="btn secondary" style="padding:2px 10px">Revoke</button></form>
+      {% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6" class="muted">None.</td></tr>{% endfor %}
+  </table>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">Accepted and revoked</h2>
+  <table class="small">
+    <tr><th>Ref</th><th>Email</th><th>Devices and roles</th><th>Invited by</th><th>Outcome</th></tr>
+    {% for inv in closed %}
+    <tr><td>{{ inv.ref }}</td><td>{{ inv.email }}</td>
+      <td>{% for code, roles in inv.grant_lines %}<strong>{{ code }}</strong>: {{ roles }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+      <td>{{ inv.invited_by.get_full_name|default:inv.invited_by.username }}</td>
+      <td>{% if inv.state == "accepted" %}<span class="badge done">Accepted</span> by {{ inv.accepted_by.username }}, {{ inv.accepted_at|date:"d M Y" }}{% else %}<span class="badge">Revoked</span>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

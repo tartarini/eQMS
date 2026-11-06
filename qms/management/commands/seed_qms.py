@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, demo=False, **options):
         record_perms = Permission.objects.filter(content_type__app_label="qms")
-        for name in wf.ANY_ROLE + (wf.ALL_DEVICES,):
+        for name in wf.ROLES + (wf.ALL_DEVICES,):
             group, created = Group.objects.get_or_create(name=name)
             if name == wf.QA:
                 group.permissions.set(record_perms)
@@ -38,6 +38,7 @@ class Command(BaseCommand):
                 if created:
                     user.set_password("demo-pass-123")
                     user.save()
-                user.groups.add(Group.objects.get(name=role))
+                if role == wf.QA:  # organisation-wide QA; others get roles per device team
+                    user.groups.add(Group.objects.get(name=role))
                 self.stdout.write(f"{'Created' if created else 'Found'} demo user {username}")
         self.stdout.write(self.style.SUCCESS("Seed complete."))

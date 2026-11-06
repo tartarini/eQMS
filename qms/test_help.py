@@ -24,6 +24,10 @@ def app_forms():
                  "SupplierEvaluationForm", "SoupItemForm", "DeviceForm"]:
         out.append((name, getattr(F, name)()))
     out.append(("TeamMemberForm", F.TeamMemberForm(device=None)))
+    out.append(("TeamRolesForm", F.TeamRolesForm()))
+    from .models import Device
+    out.append(("InvitationForm", F.InvitationForm(devices=[Device(pk=1, name="X", code="X")])))
+    out.append(("InvitationSignupForm", F.InvitationSignupForm(email="a@example.org")))
     out.append(("SigningPinForm", F.SigningPinForm(user=User(password="x"))))
     out.append(("AuthenticationForm", AuthenticationForm()))
     return out

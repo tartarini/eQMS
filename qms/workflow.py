@@ -18,7 +18,11 @@ from typing import Callable, Optional
 ENGINEER = "Engineer"
 QA = "QA"
 CLINICAL_SAFETY = "Clinical Safety Officer"
-ANY_ROLE = (ENGINEER, QA, CLINICAL_SAFETY)
+ANY_ROLE = (ENGINEER, QA, CLINICAL_SAFETY)  # working roles: they act on quality records
+# Administrative role: invites people and manages a device's team; no approval powers.
+DEVICE_ADMIN = "Device admin"
+ROLES = ANY_ROLE + (DEVICE_ADMIN,)            # every role a person can hold on a device
+TEAM_MANAGERS = (DEVICE_ADMIN, QA)            # may invite people and manage a device's team
 # Not a working role: grants access to every device's data (e.g. head of quality, auditors).
 ALL_DEVICES = "All-device access"
 

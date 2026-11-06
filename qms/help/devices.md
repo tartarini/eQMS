@@ -6,13 +6,49 @@ Pick a device in the menu at the left of the top bar. Lists, the dashboard and t
 
 ## Device teams
 
-Your role (Engineer, QA or Clinical Safety Officer) says what you can do; your device teams say which devices you can do it on. You can be on as many teams as your work needs, and the device menu lists only your devices.
+Each device has a team, shown on its page under **Team**. You can be on as many teams as your work needs, and the device menu lists only your devices.
 
 - You see, and can act on, only the records, risks, device documents and technical files of your teams. QMS-wide documents and your training are visible to everyone.
-- Emails and training for a device go only to its team.
+- Emails and training for a device go only to its team, by role on that device.
 - People with **All-device access** (for example the head of quality or an auditor) see every device and the full **Audit** page.
-- **QA on a team** adds and removes members on the device's page under **Team**. Removing someone keeps their past records and signatures. The person who creates a device joins its team automatically, and a device must always keep at least one member.
+- **Device admins and QA on a team** invite people, add existing users, change roles and remove members. Removing someone keeps their past records and signatures.
+- The person who creates a device joins its team as QA and Device admin. A device always keeps at least one member, and at least one Device admin or QA.
 - A record's linked hazards must belong to the same device, even if you're on several teams.
+
+## Roles on each device
+
+Everyone on a team has their own roles on that device: Engineer, QA, Clinical Safety Officer and Device admin, in any combination. The same person can hold different roles on another device. See [Roles](/help/getting-started/#roles) for what each one can do.
+
+To change someone's roles (Device admin or QA on the device):
+
+1. Open the device and find them under **Team**.
+2. Click **Change**, tick the roles they should hold on this device, and click **Save roles**.
+
+The change takes effect straight away, and training required for their new roles is assigned. You can't change your own roles: ask another Device admin or QA. Roles held organisation-wide are shown under the person's name; only an administrator can change those, in Admin.
+
+To add someone who already has an account, use **Add someone who already has an account** under the team, choose the person and their roles, and click **Add to team**.
+
+## Invite people
+
+Device admins and QA invite new people by email. One invitation can cover several devices, with different roles on each.
+
+1. On a device's page click **Invite people** (or **Invitations → Invite people** in the top bar).
+2. Enter the person's email address. Use the address they will sign in with: only an account with this address can accept.
+3. Tick their roles on each device. Leave a device blank to leave them off its team. Only devices whose team you manage are listed.
+4. Choose when the link expires (14 days by default, at most 30) and, if you like, add a message.
+5. Click **Send invitation**.
+
+They get an email with a link to create an account (or sign in, or use single sign-on) and accept. When they accept, they join each team with the roles you chose. If they already have roles on a device, the invitation adds to them and never removes any.
+
+## Manage invitations
+
+**Invitations** in the top bar lists the invitations you sent, and those for devices whose team you manage.
+
+- **Resend** sends a new link with a fresh expiry. The previous link stops working.
+- **Revoke** withdraws an invitation; its link stops working.
+- Accepted and revoked invitations stay listed, with who accepted and when.
+
+The person who sent an invitation can resend or revoke it, as can anyone who manages every device in it. If the sender can no longer manage a device's team by the time the invitation is accepted, that device is left out. Every invitation, resend, revocation and acceptance is recorded in the audit trail.
 
 ## Add a device
 

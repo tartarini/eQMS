@@ -25,11 +25,52 @@ REQUIREMENTS = [
       "test_teams.TeamTests.test_services_refuse_other_teams_even_when_called_directly",
       "test_teams.TeamTests.test_forms_refuse_other_teams_devices_hazards_and_links"],
      ["PQ-02"]),
-    ("URS-03", "Access", "Device teams are managed by QA on the team or All-device users; changes "
-     "are audited; a device always keeps a team member.", "M",
+    ("URS-03", "Access", "Device teams and the roles on them are managed by Device admins and QA "
+     "on the device; nobody changes their own roles; changes are audited; a device always keeps "
+     "a member, and one who can manage its team.", "H",
      ["test_teams.TeamTests.test_qa_on_team_manages_it_and_changes_are_audited",
       "test_teams.TeamTests.test_last_member_cannot_be_removed",
-      "test_teams.TeamTests.test_device_creator_joins_team"], []),
+      "test_teams.TeamTests.test_device_creator_joins_team",
+      "test_roles.TeamPageTests.test_device_admin_changes_roles_and_it_is_audited",
+      "test_roles.TeamPageTests.test_nobody_changes_their_own_roles",
+      "test_roles.TeamPageTests.test_engineer_cannot_change_roles",
+      "test_roles.TeamPageTests.test_a_team_keeps_someone_who_can_manage_it",
+      "test_roles.TeamPageTests.test_adding_an_existing_user_needs_roles",
+      "test_roles.TeamPageTests.test_team_panel_shows_roles_per_device",
+      "test_roles.TeamPageTests.test_device_creator_is_qa_and_device_admin"], []),
+    ("URS-06", "Access", "Roles are held per device: a person can hold different roles on "
+     "different devices, and every role check (workflow steps, approvals, emails, training) uses "
+     "the role on the item's device. Roles from earlier releases are moved onto teams without "
+     "anyone gaining or losing a permission.", "H",
+     ["test_roles.PerDeviceRoleTests.test_roles_apply_only_on_their_device",
+      "test_roles.PerDeviceRoleTests.test_workflow_approval_checks_the_records_device",
+      "test_roles.PerDeviceRoleTests.test_organisation_wide_role_applies_only_where_the_person_can_see",
+      "test_roles.PerDeviceRoleTests.test_inactive_membership_or_retired_device_gives_no_role",
+      "test_roles.PerDeviceRoleTests.test_device_admin_manages_team_but_cannot_approve_or_open_records",
+      "test_roles.PerDeviceRoleTests.test_set_roles_validates_and_orders",
+      "test_roles.PerDeviceRoleTests.test_emails_go_to_the_role_on_that_device",
+      "test_roles.PerDeviceRoleTests.test_training_follows_the_role_on_the_documents_device",
+      "test_roles.RoleMigrationTests.test_roles_move_to_teams"], ["PQ-02"]),
+    ("URS-07", "Access", "Device admins and QA invite people by email to the devices whose team "
+     "they manage, with roles on each. The link is single use, expires, can only be accepted by "
+     "an account with the invited address, can be resent or revoked, and is stored only as a "
+     "hash; invitations and acceptances are audited.", "H",
+     ["test_invitations.InvitationTests.test_invitation_email_lists_devices_roles_and_expiry",
+      "test_invitations.InvitationTests.test_only_the_token_hash_is_stored",
+      "test_invitations.InvitationTests.test_you_can_only_grant_roles_on_teams_you_manage",
+      "test_invitations.InvitationTests.test_input_is_checked",
+      "test_invitations.InvitationTests.test_one_pending_invitation_per_person_and_device",
+      "test_invitations.InvitationTests.test_new_person_creates_an_account_and_joins_each_team",
+      "test_invitations.InvitationTests.test_weak_password_and_taken_username_are_refused",
+      "test_invitations.InvitationTests.test_existing_account_signs_in_and_roles_are_added_not_replaced",
+      "test_invitations.InvitationTests.test_another_account_cannot_accept",
+      "test_invitations.InvitationTests.test_expired_invitation_is_refused_until_resent",
+      "test_invitations.InvitationTests.test_revoked_invitation_cannot_be_used",
+      "test_invitations.InvitationTests.test_grants_are_rechecked_when_accepted",
+      "test_invitations.InvitationTests.test_unknown_link_is_not_found",
+      "test_invitations.InvitationTests.test_invite_page_lists_only_managed_devices",
+      "test_invitations.InvitationTests.test_invitations_page_and_device_panel",
+      "test_invitations.InvitationTests.test_single_sign_on_signup_allowed_only_for_the_invited_address"], ["PQ-09"]),
     ("URS-04", "Access", "Single sign-on with Google, Microsoft, LinkedIn, ORCID and GitHub; no "
      "local self-sign-up; new SSO accounts only for verified emails in allowed domains; "
      "CSRF-safe start.", "H",

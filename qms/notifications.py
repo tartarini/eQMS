@@ -20,11 +20,9 @@ def _url(path: str) -> str:
 
 
 def users_in_roles(roles, device=None):
-    """Active users in any of the roles; limited to the device's team when a device is given."""
-    from .services import _team_filter
-    User = get_user_model()
-    users = User.objects.filter(is_active=True, groups__name__in=roles).distinct()
-    return _team_filter(users, device)
+    """Active people holding any of the roles on the device (anywhere when device is None)."""
+    from .roles import users_with_roles
+    return users_with_roles(roles, device)
 
 
 def _emails(users):
@@ -32,7 +30,12 @@ def _emails(users):
 
 
 def send(subject: str, body: str, users) -> None:
-    recipients = _emails(users)
+    send_to(subject, body, _emails(users))
+
+
+def send_to(subject: str, body: str, recipients) -> None:
+    """Email addresses directly (after the transaction commits)."""
+    recipients = sorted(set(recipients))
     if not recipients or not settings.QMS_NOTIFICATIONS_ENABLED:
         return
 
@@ -174,3 +177,20 @@ def daily_reminders():
              "\n".join(f"- {x}" for x in unique) + "\n\n" + _url(reverse("qms:dashboard")),
              [user])
     return len(lines_by_user)
+
+
+def invitation(inv, link: str):
+    """The invitation email, to an address that may not have an account yet."""
+    from .models import Device
+    inviter = inv.invited_by.get_full_name() or inv.invited_by.get_username()
+    lines = "\n".join(f"  - {Device.objects.get(pk=g['device_id']).name} ({g['device']}): "
+                      f"{', '.join(g['roles'])}" for g in inv.grants)
+    note = f"\nMessage from {inviter}:\n{inv.message}\n" if inv.message else ""
+    send_to("Invitation to SAMD_QMS",
+            f"{inviter} has invited you to SAMD_QMS, the quality management system for these "
+            f"medical devices, with these roles:\n\n{lines}\n{note}\n"
+            f"Accept by {inv.expires_at:%d %b %Y %H:%M} UTC, using this link:\n{link}\n\n"
+            "You can create an account or, if your organisation has single sign-on switched on, "
+            "sign in with it. The link works once and expires automatically.\n\n"
+            "If you weren't expecting this email, you can ignore it.",
+            [inv.email])

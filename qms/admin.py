@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (Attachment, AuditEvent, Device, DeviceMembership, Document, DocumentVersion, Hazard, PMSSchedule,
                      Record, RecordLink, RiskControl, Signature, SoupItem, Supplier,
-                     TechnicalFileBuild, TrainingAssignment, TrainingRequirement)
+                     TechnicalFileBuild, TrainingAssignment, TrainingRequirement, Invitation)
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -152,14 +152,14 @@ class SupplierAdmin(NoDeleteAdmin):
 class MembershipInline(admin.TabularInline):
     model = DeviceMembership
     extra = 0
-    fields = ("user", "note", "active", "added_at")
+    fields = ("user", "roles", "note", "active", "added_at")
     readonly_fields = ("added_at",)
     can_delete = False
 
 
 @admin.register(DeviceMembership)
 class DeviceMembershipAdmin(NoDeleteAdmin):
-    list_display = ("user", "device", "note", "active", "added_at")
+    list_display = ("user", "device", "roles", "note", "active", "added_at")
     list_filter = ("device", "active")
     search_fields = ("user__username", "user__email")
 
@@ -184,3 +184,12 @@ class SoupItemAdmin(NoDeleteAdmin):
     list_display = ("name", "version", "supplier", "safety_class", "last_anomaly_review", "active")
     list_filter = ("active", "safety_class")
     search_fields = ("name",)
+
+
+@admin.register(Invitation)
+class InvitationAdmin(ReadOnlyAdmin):
+    """Invitations are sent, resent and revoked from the app (Invitations), not here."""
+    list_display = ("__str__", "status", "invited_by", "created_at", "expires_at", "accepted_by")
+    list_filter = ("status",)
+    search_fields = ("email",)
+    exclude = ("token_hash",)

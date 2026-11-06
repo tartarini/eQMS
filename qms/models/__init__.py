@@ -8,3 +8,4 @@ from .risk import (LEVEL_LABELS, PROBABILITY_SCALE, SEVERITY_SCALE, Hazard,  # n
 from .suppliers import SoupItem, Supplier  # noqa
 from .devices import (CLASSIFICATIONS, REG_STATUSES, TECH_FILE_SECTIONS, Device,  # noqa
                       DeviceMembership, TechnicalFileBuild)
+from .invitations import Invitation  # noqa

@@ -1,5 +1,17 @@
 SAMD_QMS is where your organisation records, for each of its software medical devices, problems, complaints, incidents, corrective actions, software changes, controlled documents, training, risks and suppliers. It enforces the quality process: each step asks for the information and the person it needs, approvals are electronically signed, and every change is kept in a permanent audit trail.
 
+## Accept an invitation
+
+Most people join through an invitation email from a Device admin or QA. It lists the devices and your roles on each, and expires after the date shown.
+
+1. Open the link in the email.
+2. Create your account: choose a username, enter your name and choose a password. Or, if single sign-on is switched on, choose **Continue with…** and sign in with an account that uses the invited email address.
+3. If you already have a SAMD_QMS account with that email address, sign in instead and click **Accept**.
+
+You're then on each device's team with the roles listed. The link works once. If it has expired or says it isn't valid, ask the person who invited you to send it again: each resend replaces the previous link.
+
+The invitation can only be accepted by an account with the email address it was sent to. If you'd rather use another address, ask to be invited at that one.
+
 ## Signing in
 
 1. Open the SAMD_QMS address your administrator gave you.
@@ -10,15 +22,18 @@ Sessions end after 30 minutes without activity.
 
 ## Roles
 
-Your role says what you can do; your device teams say which devices you can do it on (see [Device teams](/help/devices/#device-teams)).
+Roles are held **per device**: you can be QA on one device and an Engineer on another. Your roles on each device are shown on its page under **Team** (see [Roles on each device](/help/devices/#roles-on-each-device)).
 
-| Role | Can do |
+| Role | Can do on that device |
 | --- | --- |
-| Engineer | Create and edit records, move them through everyday steps, write documents and submit them for review, add hazards and risk controls, add suppliers and SOUP items, complete their own training |
-| QA | Everything an Engineer can, plus all approvals: closing and rejecting records, approving changes and CAPA plans, approving and releasing documents, accepting risks, evaluating suppliers, setting training requirements, managing device teams |
+| Engineer | Create and edit records, move them through everyday steps, write documents and submit them for review, add hazards and risk controls, add SOUP items, complete their own training |
+| QA | Everything an Engineer can, plus all approvals: closing and rejecting records, approving changes and CAPA plans, approving and releasing documents, accepting risks, approving technical files, setting training requirements; also invites people and manages the team |
 | Clinical Safety Officer | Everything an Engineer can, plus complaint reportability decisions and recording reports to the MHRA |
+| Device admin | Invites people and manages the device's team and their roles. No approval powers; usually combined with another role |
 
-**All-device access** is not a working role: it lets someone, such as the head of quality or an auditor, see every device and the full audit trail.
+Things that belong to no device, such as QMS-wide procedures and suppliers, need the role on any of your devices: for example QA on any device can evaluate a supplier.
+
+An administrator can also give someone a role **organisation-wide** in Admin, for example a head of quality who is QA on every device they can see. **All-device access** is not a working role: it lets someone, such as the head of quality or an auditor, see every device and the full audit trail.
 
 ## Connected accounts
 

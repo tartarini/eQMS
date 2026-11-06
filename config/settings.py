@@ -217,6 +217,8 @@ QMS_REMINDER_LOOKAHEAD_DAYS = 7
 
 # --- Documents, training, risk, suppliers -------------------------------------
 QMS_TRAINING_DUE_DAYS = 14
+QMS_INVITATION_DAYS = 14         # invitation links expire after this many days by default
+QMS_INVITATION_MAX_DAYS = 30     # the longest expiry an inviter can choose
 QMS_SOUP_REVIEW_DAYS = 35          # SOUP anomaly lists reviewed at least monthly
 # Risk matrix: score = severity (1-5) x probability (1-5).
 QMS_RISK_ACCEPTABLE_MAX = 4        # score <= 4: acceptable

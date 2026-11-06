@@ -637,7 +637,7 @@ def approve_technical_file(build: TechnicalFileBuild, user, secret: str, comment
     from .services import (TransitionError, _check_secret, _independent, _role_error, require,
                            sign)
     from .services import _device_error
-    errors = _device_error(user, build.device) + _role_error(user, [wf.QA])
+    errors = _device_error(user, build.device) + _role_error(user, [wf.QA], build.device)
     require(errors, build.status == "generated", "Only newly generated builds can be approved.")
     require(errors, build.error_count == 0,
             f"{build.error_count} completeness error(s) must be resolved; generate a new build "

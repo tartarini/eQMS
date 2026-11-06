@@ -6,7 +6,6 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from . import workflow as wf
-from django.db.models import Q
 
 from .access import current_device, form_page, qms_member, require_access, run, scope
 from .forms import DocumentForm, SignForm, TrainingRequirementForm, VersionForm
@@ -63,7 +62,7 @@ def document_detail(request, number):
         "requirements": doc.training_requirements.select_related("group").filter(active=True),
         "req_form": TrainingRequirementForm(),
         "signatures": sigs.order_by("signed_at"), "events": events,
-        "is_qa": services.user_has_role(request.user, [wf.QA]),
+        "is_qa": services.user_has_role(request.user, [wf.QA], doc.device),
         "next_major": doc.suggest_next_version(major=True),
         "next_minor": doc.suggest_next_version(major=False),
     })
@@ -167,7 +166,7 @@ def version_download(request, pk):
 def requirement_add(request, number):
     doc = get_object_or_404(Document, number=number)
     require_access(request, doc.device)
-    if not services.user_has_role(request.user, [wf.QA]):
+    if not services.user_has_role(request.user, [wf.QA], doc.device):
         messages.error(request, "Requires role: QA.")
         return redirect("qms:document_detail", number=number)
     form = TrainingRequirementForm(request.POST)
@@ -188,7 +187,7 @@ def requirement_add(request, number):
 def requirement_remove(request, pk):
     req = get_object_or_404(TrainingRequirement, pk=pk)
     require_access(request, req.document.device)
-    if services.user_has_role(request.user, [wf.QA]):
+    if services.user_has_role(request.user, [wf.QA], req.document.device):
         req.active = False
         req.save()
         messages.success(request, f"Requirement removed: {req}.")
