@@ -43,6 +43,7 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 | Notifications | Email for new incidents (QA and Clinical Safety, immediately), complaints, assignments, steps awaiting a role, documents for review, training; a daily digest of overdue and due-soon items | — |
 | Single sign-on | Google, Microsoft, LinkedIn, ORCID and GitHub, alongside local accounts | — |
 | Help | Built-in help for every page and a ? icon on every form field, versioned with the release | — |
+| Release identification | Every page (including sign-in, help and admin) shows the version and source commit at the top and the copyright notice at the foot; `/healthz` and the OQ report carry the same commit | ISO 13485 §4.1.6 |
 | Audit and security | Every create, change, status change, signature, link, upload, login, failed login, role change and SSO connection is logged, append-only and SHA-256 hash-chained. Nothing is deleted | 21 CFR Part 11-style controls |
 
 ## Electronic signatures
@@ -82,7 +83,7 @@ your head of quality an account with the QA group and `All-device access` in Adm
 devices (becoming QA and Device admin on each) and **invite** everyone else from each device's
 page, choosing their roles on that device.
 
-Run the tests: `python manage.py test qms` (134 tests). For validation evidence:
+Run the tests: `python manage.py test qms` (139 tests). For validation evidence:
 `python manage.py run_oq --executed-by "Your Name" --release 1.0.0`.
 
 ## Deployment
@@ -161,3 +162,8 @@ qms/notifications.py   emails and the daily digest
 qms/sso.py, sso_settings.py   single sign-on rules and provider configuration
 qms/signals.py         security events into the audit trail
 ```
+
+## Copyright
+
+Copyright 2026-2027 Daniele Tartarini. The notice appears at the foot of every page of the web
+app and on the OQ evidence report.

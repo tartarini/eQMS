@@ -13,6 +13,8 @@
   header a { color:#fff; text-decoration:none; opacity:.85; } header a:hover { opacity:1; }
   header .brand { font-weight:700; opacity:1; margin-right:4px; }
   header .spacer { flex:1; }
+  header .release { font-size:12px; opacity:.7; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; margin-right:6px; }
+  footer.site { max-width:1150px; margin:0 auto; padding:0 16px 24px; color:var(--muted); font-size:12px; text-align:center; }
   main { max-width:1150px; margin:0 auto; padding:20px 16px 60px; }
   h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:24px 0 8px; }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px; }
@@ -85,6 +87,7 @@
 <body>
 <header>
   <a class="brand" href="{% url 'qms:dashboard' %}">SAMD_QMS</a>
+  <span class="release" title="Version {{ qms_version }}, commit {{ qms_commit }}">v{{ qms_version }} · {{ qms_commit_short }}</span>
   {% if user.is_authenticated %}
   {% if all_devices is not None %}
   <form method="post" action="{% url 'qms:set_device' %}" style="margin:0" title="Show one device or all">
@@ -119,5 +122,6 @@
   {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
   {% block content %}{% endblock %}
 </main>
+<footer class="site">{{ qms_copyright }} · SAMD_QMS v{{ qms_version }} ({{ qms_commit_short }})</footer>
 </body>
 </html>

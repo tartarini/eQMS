@@ -1,7 +1,8 @@
 # SAMD_QMS application image: the same image runs the web app, the scheduler and one-off
 # management commands, in development and production.
 #
-#   docker build --build-arg QMS_VERSION=1.0.0 -t samd_qms:1.0.0 .
+#   docker build --build-arg QMS_VERSION=1.0.0 --build-arg QMS_COMMIT=$(git rev-parse HEAD) \
+#     -t samd_qms:1.0.0 .
 
 ARG PYTHON_VERSION=3.13
 
@@ -15,15 +16,19 @@ RUN pip wheel --wheel-dir /wheels -r requirements.txt
 # --- runtime stage ---------------------------------------------------------------------
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
 ARG QMS_VERSION=dev
+# Full git commit the image was built from; shown at the top of every page and on /healthz.
+ARG QMS_COMMIT=""
 LABEL org.opencontainers.image.title="SAMD_QMS" \
       org.opencontainers.image.description="Quality management system for software medical devices" \
-      org.opencontainers.image.version="${QMS_VERSION}"
+      org.opencontainers.image.version="${QMS_VERSION}" \
+      org.opencontainers.image.revision="${QMS_COMMIT}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     QMS_VERSION=${QMS_VERSION} \
+    QMS_COMMIT=${QMS_COMMIT} \
     DJANGO_MEDIA_ROOT=/data/media \
     DJANGO_STATIC_ROOT=/app/staticfiles \
     BACKUP_DIR=/backups

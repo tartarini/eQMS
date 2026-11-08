@@ -29,3 +29,12 @@ def page_help(request):
     else:
         topic, anchor = "", ""
     return {"page_help_url": help_url(topic, anchor)}
+
+
+def release(request):
+    """Version and commit for the top of every page; the copyright notice for its foot."""
+    from django.conf import settings
+    commit = settings.QMS_COMMIT
+    return {"qms_version": settings.QMS_VERSION, "qms_commit": commit,
+            "qms_commit_short": commit[:7] if commit != "unknown" else commit,
+            "qms_copyright": settings.QMS_COPYRIGHT}

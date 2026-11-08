@@ -229,6 +229,16 @@ REQUIREMENTS = [
       "test_help.HelpPageTests.test_pages_render_for_qa_with_help_link"], ["PQ-08"]),
 
     # Verified only manually, in the target environment
+    ("URS-82", "Usability", "Every page, including sign-in, help and administration, shows the "
+     "release version and source commit at the top and the copyright notice at the foot; the "
+     "health endpoint and OQ evidence report the same commit.", "M",
+     ["test_release.ReleaseBannerTests.test_signed_out_pages",
+      "test_release.ReleaseBannerTests.test_signed_in_pages",
+      "test_release.ReleaseBannerTests.test_admin_pages",
+      "test_release.ReleaseBannerTests.test_unknown_commit_is_shown_as_unknown",
+      "test_release.ReleaseBannerTests.test_oq_report_carries_the_notice_and_commit",
+      "test_ops.HealthTests.test_healthz_ok_without_login_and_reveals_only_status"],
+     ["IQ-01"]),
     ("URS-90", "Operation", "Data and files can be backed up and restored without loss, and the "
      "audit chain verifies after restore.", "H", [], ["IQ-08"]),
     ("URS-91", "Operation", "The service is reachable only over HTTPS, with secure cookies and "

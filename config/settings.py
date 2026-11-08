@@ -28,8 +28,23 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
-# Release label shown on /healthz and in logs; set by the container build.
+# Release label and source commit, shown at the top of every page and on /healthz; set by the
+# container build (QMS_VERSION, QMS_COMMIT). Outside a container the commit comes from git.
 QMS_VERSION = os.environ.get("QMS_VERSION", "dev")
+
+
+def _git_commit():
+    import subprocess
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE_DIR, capture_output=True,
+                              text=True, timeout=5, check=True).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+QMS_COMMIT = os.environ.get("QMS_COMMIT", "").strip() or _git_commit() or "unknown"
+# Shown at the foot of every page and every report the software produces.
+QMS_COPYRIGHT = "Copyright 2026-2027 Daniele Tartarini"
 
 
 # Application definition
@@ -72,7 +87,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "config" / "templates"],  # admin/base_site.html override
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -81,6 +96,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "qms.context_processors.devices",
                 "qms.context_processors.page_help",
+                "qms.context_processors.release",
             ],
         },
     },

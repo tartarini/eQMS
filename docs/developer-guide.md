@@ -730,6 +730,11 @@ The code supports it in two ways:
 - **`qms/validation.py`** lists the user requirements (URS-01 … URS-93) with their risk, the
   automated tests that verify each one, and the manual IQ/PQ protocols. Every test must be traced
   to a requirement.
+- **Release identification:** `QMS_VERSION` and `QMS_COMMIT` (build args, set by CI from the tag
+  and `github.sha`; outside a container the commit comes from `git rev-parse HEAD`) are shown at
+  the top of every page, in admin and on `/healthz`, so a screenshot or audit observation always
+  names the exact build. `QMS_COPYRIGHT` in `config/settings.py` is shown at the foot of every
+  page and on the OQ report. Covered by URS-82.
 - **`manage.py run_oq`** runs the suite in a test database and writes `oq_report.html` (with
   environment, versions, commit, per-requirement results and sign-off boxes), `oq_results.csv` and
   `oq_results.json`. It exits non-zero if any test fails, a traced test is missing, a requirement
