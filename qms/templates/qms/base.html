@@ -14,6 +14,11 @@
   header .brand { font-weight:700; opacity:1; margin-right:4px; }
   header .spacer { flex:1; }
   header .release { font-size:12px; opacity:.7; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; margin-right:6px; }
+  .landing { max-width:900px; margin:0 auto; } .landing h1 { font-size:30px; line-height:1.2; margin:16px 0 10px; }
+  .landing .lead { font-size:17px; max-width:760px; } .landing .cta { display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 26px; }
+  .landing .panel h2 { margin-top:0; } .landing .panel p { margin:0; font-size:14px; }
+  .landing .grid { grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+  .steps { padding-left:20px; margin:8px 0 16px; color:var(--muted); } .steps li.current { color:var(--ink); font-weight:600; }
   footer.site { max-width:1150px; margin:0 auto; padding:0 16px 24px; color:var(--muted); font-size:12px; text-align:center; }
   main { max-width:1150px; margin:0 auto; padding:20px 16px 60px; }
   h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:24px 0 8px; }
@@ -105,7 +110,8 @@
   <a href="{% url 'qms:my_training' %}">Training</a>
   <a href="{% url 'qms:hazard_list' %}">Risk</a>
   <a href="{% url 'qms:supplier_list' %}">Suppliers</a>
-  {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>{% endif %}
+  {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>
+  <a href="{% url 'qms:access_request_list' %}">Account requests{% if open_access_requests %} <span class="badge warn">{{ open_access_requests }}</span>{% endif %}</a>{% endif %}
   {% if sees_all_devices %}<a href="{% url 'qms:audit_log' %}">Audit</a>{% endif %}
   {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
   <span class="spacer"></span>
@@ -115,6 +121,8 @@
   <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}<button class="btn secondary" style="padding:3px 10px">Log out</button></form>
   {% else %}
   <span class="spacer"></span>
+  <a href="{% url 'login' %}">Sign in</a>
+  <a href="{% url 'qms:access_request' %}">Request an account</a>
   <a class="help-link" href="{{ page_help_url }}" target="_blank" rel="noopener" title="Help for this page (opens in a new tab)"><span class="help-icon" aria-hidden="true">?</span> Help</a>
   {% endif %}
 </header>

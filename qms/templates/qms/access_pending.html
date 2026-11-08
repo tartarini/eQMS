@@ -3,7 +3,8 @@
 <div class="panel" style="max-width:560px;margin:40px auto">
   <h1>Access pending</h1>
   <p>You're signed in as <strong>{{ user.get_full_name|default:user.username }}</strong>{% if user.email %} ({{ user.email }}){% endif %}, but you don't have a QMS role yet.</p>
-  <p class="muted">QA has been notified. Once you're given a role (Engineer, QA or Clinical Safety Officer), reload this page.</p>
+  <p class="muted">Once you're given a role (Engineer, QA or Clinical Safety Officer), reload this page.</p>
+  <p><a class="btn" href="{% url 'qms:access_request_details' %}">See or send your account request</a></p>
   <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn secondary">Sign out</button></form>
 </div>
 {% endblock %}

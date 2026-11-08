@@ -194,3 +194,40 @@ def invitation(inv, link: str):
             "sign in with it. The link works once and expires automatically.\n\n"
             "If you weren't expecting this email, you can ignore it.",
             [inv.email])
+
+
+# --- account requests ------------------------------------------------------------
+
+def access_confirm_email(ar, link: str):
+    send_to("Confirm your email address",
+            f"Hello {ar.first_name},\n\nYou asked for an account on SAMD_QMS ({ar.ref}). Confirm "
+            f"this email address so that QA can review your request:\n{link}\n\n"
+            f"The link expires in {settings.QMS_ACCESS_CONFIRM_DAYS} days. If you didn't ask "
+            "for an account, ignore this email.", [ar.email])
+
+
+def access_requested(ar):
+    """To QA and everyone who manages a device team: a request is waiting for review."""
+    User = get_user_model()
+    people = (set(users_in_roles(wf.TEAM_MANAGERS))
+              | set(User.objects.filter(is_superuser=True, is_active=True)))
+    people.discard(ar.user)
+    send(f"Account request {ar.ref}: {ar.full_name}",
+         f"{ar.full_name} ({ar.email}), {ar.position} at {ar.organisation}, asks for access as "
+         f"{ar.role}.\n\nDevices or projects: {ar.devices}\n\nReason:\n{ar.reason}\n\n"
+         f"Signed up with: {ar.provider or 'single sign-on'}\n\n"
+         "Approve by adding them to a device team you manage, or decline (QA):\n"
+         + _url(reverse("qms:access_request_list")), people)
+
+
+def access_decided(ar):
+    if ar.status == "approved":
+        lines = "\n".join(f"  - {g['device']}: {', '.join(g['roles'])}" for g in ar.grants)
+        body = (f"Hello {ar.first_name},\n\nYour SAMD_QMS account request {ar.ref} was approved. "
+                f"You're now on these device teams:\n\n{lines}\n\nSign in here:\n"
+                + _url(reverse("login")))
+    else:
+        body = (f"Hello {ar.first_name},\n\nYour SAMD_QMS account request {ar.ref} was declined."
+                f"\n\nReason: {ar.decision_note}\n\nIf you think this is a mistake, contact the "
+                "quality team of the organisation you applied to.")
+    send_to(f"Your account request {ar.ref}", body, [ar.email])

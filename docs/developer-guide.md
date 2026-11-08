@@ -592,6 +592,19 @@ working groups from people on a team who lack All-device access (so nobody gaine
 permission, and roles are now per device), kept organisation-wide roles for All-device holders,
 and made each device's QA members (or else its first member) its Device admin.
 
+### Account requests and the landing page
+
+`/` shows `landing.html` to visitors and the dashboard to people signed in. `/request-access/`
+is open: the browser solves a captcha (`qms/captcha.py`: an ALTCHA-format proof of work signed
+with `SECRET_KEY`, bound to the session, single use and expiring; or Cloudflare Turnstile), which
+marks the session for `QMS_ACCESS_REQUEST_MINUTES`. Only then does `SocialAccountAdapter`
+allow single sign-on to create an account, and only with a provider in
+`QMS_ACCESS_REQUEST_PROVIDERS`. The new account has no role. `qms/access_requests.py` holds the
+rest: the `AccessRequest` (audited, immutable once decided), email confirmation by signed link
+when the provider gave no verified address (ORCID), approval onto a team the reviewer manages
+(`can_manage_team`), and decline by QA with a reason. `SOCIALACCOUNT_EMAIL_REQUIRED` is off so
+ORCID can register; every other route to a new account still checks a verified email.
+
 ### Invitations
 
 `qms/invitations.py` holds the rules; `views_invitations.py` the pages; `models/invitations.py`

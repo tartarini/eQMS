@@ -9,3 +9,4 @@ from .suppliers import SoupItem, Supplier  # noqa
 from .devices import (CLASSIFICATIONS, REG_STATUSES, TECH_FILE_SECTIONS, Device,  # noqa
                       DeviceMembership, TechnicalFileBuild)
 from .invitations import Invitation  # noqa
+from .access_requests import AccessRequest  # noqa

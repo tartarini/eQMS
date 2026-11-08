@@ -1,0 +1,27 @@
+{% extends "qms/base.html" %}
+{% block title %}SAMD_QMS – quality management for software as a medical device{% endblock %}
+{% block content %}
+<section class="landing">
+  <h1>Quality management for software as a medical device</h1>
+  <p class="lead">SAMD_QMS is the electronic quality management system used to develop, release and monitor software as a medical device (SaMD). It supports work to ISO 13485, IEC 62304, ISO 14971 and the UK and EU Medical Device Regulations. One installation serves many devices, each with its own team, records, risk file and technical documentation.</p>
+  <div class="cta">
+    <a class="btn" href="{% url 'qms:access_request' %}">Request an account</a>
+    <a class="btn secondary" href="{% url 'login' %}">Sign in</a>
+  </div>
+
+  <div class="grid">
+    <div class="panel"><h2>Quality records</h2><p>Problem reports, complaints, incidents, CAPAs, change requests and post-market surveillance, each following an enforced workflow with reporting deadlines.</p></div>
+    <div class="panel"><h2>Documents and training</h2><p>Numbered, versioned procedures approved by electronic signature. Staff are assigned the training each new version needs.</p></div>
+    <div class="panel"><h2>Risk management</h2><p>A hazard register scored before and after controls, with each control traced to the change that implements it.</p></div>
+    <div class="panel"><h2>Suppliers and SOUP</h2><p>Approved suppliers and third-party software, each with its own review dates.</p></div>
+    <div class="panel"><h2>Technical file</h2><p>Builds a device's technical documentation from live quality data, checked for gaps and approved by QA.</p></div>
+    <div class="panel"><h2>Trust</h2><p>Approvals are signed, every change is kept in a tamper-evident audit trail, and people see only the devices they work on.</p></div>
+  </div>
+
+  <h2>Who it is for</h2>
+  <p>Engineers, quality assurance staff, clinical safety officers and auditors working on the devices hosted here. It holds no patient data.</p>
+
+  <h2>Getting access</h2>
+  <p>Accounts are for named people on a device team. <a href="{% url 'qms:access_request' %}">Request an account</a> by signing in with Google, Microsoft, LinkedIn or ORCID. QA reviews every request before you can see anything.</p>
+</section>
+{% endblock %}

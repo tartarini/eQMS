@@ -24,8 +24,16 @@ from .services import available_transitions, perform_transition
 from .signals import log_security
 
 
-@qms_member
 def dashboard(request):
+    """The landing page for visitors; the dashboard for people who are signed in."""
+    if not request.user.is_authenticated:
+        from .views_access import landing
+        return landing(request)
+    return _dashboard(request)
+
+
+@qms_member
+def _dashboard(request):
     device = current_device(request)
     open_records = scope(Record.objects.exclude(status__in=wf.TERMINAL_STATES), request)
     counts = Counter(open_records.values_list("record_type", flat=True))

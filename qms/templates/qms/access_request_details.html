@@ -1,0 +1,15 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}Your account request – SAMD_QMS{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:640px;margin:30px auto">
+  <h1>Your account request</h1>
+  <p class="muted small">You're registered as <strong>{{ user.get_username }}</strong> but have no access yet. Tell QA who you are and what you need. Don't include patient or participant data.</p>
+  <form method="post">{% csrf_token %}
+    {% if known %}<p><span class="label-row"><label for="known-email">Email address</label>{% help_for "accessrequest" "email" %}</span><input type="text" id="known-email" value="{{ known }}" disabled><span class="helptext">Confirmed by your sign-in provider.</span></p>{% endif %}
+    {{ form.as_p }}
+    <button class="btn">Send request</button>
+  </form>
+  <form method="post" action="{% url 'logout' %}" style="margin-top:12px">{% csrf_token %}<button class="btn secondary">Sign out</button></form>
+</div>
+{% endblock %}

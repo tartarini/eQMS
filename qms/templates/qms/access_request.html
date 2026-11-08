@@ -1,0 +1,75 @@
+{% extends "qms/base.html" %}
+{% load socialaccount qms_help %}
+{% block title %}Request an account – SAMD_QMS{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:520px;margin:30px auto">
+  <h1>Request an account</h1>
+  <ol class="steps small">
+    <li{% if not passed %} class="current"{% endif %}>Confirm you're a person</li>
+    <li{% if passed %} class="current"{% endif %}>Register with single sign-on</li>
+    <li>Tell us who you are and what you need</li>
+    <li>QA reviews your request</li>
+  </ol>
+
+  {% if not passed %}
+    <form method="post" id="captcha-form">{% csrf_token %}
+      {% if backend == "turnstile" %}
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-callback="qmsCaptchaDone"></div>
+      {% else %}
+        <input type="hidden" name="captcha" id="captcha-solution">
+        {{ challenge|json_script:"captcha-challenge" }}
+        <p class="captcha"><span class="label-row"><label class="inline-field" style="font-weight:600">
+          <input type="checkbox" id="captcha-check" aria-describedby="captcha-status"> I'm not a robot</label>{% help_for "captcha" "verify" %}</span>
+          <span id="captcha-status" class="helptext" aria-live="polite">Tick the box. Your browser then does a short calculation; nothing is sent to anyone else.</span></p>
+        <noscript><p class="errorlist">This check needs JavaScript. Turn it on for this page, or ask QA to invite you instead.</p></noscript>
+      {% endif %}
+      <button class="btn" id="captcha-continue" disabled>Continue</button>
+    </form>
+    <script>
+    function qmsCaptchaDone() { document.getElementById("captcha-continue").disabled = false; }
+    (function () {
+      const box = document.getElementById("captcha-check");
+      if (!box) return;
+      const c = JSON.parse(document.getElementById("captcha-challenge").textContent);
+      const status = document.getElementById("captcha-status");
+      const hex = b => Array.from(new Uint8Array(b), x => x.toString(16).padStart(2, "0")).join("");
+      const enc = new TextEncoder();
+      async function solve() {
+        for (let start = 0; start <= c.maxnumber; start += 1000) {
+          const ns = []; for (let n = start; n < start + 1000 && n <= c.maxnumber; n++) ns.push(n);
+          const hashes = await Promise.all(ns.map(n => crypto.subtle.digest("SHA-256", enc.encode(c.salt + n))));
+          const i = hashes.findIndex(h => hex(h) === c.challenge);
+          if (i >= 0) return ns[i];
+        }
+        return null;
+      }
+      box.addEventListener("change", async () => {
+        if (!box.checked) return;
+        box.disabled = true; status.textContent = "Checking…";
+        const n = await solve();
+        if (n === null) { status.textContent = "The check failed. Reload the page to try again."; return; }
+        document.getElementById("captcha-solution").value = btoa(JSON.stringify(
+          {algorithm: c.algorithm, challenge: c.challenge, number: n, salt: c.salt, signature: c.signature}));
+        status.textContent = "Done. Continue to register.";
+        qmsCaptchaDone();
+      });
+    })();
+    </script>
+  {% else %}
+    <p>Register with one of these accounts. You have {{ minutes }} minutes; after that, start again.</p>
+    {% if providers %}
+      <div class="sso">
+        {% for provider in providers %}
+        <form method="post" action="{% provider_login_url provider process='login' next=details_url %}">{% csrf_token %}
+          <button class="btn secondary" type="submit">Continue with {% if provider.id == "orcid" %}ORCID{% else %}{{ provider.name }}{% endif %}</button></form>
+        {% endfor %}
+      </div>
+      <p class="helptext" style="margin-top:12px">We receive your name and, except from ORCID, your email address. No password is shared. If you sign in with ORCID we'll ask for an email address and send you a link to confirm it.</p>
+    {% else %}
+      <p class="errorlist">No single sign-on provider is switched on yet, so accounts can't be requested here. Ask QA to invite you.</p>
+    {% endif %}
+  {% endif %}
+  <p class="small muted" style="margin-top:16px">Already have an account? <a href="{% url 'login' %}">Sign in</a>. Invited by email? Use the link in the invitation.</p>
+</div>
+{% endblock %}

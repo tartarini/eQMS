@@ -1,11 +1,23 @@
 from django.urls import path
 
-from . import views, views_devices, views_docs, views_help, views_invitations, views_risk
+from . import (views, views_access, views_devices, views_docs, views_help, views_invitations,
+               views_risk)
 
 app_name = "qms"
 
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path("", views.dashboard, name="dashboard"),  # the landing page when not signed in
+    # Account requests (open: captcha, then single sign-on; then the request and its review)
+    path("request-access/", views_access.access_request, name="access_request"),
+    path("request-access/details/", views_access.access_request_details,
+         name="access_request_details"),
+    path("request-access/confirm/<str:token>/", views_access.access_request_confirm,
+         name="access_request_confirm"),
+    path("account-requests/", views_access.access_request_list, name="access_request_list"),
+    path("account-requests/<int:pk>/approve/", views_access.access_request_approve,
+         name="access_request_approve"),
+    path("account-requests/<int:pk>/decline/", views_access.access_request_decline,
+         name="access_request_decline"),
     # Quality records
     path("records/", views.record_list, name="record_list"),
     path("records/new/<str:record_type>/", views.record_create, name="record_create"),

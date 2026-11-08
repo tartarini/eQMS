@@ -251,6 +251,9 @@ ACCOUNT_LOGIN_METHODS = {"username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_AUTO_SIGNUP = True
+# ORCID shares no email address: an account request collects and confirms one instead. Every
+# other route to a new account still needs a verified email (see qms.sso).
+SOCIALACCOUNT_EMAIL_REQUIRED = False
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True             # match existing users by verified email
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_LOGIN_ON_GET = False                    # provider login needs a POST (CSRF-safe)
@@ -265,6 +268,16 @@ SOCIALACCOUNT_PROVIDERS = configured_providers()
 # New SSO accounts are created only for verified emails in these domains (comma-separated).
 # Leave empty to allow SSO only for accounts an administrator has already created.
 QMS_SSO_ALLOWED_DOMAINS = [d for d in os.environ.get("QMS_SSO_ALLOWED_DOMAINS", "").split(",") if d]
+# Account requests from the landing page: who may register, and the captcha that guards it.
+# Providers by allauth id (LinkedIn is the "linkedin" OpenID Connect app).
+QMS_ACCESS_REQUEST_PROVIDERS = ["google", "microsoft", "linkedin", "orcid"]
+QMS_ACCESS_REQUEST_MINUTES = 15        # after the captcha, time allowed to finish signing in
+QMS_ACCESS_CONFIRM_DAYS = 2            # validity of the email confirmation link
+QMS_CAPTCHA = os.environ.get("QMS_CAPTCHA", "pow")   # "pow" (self-hosted) or "turnstile"
+QMS_CAPTCHA_DIFFICULTY = int(os.environ.get("QMS_CAPTCHA_DIFFICULTY", "100000"))
+QMS_CAPTCHA_TTL_SECONDS = 600
+QMS_TURNSTILE_SITE_KEY = os.environ.get("QMS_TURNSTILE_SITE_KEY", "")
+QMS_TURNSTILE_SECRET_KEY = os.environ.get("QMS_TURNSTILE_SECRET_KEY", "")
 # Minutes after login during which an SSO-only user may set their signing PIN.
 QMS_PIN_REAUTH_MINUTES = 15
 
