@@ -12,11 +12,11 @@ MEDIA = tempfile.mkdtemp(prefix="qms-test-ops-")
 
 
 class HealthTests(TestCase):
-    @override_settings(MEDIA_ROOT=MEDIA, QMS_VERSION="9.9.9")
+    @override_settings(MEDIA_ROOT=MEDIA, QMS_VERSION="9.9.9", QMS_COMMIT="abc1234def")
     def test_healthz_ok_without_login_and_reveals_only_status(self):
         r = self.client.get("/healthz")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json(), {"status": "ok", "version": "9.9.9",
+        self.assertEqual(r.json(), {"status": "ok", "version": "9.9.9", "commit": "abc1234def",
                                     "checks": {"database": "ok", "storage": "ok"}})
         self.assertIn("no-cache", r.headers.get("Cache-Control", ""))
 

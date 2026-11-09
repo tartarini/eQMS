@@ -30,6 +30,7 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 | Module | What it does | Standard |
 | --- | --- | --- |
 | Device teams and roles | People are on one or more device teams with **roles per device** (Engineer, QA, Clinical Safety Officer, Device admin), so someone can be QA on one device and an Engineer on another. They only see and act on their devices; an All-device access role covers heads of quality and auditors. Enforced in pages, forms, business rules, emails and training | ISO 13485 §4.2.5, §6.2 |
+| Landing page and account requests | A public home page explains the platform. Anyone can **request an account**: they pass a captcha (self-hosted proof of work, or Cloudflare Turnstile), register with Google, Microsoft, LinkedIn or ORCID single sign-on, then describe who they are and what they need. Emails not verified by the provider (ORCID) are confirmed by link. Device admins and QA approve onto a team they manage; QA can decline with a reason. A request alone gives no access | ISO 13485 §6.2 |
 | Invitations | Device admins and QA invite people by email, with roles on each device they manage. The link is single use, expires (14 days by default), works only for the invited address, and can be resent or revoked. New people create an account or use single sign-on | ISO 13485 §6.2 |
 | Validation support | User requirements traced to automated tests; `run_oq` writes signed-off-ready OQ evidence for the validation plan | ISO 13485 §4.1.6 |
 | Devices | Manage any number of medical devices. Each has its own regulatory particulars, software items, quality records, risk file, PMS schedule, SOUP list and technical file; QMS-wide procedures and training are shared. A header switcher focuses every page on one device | ISO 13485 §4.2.3 |
@@ -43,6 +44,7 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 | Notifications | Email for new incidents (QA and Clinical Safety, immediately), complaints, assignments, steps awaiting a role, documents for review, training; a daily digest of overdue and due-soon items | — |
 | Single sign-on | Google, Microsoft, LinkedIn, ORCID and GitHub, alongside local accounts | — |
 | Help | Built-in help for every page and a ? icon on every form field, versioned with the release | — |
+| Release identification | Every page (including sign-in, help and admin) shows the version and source commit at the top and the copyright notice at the foot; `/healthz` and the OQ report carry the same commit | ISO 13485 §4.1.6 |
 | Audit and security | Every create, change, status change, signature, link, upload, login, failed login, role change and SSO connection is logged, append-only and SHA-256 hash-chained. Nothing is deleted | 21 CFR Part 11-style controls |
 
 ## Electronic signatures
@@ -82,7 +84,7 @@ your head of quality an account with the QA group and `All-device access` in Adm
 devices (becoming QA and Device admin on each) and **invite** everyone else from each device's
 page, choosing their roles on that device.
 
-Run the tests: `python manage.py test qms` (134 tests). For validation evidence:
+Run the tests: `python manage.py test qms` (156 tests). For validation evidence:
 `python manage.py run_oq --executed-by "Your Name" --release 1.0.0`.
 
 ## Deployment
@@ -110,6 +112,13 @@ redirect (callback) URLs, replacing the host with yours:
 | LinkedIn ("Sign In with LinkedIn using OpenID Connect" product) | `SSO_LINKEDIN_CLIENT_ID`, `SSO_LINKEDIN_SECRET` | `https://HOST/accounts/oidc/linkedin/login/callback/` |
 | ORCID (public API) | `SSO_ORCID_CLIENT_ID`, `SSO_ORCID_SECRET`, optional `SSO_ORCID_DOMAIN=sandbox.orcid.org` for testing | `https://HOST/accounts/orcid/login/callback/` |
 | GitHub | `SSO_GITHUB_CLIENT_ID`, `SSO_GITHUB_SECRET` | `https://HOST/accounts/github/login/callback/` |
+
+New people can also **request an account** from the home page (`/request-access/`): after a
+captcha they register with Google, Microsoft, LinkedIn or ORCID (`QMS_ACCESS_REQUEST_PROVIDERS`;
+GitHub is for sign-in only), and their request waits under **Account requests** for a Device
+admin or QA. The captcha is self-hosted by default (`QMS_CAPTCHA=pow`, no keys, no third party);
+set `QMS_CAPTCHA=turnstile` with `QMS_TURNSTILE_SITE_KEY` and `QMS_TURNSTILE_SECRET_KEY` to use
+Cloudflare Turnstile instead.
 
 Because these are public identity providers, access is controlled separately:
 
@@ -161,3 +170,8 @@ qms/notifications.py   emails and the daily digest
 qms/sso.py, sso_settings.py   single sign-on rules and provider configuration
 qms/signals.py         security events into the audit trail
 ```
+
+## Copyright
+
+Copyright 2026-2027 Daniele Tartarini. The notice appears at the foot of every page of the web
+app and on the OQ evidence report.

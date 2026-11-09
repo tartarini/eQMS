@@ -592,6 +592,19 @@ working groups from people on a team who lack All-device access (so nobody gaine
 permission, and roles are now per device), kept organisation-wide roles for All-device holders,
 and made each device's QA members (or else its first member) its Device admin.
 
+### Account requests and the landing page
+
+`/` shows `landing.html` to visitors and the dashboard to people signed in. `/request-access/`
+is open: the browser solves a captcha (`qms/captcha.py`: an ALTCHA-format proof of work signed
+with `SECRET_KEY`, bound to the session, single use and expiring; or Cloudflare Turnstile), which
+marks the session for `QMS_ACCESS_REQUEST_MINUTES`. Only then does `SocialAccountAdapter`
+allow single sign-on to create an account, and only with a provider in
+`QMS_ACCESS_REQUEST_PROVIDERS`. The new account has no role. `qms/access_requests.py` holds the
+rest: the `AccessRequest` (audited, immutable once decided), email confirmation by signed link
+when the provider gave no verified address (ORCID), approval onto a team the reviewer manages
+(`can_manage_team`), and decline by QA with a reason. `SOCIALACCOUNT_EMAIL_REQUIRED` is off so
+ORCID can register; every other route to a new account still checks a verified email.
+
 ### Invitations
 
 `qms/invitations.py` holds the rules; `views_invitations.py` the pages; `models/invitations.py`
@@ -730,6 +743,11 @@ The code supports it in two ways:
 - **`qms/validation.py`** lists the user requirements (URS-01 … URS-93) with their risk, the
   automated tests that verify each one, and the manual IQ/PQ protocols. Every test must be traced
   to a requirement.
+- **Release identification:** `QMS_VERSION` and `QMS_COMMIT` (build args, set by CI from the tag
+  and `github.sha`; outside a container the commit comes from `git rev-parse HEAD`) are shown at
+  the top of every page, in admin and on `/healthz`, so a screenshot or audit observation always
+  names the exact build. `QMS_COPYRIGHT` in `config/settings.py` is shown at the foot of every
+  page and on the OQ report. Covered by URS-82.
 - **`manage.py run_oq`** runs the suite in a test database and writes `oq_report.html` (with
   environment, versions, commit, per-requirement results and sign-off boxes), `oq_results.csv` and
   `oq_results.json`. It exits non-zero if any test fails, a traced test is missing, a requirement

@@ -86,6 +86,34 @@ REQUIREMENTS = [
     ("URS-05", "Access", "Logins, failed logins and role changes are recorded.", "M",
      ["test_modules.SecurityTests.test_login_events_and_role_changes_are_audited"], []),
 
+    ("URS-08", "Access", "Visitors see a public landing page describing SAMD_QMS (at most 300 "
+     "words) with no QMS data. They can request an account only after passing a captcha and "
+     "then registering with single sign-on (Google, Microsoft, LinkedIn or ORCID); no local "
+     "self-sign-up. A captcha solution is signed, expires and works once for the browser it "
+     "was issued to. An email address not verified by the provider is confirmed by link "
+     "before the request is reviewed.", "H",
+     ["test_access_requests.LandingTests.test_visitors_get_the_landing_page_in_under_300_words",
+      "test_access_requests.LandingTests.test_signed_in_members_get_the_dashboard",
+      "test_access_requests.LandingTests.test_sign_in_page_links_to_the_request",
+      "test_access_requests.CaptchaTests.test_solution_is_accepted_once",
+      "test_access_requests.CaptchaTests.test_wrong_tampered_expired_or_foreign_solutions_fail",
+      "test_access_requests.CaptchaTests.test_turnstile_backend_checks_the_token_with_cloudflare",
+      "test_access_requests.RegistrationTests.test_captcha_then_only_the_four_providers",
+      "test_access_requests.RegistrationTests.test_sso_may_create_an_account_only_after_the_captcha_and_with_allowed_providers",
+      "test_access_requests.RegistrationTests.test_orcid_registration_end_to_end_creates_a_roleless_account",
+      "test_access_requests.RegistrationTests.test_signed_in_people_skip_the_captcha",
+      "test_access_requests.RequestAndReviewTests.test_verified_email_goes_straight_to_review",
+      "test_access_requests.RequestAndReviewTests.test_orcid_email_is_confirmed_by_link_first",
+      "test_access_requests.RequestAndReviewTests.test_one_open_request_and_none_for_people_with_access"],
+     ["PQ-10"]),
+    ("URS-09", "Access", "An account request gives no access. Device admins and QA see requests "
+     "and approve one by adding the person to a device team they manage, with roles; only QA "
+     "declines, with a reason emailed to the person. Decisions are final and audited.", "H",
+     ["test_access_requests.RequestAndReviewTests.test_request_gives_no_access_until_approved",
+      "test_access_requests.RequestAndReviewTests.test_device_admin_or_qa_approves_onto_a_team_they_manage",
+      "test_access_requests.RequestAndReviewTests.test_qa_declines_with_a_reason",
+      "test_access_requests.RequestAndReviewTests.test_list_is_for_team_managers_only"],
+     ["PQ-10"]),
     ("URS-10", "Records", "Status changes only through defined workflow steps, each requiring "
      "its information before it is allowed.", "H",
      ["tests.ProblemReportWorkflowTests.test_full_lifecycle_with_traceability_and_signature",
@@ -229,6 +257,16 @@ REQUIREMENTS = [
       "test_help.HelpPageTests.test_pages_render_for_qa_with_help_link"], ["PQ-08"]),
 
     # Verified only manually, in the target environment
+    ("URS-82", "Usability", "Every page, including sign-in, help and administration, shows the "
+     "release version and source commit at the top and the copyright notice at the foot; the "
+     "health endpoint and OQ evidence report the same commit.", "M",
+     ["test_release.ReleaseBannerTests.test_signed_out_pages",
+      "test_release.ReleaseBannerTests.test_signed_in_pages",
+      "test_release.ReleaseBannerTests.test_admin_pages",
+      "test_release.ReleaseBannerTests.test_unknown_commit_is_shown_as_unknown",
+      "test_release.ReleaseBannerTests.test_oq_report_carries_the_notice_and_commit",
+      "test_ops.HealthTests.test_healthz_ok_without_login_and_reveals_only_status"],
+     ["IQ-01"]),
     ("URS-90", "Operation", "Data and files can be backed up and restored without loss, and the "
      "audit chain verifies after restore.", "H", [], ["IQ-08"]),
     ("URS-91", "Operation", "The service is reachable only over HTTPS, with secure cookies and "

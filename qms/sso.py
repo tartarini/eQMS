@@ -5,11 +5,14 @@ Rules, because these are public identity providers:
   * No self-service local sign-up.
   * An SSO login joins an existing account when the provider reports a *verified* email that
     matches it (pre-provisioned users).
-  * A brand-new account is created only for verified emails in QMS_SSO_ALLOWED_DOMAINS, or
-    for the verified email of a pending invitation whose link was opened in this browser.
+  * A brand-new account is created only for verified emails in QMS_SSO_ALLOWED_DOMAINS, for
+    the verified email of a pending invitation whose link was opened in this browser, or by an
+    account request: this browser solved the captcha on /request-access/ in the last
+    QMS_ACCESS_REQUEST_MINUTES and uses a provider in QMS_ACCESS_REQUEST_PROVIDERS (Google,
+    Microsoft, LinkedIn, ORCID). See qms.access_requests.
   * A new account has no QMS role, so it can see nothing until QA or an admin assigns a role.
-  * ORCID does not share email addresses: connect ORCID from "Connected accounts" while
-    signed in another way, then use it to sign in.
+  * ORCID does not share email addresses: an account request collects one and confirms it by
+    email. Otherwise connect ORCID from "Connected accounts" while signed in another way.
 """
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
@@ -38,11 +41,17 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             return True
         from .invitations import pending_for_session
         invitation = pending_for_session(request)
-        return bool(invitation and invitation.email.lower() in emails)
+        if invitation and invitation.email.lower() in emails:
+            return True
+        from . import access_requests
+        return (access_requests.captcha_passed(request)
+                and access_requests.provider_allowed(sociallogin.account.provider))
 
     def populate_user(self, request, sociallogin, data):
         user = super().populate_user(request, sociallogin, data)
         if not user.username:
+            from allauth.account.adapter import get_adapter
             email = (data.get("email") or "").split("@")[0]
-            user.username = email or f"{sociallogin.account.provider}-{sociallogin.account.uid}"
+            user.username = get_adapter(request).generate_unique_username(
+                [email, f"{sociallogin.account.provider}-{sociallogin.account.uid}", "user"])
         return user

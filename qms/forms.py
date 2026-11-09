@@ -409,3 +409,45 @@ class InvitationSignupForm(forms.Form):
             except forms.ValidationError as exc:
                 self.add_error("password1", exc)
         return data
+
+
+# --- account requests -------------------------------------------------------------
+
+ACCESS_ROLE_CHOICES = [("", "Choose…")] + [(r, r) for r in wf.ANY_ROLE] + [
+    ("Auditor (read only)", "Auditor (read only)"), ("Not sure", "Not sure")]
+
+
+class AccessRequestForm(forms.Form):
+    first_name = forms.CharField(max_length=150)
+    last_name = forms.CharField(max_length=150)
+    email = forms.EmailField(label="Work email address")
+    organisation = forms.CharField(max_length=200)
+    position = forms.CharField(max_length=200, label="Job title or position")
+    devices = forms.CharField(max_length=300, label="Devices or projects")
+    role = forms.ChoiceField(choices=ACCESS_ROLE_CHOICES, label="Role you need")
+    reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}),
+                             label="What you'll use SAMD_QMS for", max_length=2000)
+    agree = forms.BooleanField(label="These details are correct, and I understand that QA will "
+                                     "review them and may contact me.")
+
+    def __init__(self, *args, known_email="", **kwargs):
+        super().__init__(*args, **kwargs)
+        if known_email:  # verified by the sign-in provider: shown, not asked for
+            del self.fields["email"]
+
+
+class AccessApproveForm(forms.Form):
+    device = forms.ModelChoiceField(queryset=None, label="Device team")
+    roles = RolesField()
+    note = forms.CharField(max_length=500, required=False, label="Note (optional)")
+
+    def __init__(self, *args, devices=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Device
+        self.fields["device"].queryset = Device.objects.filter(
+            pk__in=[d.pk for d in (devices or [])]).order_by("name")
+
+
+class AccessDeclineForm(forms.Form):
+    reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), max_length=2000,
+                             label="Reason (sent to the person)")

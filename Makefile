@@ -13,7 +13,7 @@ help:  ## Show this help
 
 # --- development -------------------------------------------------------------------
 dev:  ## Start the dev stack (app :8000, mail :8025) and follow app logs
-	$(COMPOSE) up --build -d
+	QMS_COMMIT=$$(git rev-parse HEAD 2>/dev/null) $(COMPOSE) up --build -d
 	$(COMPOSE) logs -f app
 
 dev-down:  ## Stop the dev stack (keeps data)

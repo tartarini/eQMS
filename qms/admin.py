@@ -2,7 +2,8 @@ from django.contrib import admin
 
 from .models import (Attachment, AuditEvent, Device, DeviceMembership, Document, DocumentVersion, Hazard, PMSSchedule,
                      Record, RecordLink, RiskControl, Signature, SoupItem, Supplier,
-                     TechnicalFileBuild, TrainingAssignment, TrainingRequirement, Invitation)
+                     TechnicalFileBuild, TrainingAssignment, TrainingRequirement, Invitation,
+                     AccessRequest)
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -193,3 +194,13 @@ class InvitationAdmin(ReadOnlyAdmin):
     list_filter = ("status",)
     search_fields = ("email",)
     exclude = ("token_hash",)
+
+
+@admin.register(AccessRequest)
+class AccessRequestAdmin(ReadOnlyAdmin):
+    """Decided in the app (Account requests), never here."""
+    list_display = ("ref", "first_name", "last_name", "email", "organisation", "status",
+                    "created_at", "decided_by")
+    list_filter = ("status",)
+    search_fields = ("first_name", "last_name", "email", "organisation")
+

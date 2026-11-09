@@ -1,5 +1,17 @@
 SAMD_QMS is where your organisation records, for each of its software medical devices, problems, complaints, incidents, corrective actions, software changes, controlled documents, training, risks and suppliers. It enforces the quality process: each step asks for the information and the person it needs, approvals are electronically signed, and every change is kept in a permanent audit trail.
 
+## Request an account
+
+If nobody has invited you, request an account from the home page. You need a Google, Microsoft, LinkedIn or ORCID account: there are no SAMD_QMS passwords for new requests.
+
+1. Choose **Request an account**.
+2. Tick **I'm not a robot** and wait a moment, then choose **Continue**.
+3. Within 15 minutes, choose **Continue with…** and sign in with your provider. This creates your SAMD_QMS account, with no access yet.
+4. Fill in who you are, your organisation, the devices or projects you work on, and the role you need, then choose **Send request**.
+5. If your provider didn't confirm your email address (ORCID never shares one), we email you a link: open it to confirm.
+
+QA and the teams' Device admins are then emailed. You get an email when your request is approved or declined; once approved, sign in with the same provider. Until then you can only see your request.
+
 ## Accept an invitation
 
 Most people join through an invitation email from a Device admin or QA. It lists the devices and your roles on each, and expires after the date shown.

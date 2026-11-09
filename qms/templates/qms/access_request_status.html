@@ -1,0 +1,24 @@
+{% extends "qms/base.html" %}
+{% block title %}Account request – SAMD_QMS{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:560px;margin:30px auto">
+  {% if invalid %}
+    <h1>Link not valid</h1>
+    <p>This confirmation link has expired, has already been used, or the request has been decided. <a href="{% url 'qms:access_request_details' %}">Sign in</a> to see your request.</p>
+  {% else %}
+    <h1>Account request {{ ar.ref }}</h1>
+    {% if ar.status == "unconfirmed" %}
+      <p>We've sent a link to <strong>{{ ar.email }}</strong>. Open it to confirm your address; QA sees your request once it's confirmed.</p>
+      <p class="small muted">No email? Check your spam folder. The link expires after {{ confirm_days }} days.</p>
+    {% else %}
+      {% if confirmed %}<div class="msg success">Thank you: {{ ar.email }} is confirmed.</div>{% endif %}
+      <p>Your request is <span class="badge warn">waiting for review</span>. QA will email {{ ar.email }} when it's decided. Once you're added to a device team, <a href="{% url 'login' %}">sign in</a> to start.</p>
+    {% endif %}
+    <table class="small"><tr><th>Name</th><td>{{ ar.full_name }}</td></tr>
+      <tr><th>Organisation</th><td>{{ ar.organisation }}</td></tr>
+      <tr><th>Role</th><td>{{ ar.role }}</td></tr>
+      <tr><th>Devices or projects</th><td>{{ ar.devices }}</td></tr>
+      <tr><th>Sent</th><td>{{ ar.created_at|date:"d M Y H:i" }}</td></tr></table>
+  {% endif %}
+</div>
+{% endblock %}

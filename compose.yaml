@@ -34,6 +34,7 @@ services:
       context: .
       args:
         QMS_VERSION: dev
+        QMS_COMMIT: ${QMS_COMMIT:-}
     image: samd_qms:dev
     env_file: deploy/env/dev.env
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]

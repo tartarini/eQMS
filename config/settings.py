@@ -28,8 +28,23 @@ DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
-# Release label shown on /healthz and in logs; set by the container build.
+# Release label and source commit, shown at the top of every page and on /healthz; set by the
+# container build (QMS_VERSION, QMS_COMMIT). Outside a container the commit comes from git.
 QMS_VERSION = os.environ.get("QMS_VERSION", "dev")
+
+
+def _git_commit():
+    import subprocess
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE_DIR, capture_output=True,
+                              text=True, timeout=5, check=True).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+QMS_COMMIT = os.environ.get("QMS_COMMIT", "").strip() or _git_commit() or "unknown"
+# Shown at the foot of every page and every report the software produces.
+QMS_COPYRIGHT = "Copyright 2026-2027 Daniele Tartarini"
 
 
 # Application definition
@@ -72,7 +87,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "config" / "templates"],  # admin/base_site.html override
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -81,6 +96,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "qms.context_processors.devices",
                 "qms.context_processors.page_help",
+                "qms.context_processors.release",
             ],
         },
     },
@@ -235,6 +251,9 @@ ACCOUNT_LOGIN_METHODS = {"username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_AUTO_SIGNUP = True
+# ORCID shares no email address: an account request collects and confirms one instead. Every
+# other route to a new account still needs a verified email (see qms.sso).
+SOCIALACCOUNT_EMAIL_REQUIRED = False
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True             # match existing users by verified email
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_LOGIN_ON_GET = False                    # provider login needs a POST (CSRF-safe)
@@ -249,6 +268,16 @@ SOCIALACCOUNT_PROVIDERS = configured_providers()
 # New SSO accounts are created only for verified emails in these domains (comma-separated).
 # Leave empty to allow SSO only for accounts an administrator has already created.
 QMS_SSO_ALLOWED_DOMAINS = [d for d in os.environ.get("QMS_SSO_ALLOWED_DOMAINS", "").split(",") if d]
+# Account requests from the landing page: who may register, and the captcha that guards it.
+# Providers by allauth id (LinkedIn is the "linkedin" OpenID Connect app).
+QMS_ACCESS_REQUEST_PROVIDERS = ["google", "microsoft", "linkedin", "orcid"]
+QMS_ACCESS_REQUEST_MINUTES = 15        # after the captcha, time allowed to finish signing in
+QMS_ACCESS_CONFIRM_DAYS = 2            # validity of the email confirmation link
+QMS_CAPTCHA = os.environ.get("QMS_CAPTCHA", "pow")   # "pow" (self-hosted) or "turnstile"
+QMS_CAPTCHA_DIFFICULTY = int(os.environ.get("QMS_CAPTCHA_DIFFICULTY", "100000"))
+QMS_CAPTCHA_TTL_SECONDS = 600
+QMS_TURNSTILE_SITE_KEY = os.environ.get("QMS_TURNSTILE_SITE_KEY", "")
+QMS_TURNSTILE_SECRET_KEY = os.environ.get("QMS_TURNSTILE_SECRET_KEY", "")
 # Minutes after login during which an SSO-only user may set their signing PIN.
 QMS_PIN_REAUTH_MINUTES = 15
 

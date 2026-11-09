@@ -43,6 +43,12 @@ PAGE_HELP = {
     "socialaccount_connections": ("getting-started", "connected-accounts"),
     "signing_pin": ("getting-started", "signing-pin"),
     "dashboard": ("getting-started", "the-dashboard"),
+    "access_request": ("getting-started", "request-an-account"),
+    "access_request_details": ("getting-started", "request-an-account"),
+    "access_request_confirm": ("getting-started", "request-an-account"),
+    "access_request_list": ("devices", "review-account-requests"),
+    "access_request_approve": ("devices", "review-account-requests"),
+    "access_request_decline": ("devices", "review-account-requests"),
     # records
     "record_list": ("records", ""),
     "record_create": ("records", "working-on-a-record"),
@@ -432,6 +438,41 @@ FIELD_HELP = {
                  "and team changes, connected accounts), or only signatures."),
         "q": ("Search", "Matches an item's reference or a person's username."),
     }),
+    "captcha": ("getting-started", "Account request check", {
+        "verify": ("I'm not a robot", "Tick the box and wait a moment: your browser does a short "
+                   "calculation that is easy for one person but costly for programs sending "
+                   "thousands of requests. Nothing is sent to anyone else and no cookie is "
+                   "set."),
+    }),
+    "accessrequest": ("getting-started", "Account request fields", {
+        "first_name": ("First name", "As you'd like it shown on records and signatures."),
+        "last_name": ("Last name", "As you'd like it shown on records and signatures."),
+        "email": ("Email address", "Your work address. QMS emails (assignments, reviews, "
+                  "training) go here. If your sign-in provider didn't confirm it, we email you a "
+                  "link to confirm it first."),
+        "organisation": ("Organisation", "The company, university or NHS trust you work for."),
+        "position": ("Job title or position", "For example \"Software engineer\" or "
+                     "\"Clinical safety officer\"."),
+        "devices": ("Devices or projects", "The device or project you're working on, as the "
+                    "team knows it, so QA can add you to the right team."),
+        "role": ("Role you need", "What you'll do: Engineer, QA or Clinical Safety Officer; an "
+                 "auditor who only reads; or \"Not sure\". QA decides the roles you get."),
+        "reason": ("What you'll use SAMD_QMS for", "A sentence or two, and who asked you to "
+                   "join if anyone did. Don't include patient or participant data."),
+        "agree": ("Confirmation", "Confirms the details are yours and correct. QA may contact "
+                  "you to check them."),
+    }),
+    "accessapprove": ("devices", "Account approval fields", {
+        "device": ("Device team", "A device whose team you manage. The person is added to it "
+                   "and can then see that device's records."),
+        "roles": ("Roles on this device", "The roles they get on that device. Give the least "
+                  "they need; you can change roles later on the device's team."),
+        "note": ("Note", "Optional: kept with the decision in the audit trail."),
+    }),
+    "accessdecline": ("devices", "Account decline fields", {
+        "reason": ("Reason", "Emailed to the person and kept in the audit trail. Be brief and "
+                   "factual, for example \"Not part of a device team here\"."),
+    }),
     "login": ("getting-started", "Sign-in fields", {
         "username": ("Username", "Your SAMD_QMS username, from your administrator."),
         "password": ("Password", "Your SAMD_QMS password. If you use single sign-on, choose "
@@ -446,7 +487,8 @@ FORM_GROUPS = {
     "SupplierEvaluationForm": "suppliereval", "TeamMemberForm": "team",
     "SigningPinForm": "signingpin", "AuthenticationForm": "login",
     "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
-    "InvitationSignupForm": "signup",
+    "InvitationSignupForm": "signup", "AccessRequestForm": "accessrequest",
+    "AccessApproveForm": "accessapprove", "AccessDeclineForm": "accessdecline",
 }
 
 

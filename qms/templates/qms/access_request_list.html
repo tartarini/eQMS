@@ -1,0 +1,38 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}Account requests – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>Account requests</h1>
+<p class="muted small" style="max-width:760px">People who requested an account from the home page and registered with single sign-on. They see nothing until you approve them onto a device team you manage. {% if can_decline %}As QA you can also decline a request; the reason is emailed to them.{% endif %}</p>
+<div class="panel">
+  <h2 style="margin-top:0">Open</h2>
+  {% for ar, form in open %}
+  <div class="transition">
+    <strong>{{ ar.ref }} · {{ ar.full_name }}</strong> <span class="badge {% if ar.status == 'pending' %}warn{% endif %}">{{ ar.get_status_display }}</span>
+    <table class="small" style="margin:6px 0">
+      <tr><th style="width:180px">Email</th><td>{{ ar.email }} {% if ar.email_verified %}<span class="badge done">verified</span>{% else %}<span class="badge">not confirmed</span>{% endif %}</td></tr>
+      <tr><th>Organisation and position</th><td>{{ ar.organisation }} · {{ ar.position }}</td></tr>
+      <tr><th>Role and devices</th><td>{{ ar.role }} · {{ ar.devices }}</td></tr>
+      <tr><th>Reason</th><td style="white-space:pre-wrap">{{ ar.reason }}</td></tr>
+      <tr><th>Registered with</th><td>{{ ar.provider|default:"single sign-on" }} as {{ ar.user.get_username }}, {{ ar.created_at|date:"d M Y H:i" }}</td></tr>
+    </table>
+    {% if form %}
+    <details class="action"><summary>Approve onto a device team</summary>
+      <form method="post" action="{% url 'qms:access_request_approve' ar.pk %}">{% csrf_token %}{{ form.as_p }}<button class="btn">Approve and add to team</button></form>
+    </details>{% endif %}
+    {% if can_decline %}
+    <details class="action"><summary>Decline</summary>
+      <form method="post" action="{% url 'qms:access_request_decline' ar.pk %}">{% csrf_token %}{{ decline_form.as_p }}<button class="btn secondary">Decline and email the reason</button></form>
+    </details>{% endif %}
+  </div>
+  {% empty %}<p class="muted">No open requests.</p>{% endfor %}
+</div>
+<div class="panel">
+  <h2 style="margin-top:0">Decided</h2>
+  <table class="small"><tr><th>Request</th><th>Person</th><th>Decision</th><th>By</th><th>Note</th></tr>
+  {% for ar in closed %}<tr><td>{{ ar.ref }}</td><td>{{ ar.full_name }}<br><span class="muted">{{ ar.email }}</span></td>
+    <td><span class="badge {% if ar.status == 'approved' %}done{% else %}bad{% endif %}">{{ ar.get_status_display }}</span> {{ ar.decided_at|date:"d M Y" }}{% for g in ar.grants %}<br>{{ g.device }}: {{ g.roles|join:", " }}{% endfor %}</td>
+    <td>{{ ar.decided_by.get_full_name|default:ar.decided_by.username }}</td><td style="white-space:pre-wrap">{{ ar.decision_note }}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">None yet.</td></tr>{% endfor %}</table>
+</div>
+{% endblock %}

@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET
 def healthz(request):
     """200 when the database answers and file storage is writable; 503 otherwise.
 
-    Reveals nothing beyond the release label: no data, no error details.
+    Reveals nothing beyond the release label and commit: no data, no error details.
     """
     checks = {}
     try:
@@ -27,4 +27,4 @@ def healthz(request):
     checks["storage"] = "ok" if os.path.isdir(media) and os.access(media, os.W_OK) else "fail"
     ok = all(v == "ok" for v in checks.values())
     return JsonResponse({"status": "ok" if ok else "fail", "version": settings.QMS_VERSION,
-                         "checks": checks}, status=200 if ok else 503)
+                         "commit": settings.QMS_COMMIT, "checks": checks}, status=200 if ok else 503)

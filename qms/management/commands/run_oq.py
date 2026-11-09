@@ -14,13 +14,13 @@ import io
 import json
 import os
 import platform
-import subprocess
 import sys
 import time
 import unittest
 from datetime import datetime, timezone
 
 import django
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 from django.test.utils import get_runner
@@ -68,12 +68,6 @@ def _version(pkg):
         return "not installed"
 
 
-def _git_commit():
-    try:
-        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
-                              timeout=5, check=True).stdout.strip()
-    except Exception:  # noqa: BLE001
-        return "not a git checkout"
 
 
 class Command(BaseCommand):
@@ -134,7 +128,7 @@ class Command(BaseCommand):
             "django-allauth": _version("django-allauth"),
             "python-docx": _version("python-docx"),
             "database_engine": connection.vendor,
-            "git_commit": _git_commit(),
+            "git_commit": settings.QMS_COMMIT,
         }
         summary = {"overall": overall, "tests_run": len(outcomes),
                    "tests_passed": sum(1 for o in outcomes.values() if o["outcome"] == "pass"),
@@ -205,5 +199,6 @@ def _report_html(env, summary, rows, outcomes):
     out.append("<h2>Review and approval</h2><table class='sig'><tr><th>Role</th><th>Name</th>"
                "<th>Signature</th><th>Date</th></tr><tr><td>Executed by</td><td></td><td></td>"
                "<td></td></tr><tr><td>Reviewed by (QA)</td><td></td><td></td><td></td></tr>"
-               "</table></body></html>")
+               f"</table><p style='color:#6b6b66;font-size:12px;text-align:center'>"
+               f"{e(settings.QMS_COPYRIGHT)}</p></body></html>")
     return "".join(out)

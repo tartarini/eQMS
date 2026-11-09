@@ -77,3 +77,13 @@ When you create or edit a document, set **Device** (leave blank for QMS-wide pro
 4. A QA member who didn't generate it opens **Approve**, explains any warnings in the comment, and signs. The previous approved build becomes superseded.
 
 The technical file follows the EU MDR Annex II and III structure: device description, information supplied by the manufacturer, design and manufacturing (including software items, SOUP, release history and known residual anomalies), safety and performance requirements, benefit-risk and risk management, verification and validation, post-market surveillance, and the declaration of conformity. The completeness check confirms the pieces exist, not that they are adequate; QA and your regulatory adviser still review the content.
+
+## Review account requests
+
+People who request an account from the home page appear under **Account requests** in the top bar, with a count of those waiting. Device admins and QA see the list; requests show the person's details, how they signed in and whether their email address is confirmed.
+
+- **Approve onto a device team**: choose a device whose team you manage and their roles on it. They're added to the team, assigned any training their roles need, and emailed. Add them to other teams from those devices' pages.
+- **Decline** (QA only): give a reason. It's emailed to them and kept in the audit trail.
+
+A request can't be approved until the person has confirmed their email address. Approved and declined requests can't be changed; every step is in the audit trail.
+

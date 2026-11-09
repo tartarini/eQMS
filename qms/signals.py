@@ -99,6 +99,11 @@ try:  # allauth signals: SSO-specific events
     @receiver(user_signed_up)
     def on_signed_up(sender, request, user, **kwargs):
         from . import notifications
+        from .access_requests import captcha_passed
+        if captcha_passed(request):
+            # An account request: QA is emailed when the request itself is submitted.
+            log_security(user, "account created via SSO for an account request", actor=user)
+            return
         log_security(user, "account created via SSO", actor=user)
         notifications.user_awaiting_access(user)
 

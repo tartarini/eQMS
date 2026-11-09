@@ -249,5 +249,9 @@ class ViewTests(Base):
         self.assertIn(b"transition", csv.content)
 
     def test_login_required(self):
+        # The home page is the public landing page: no QMS data, no dashboard.
         resp = self.client.get(reverse("qms:dashboard"))
+        self.assertTemplateUsed(resp, "qms/landing.html")
+        self.assertTemplateNotUsed(resp, "qms/dashboard.html")
+        resp = self.client.get(reverse("qms:record_list"))
         self.assertEqual(resp.status_code, 302)
