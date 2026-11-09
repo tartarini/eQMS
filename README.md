@@ -85,7 +85,7 @@ your head of quality an account with the QA group and `All-device access` in Adm
 devices (becoming QA and Device admin on each) and **invite** everyone else from each device's
 page, choosing their roles on that device.
 
-Run the tests: `python manage.py test qms` (163 tests). For validation evidence:
+Run the tests: `python manage.py test qms` (165 tests). For validation evidence:
 `python manage.py run_oq --executed-by "Your Name" --release 1.0.0`.
 
 ## Deployment

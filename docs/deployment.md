@@ -119,7 +119,7 @@ make deploy ENV=staging VERSION=1.0.0
 
 `provision.yml` installs Docker from Docker's repository, configures log rotation, creates the
 deploy user (SSH keys only) and directories, hardens SSH (no passwords, no root login), enables
-the firewall (22, 80, 443 only), fail2ban, automatic security updates and time sync, and
+the firewall (22, 80, 443 only; SSH may forward only to the admin tunnel port), fail2ban, automatic security updates and time sync, and
 schedules the nightly off-site copy of backups when `backup_offsite_method` is set.
 
 Then create the first administrator and set up roles and teams:

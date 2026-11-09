@@ -73,6 +73,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "qms.admin_access.AdminHostMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "qms.current_user.CurrentUserMiddleware",
@@ -97,6 +98,7 @@ TEMPLATES = [
                 "qms.context_processors.devices",
                 "qms.context_processors.page_help",
                 "qms.context_processors.release",
+                "qms.context_processors.admin_link",
             ],
         },
     },
@@ -280,6 +282,10 @@ QMS_TURNSTILE_SITE_KEY = os.environ.get("QMS_TURNSTILE_SITE_KEY", "")
 QMS_TURNSTILE_SECRET_KEY = os.environ.get("QMS_TURNSTILE_SECRET_KEY", "")
 # Minutes after login during which an SSO-only user may set their signing PIN.
 QMS_PIN_REAUTH_MINUTES = 15
+# Hosts on which Django admin answers (finding F7; production: the SSH tunnel's
+# "localhost:8443"). Empty = every host (development).
+QMS_ADMIN_HOSTS = [h.strip().lower() for h in os.environ.get("QMS_ADMIN_HOSTS", "").split(",")
+                   if h.strip()]
 # Who may sign (finding F6). Set on production only, by Ansible: signers' accounts must be
 # connected to one of these providers (e.g. "microsoft,google") and, if domains are given,
 # have a verified email address at one of them. Empty = no restriction (development, staging).

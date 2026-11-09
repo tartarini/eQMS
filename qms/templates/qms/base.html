@@ -113,7 +113,7 @@
   {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>
   <a href="{% url 'qms:access_request_list' %}">Account requests{% if open_access_requests %} <span class="badge warn">{{ open_access_requests }}</span>{% endif %}</a>{% endif %}
   {% if sees_all_devices %}<a href="{% url 'qms:audit_log' %}">Audit</a>{% endif %}
-  {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+  {% if show_admin_link %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
   <span class="spacer"></span>
   <a class="help-link" href="{{ page_help_url }}" target="_blank" rel="noopener" title="Help for this page (opens in a new tab)"><span class="help-icon" aria-hidden="true">?</span> Help</a>
   <details class="usermenu"><summary class="small">{{ user.get_full_name|default:user.username }}</summary>

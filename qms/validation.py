@@ -284,7 +284,10 @@ REQUIREMENTS = [
     ("URS-90", "Operation", "Data and files can be backed up and restored without loss, and the "
      "audit chain verifies after restore.", "H", [], ["IQ-08"]),
     ("URS-91", "Operation", "The service is reachable only over HTTPS, with secure cookies and "
-     "session time-out.", "H", [], ["IQ-03"]),
+     "session time-out. On production, Django admin answers only through the SSH tunnel, not "
+     "on the public site.", "H",
+     ["test_admin_access.AdminAccessTests.test_admin_answers_everywhere_when_no_hosts_are_set",
+      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host"], ["IQ-03"]),
     ("URS-92", "Operation", "Scheduled jobs (backup, PMS generation, reminders, audit "
      "verification) run daily and alert on failure.", "M",
      ["test_ops.SchedulerTests.test_next_run",

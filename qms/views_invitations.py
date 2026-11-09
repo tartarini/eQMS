@@ -47,7 +47,8 @@ def invitation_create(request):
         "form": form, "title": "Invite people",
         "cancel_url": reverse("qms:device_detail", args=[first.code]) if first
         else reverse("qms:invitation_list"),
-        "intro": "They'll get an email with a link to create an account or sign in. Choose "
+        "intro": "They'll get an email with a link to register with single sign-on (or sign in, "
+                 "if they already have an account) using the invited address. Choose "
                  "their roles on each device; leave a device blank to leave them off its team. "
                  "You can only grant roles on devices whose team you manage.",
         "submit_label": "Send invitation",

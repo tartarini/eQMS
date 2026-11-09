@@ -340,7 +340,11 @@ organisation-wide; superusers always pass) or, for device and team pages, `acces
 without a role gets `access_pending.html` with HTTP 403.
 
 The admin site is for staff users only. `seed_qms` gives the QA group all `qms` model permissions;
-make QA leads `is_staff` so they can manage users and roles.
+make QA leads `is_staff` so they can manage users and roles. On production it answers only
+through the SSH tunnel: Caddy returns 404 for `/admin/` on the public site, and
+`qms.admin_access.AdminHostMiddleware` does the same for any host not in `QMS_ADMIN_HOSTS`
+(production: `localhost:8443`), which also hides the header's Admin link (finding F7;
+[deployment guide](deployment.md#administration-admin-through-an-ssh-tunnel)).
 
 ### Single sign-on
 
@@ -417,6 +421,7 @@ the media directory publicly.
 | `QMS_RISK_ACCEPTABLE_MAX` | `4` | Score ≤ this is acceptable |
 | `QMS_RISK_UNACCEPTABLE_MIN` | `10` | Score ≥ this is unacceptable |
 | `QMS_ATTACHMENT_MAX_MB` | `25` | Upload size limit |
+| `QMS_ADMIN_HOSTS` | empty | Hosts where Django admin answers (production: `localhost:8443`, the SSH tunnel); empty = all |
 | `QMS_SIGNER_SSO_PROVIDERS` | empty | Production: signers must be connected to one of these providers (env, comma-separated) |
 | `QMS_SIGNER_EMAIL_DOMAINS` | empty | Production: and have a verified email at one of these domains |
 | `QMS_ATTACHMENT_EXTENSIONS` | pdf, docx, xlsx, csv, txt, md, png, jpg, jpeg, json, zip, log, html | Upload allowlist |

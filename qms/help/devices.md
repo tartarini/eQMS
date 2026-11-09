@@ -38,7 +38,7 @@ Device admins and QA invite new people by email. One invitation can cover severa
 4. Choose when the link expires (14 days by default, at most 30) and, if you like, add a message.
 5. Click **Send invitation**.
 
-They get an email with a link to create an account (or sign in, or use single sign-on) and accept. When they accept, they join each team with the roles you chose. If they already have roles on a device, the invitation adds to them and never removes any.
+They get an email with a link. They register with single sign-on (Google, Microsoft, LinkedIn or GitHub) using the invited email address, or sign in if they already have an account, and accept. Invite the address they use with their organisation's sign-in. When they accept, they join each team with the roles you chose. If they already have roles on a device, the invitation adds to them and never removes any.
 
 ## Manage invitations
 

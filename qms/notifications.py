@@ -190,8 +190,10 @@ def invitation(inv, link: str):
             f"{inviter} has invited you to SAMD_QMS, the quality management system for these "
             f"medical devices, with these roles:\n\n{lines}\n{note}\n"
             f"Accept by {inv.expires_at:%d %b %Y %H:%M} UTC, using this link:\n{link}\n\n"
-            "You can create an account or, if your organisation has single sign-on switched on, "
-            "sign in with it. The link works once and expires automatically.\n\n"
+            "Open the link and continue with Google, Microsoft, LinkedIn or GitHub using this "
+            "email address; your account is created from it, with no separate password. If you "
+            "already have an account, sign in instead. The link works once and expires "
+            "automatically.\n\n"
             "If you weren't expecting this email, you can ignore it.",
             [inv.email])
 
