@@ -26,7 +26,7 @@ from django.utils import timezone
 
 from . import workflow as wf
 from .models import (LEVEL_LABELS, TECH_FILE_SECTIONS, AuditEvent, Device, DocumentVersion,
-                     Record, Signature, TechnicalFileBuild, sha256_of, verify_audit_chain)
+                     Organisation, Record, Signature, TechnicalFileBuild, sha256_of, verify_audit_chain)
 
 SECTION_LABELS = dict(TECH_FILE_SECTIONS)
 SECTION_NUMBERS = {"description": "1", "labelling": "2", "design": "3", "gspr": "4",
@@ -85,6 +85,7 @@ def gather(device: Device) -> dict:
     tagged_docs = device.documents.exclude(tech_file_section="").filter(obsolete=False)
     return {
         "device": device,
+        "organisation": Organisation.current(),
         "today": today,
         "sections": sections,
         "docs_without_effective": [d for d in tagged_docs if not d.effective_version],
@@ -125,6 +126,9 @@ def completeness_checks(device: Device, data: dict = None) -> list:
                          ("description", "Device description")]:
         if not getattr(device, field).strip():
             add("error", "1", f"{label} is missing from the device record.")
+    if not device.operator_role_list():
+        add("warning", "1", "Our economic operator role for this device (manufacturer, "
+                            "authorised representative, importer or distributor) is not set.")
     if device.classification == "tbd":
         add("error", "1", "Device classification has not been determined.")
     elif not device.classification_rule.strip():
@@ -244,6 +248,7 @@ def build_outline(device: Device, data: dict, checks: list, meta: dict) -> list:
          "This file is a controlled build: changes require a new build.")
 
     # 1
+    org = data.get("organisation")
     h1("1. Device description and specification")
     B.append(("kv", [
         ("Device name", device.name),
@@ -258,6 +263,9 @@ def build_outline(device: Device, data: dict, checks: list, meta: dict) -> list:
         ("Classification rationale", device.classification_rule),
         ("IEC 62304 software safety class", device.get_software_safety_class_display()),
         ("Software items", ", ".join(device.software_item_list())),
+        ("Organisation", org.name_and_address() if org else ""),
+        ("Organisation SRN", org.srn if org else ""),
+        ("Organisation's role for this device", ", ".join(device.operator_role_labels())),
         ("Legal manufacturer", device.manufacturer),
         ("UK Responsible Person / authorised representative", device.uk_responsible_person),
         ("Approved / notified body", device.approved_body),

@@ -10,6 +10,11 @@ qms_version: "1.0.0"                           # the validated release to run (i
 qms_domain: "{{ inventory_hostname }}"         # DNS must point here before first deploy
 acme_email: it-ops@example.org                 # Let's Encrypt account / expiry notices
 qms_sso_allowed_domains: example.org
+# Who may sign (finding F6): accounts connected to these providers, with a verified email at
+# these domains. Empty here, so staging is unrestricted; production sets them in
+# group_vars/production/vars.yml.
+qms_signer_sso_providers: ""
+qms_signer_email_domains: ""
 
 # --- email -----------------------------------------------------------------------
 smtp_host: smtp.example.org
@@ -36,6 +41,14 @@ deploy_user: qmsdeploy                         # owns /opt/samd_qms; member of d
 admin_ssh_keys: []                             # public keys allowed to log in as deploy_user
 ssh_port: 22
 
-# Optional off-site copy of /var/backups/samd_qms with rsync over SSH, nightly at 04:15 UTC.
-# Leave empty to disable. The target host must accept deploy_user's SSH key.
-backup_offsite_target: ""                      # e.g. backup@backup.example.org:/srv/samd_qms/
+# Off-site copy of /var/backups/samd_qms, nightly at 04:15 UTC (finding F5). Required on
+# production (deploy.yml refuses without it); optional elsewhere. Either:
+#   rsync  - another VM or server over SSH; it must accept deploy_user's SSH key
+#   gdrive - a Google shared drive via rclone, encrypted on this server before upload; add a
+#            service account as a Content manager of the shared drive (secrets in the vault)
+backup_offsite_method: "{{ 'rsync' if backup_offsite_target else '' }}"
+backup_offsite_target: ""                      # rsync: e.g. backup@backup.example.org:/srv/samd_qms/
+backup_gdrive_shared_drive_id: ""              # gdrive: the id at the end of the drive's URL
+backup_gdrive_folder: "samd_qms/{{ inventory_hostname }}"
+backup_offsite_keep_days: 365                  # off-site copies older than this are deleted
+rclone_dir: "/home/{{ deploy_user }}/.config/rclone"

@@ -1,17 +1,15 @@
 """Inviting people by email, and the page the emailed link opens."""
 from django.contrib import messages
-from django.contrib.auth import get_user_model, login
-from django.db import transaction
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import invitations
 from .access import run, team_member
-from .forms import InvitationForm, InvitationSignupForm
+from .forms import InvitationForm
 from .models import Device, Invitation
 from .roles import managed_devices
-from .services import TransitionError
 
 
 @team_member
@@ -49,7 +47,8 @@ def invitation_create(request):
         "form": form, "title": "Invite people",
         "cancel_url": reverse("qms:device_detail", args=[first.code]) if first
         else reverse("qms:invitation_list"),
-        "intro": "They'll get an email with a link to create an account or sign in. Choose "
+        "intro": "They'll get an email with a link to register with single sign-on (or sign in, "
+                 "if they already have an account) using the invited address. Choose "
                  "their roles on each device; leave a device blank to leave them off its team. "
                  "You can only grant roles on devices whose team you manage.",
         "submit_label": "Send invitation",
@@ -78,7 +77,7 @@ def invitation_resend(request, pk):
 
 def invitation_accept(request, token):
     """Open to anyone with the link: shows the invitation and lets the person accept it by
-    creating an account, signing in, or using single sign-on."""
+    signing in to an existing account or registering with single sign-on."""
     invitation = invitations.find(token)
     context = {"invitation": invitation, "token": token}
     if invitation is None:
@@ -100,37 +99,12 @@ def invitation_accept(request, token):
             context["errors"] = invitations.acceptance_errors(invitation, request.user)
         return render(request, "qms/invitation_accept.html", context)
 
-    User = get_user_model()
-    context["has_account"] = User.objects.filter(email__iexact=invitation.email,
-                                                 is_active=True).exists()
-    form = None
-    if not context["has_account"]:
-        form = InvitationSignupForm(request.POST or None, email=invitation.email)
-        if request.method == "POST" and form.is_valid():
-            try:
-                with transaction.atomic():
-                    user = User(username=form.cleaned_data["username"], email=invitation.email,
-                                first_name=form.cleaned_data["first_name"],
-                                last_name=form.cleaned_data["last_name"])
-                    user.set_password(form.cleaned_data["password1"])
-                    user.save()
-                    _verified_email(user)
-                    invitations.accept(invitation, user)
-            except TransitionError as exc:
-                for err in exc.errors:
-                    messages.error(request, err)
-            else:
-                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-                return _welcome(request, invitation)
-    context["form"] = form
+    # Signed out: a new person registers only with single sign-on (no local username and
+    # password); sso.SocialAccountAdapter allows it for the invited, provider-verified address.
+    context["has_account"] = get_user_model().objects.filter(
+        email__iexact=invitation.email, is_active=True).exists()
+    context["providers"] = invitations.signup_providers(request)
     return render(request, "qms/invitation_accept.html", context)
-
-
-def _verified_email(user):
-    """The invitation proved the address, so record it as verified for single sign-on."""
-    from allauth.account.models import EmailAddress
-    EmailAddress.objects.get_or_create(user=user, email=user.email,
-                                       defaults={"verified": True, "primary": True})
 
 
 def _welcome(request, invitation):

@@ -1,7 +1,10 @@
 """Inviting people: Device admins and QA invite an email address to one or more device teams,
-with roles on each. The person registers (or signs in) from the emailed link before it expires.
+with roles on each. The person registers with single sign-on (or signs in to an existing
+account) from the emailed link before it expires.
 
 Rules:
+  * No local username and password from an invitation: a new person registers only with a
+    single sign-on provider that verifies the invited email address (not ORCID).
   * You can only grant roles on devices whose team you manage (Device admin or QA there).
   * The link is single use and expires (QMS_INVITATION_DAYS by default, at most
     QMS_INVITATION_MAX_DAYS). Only the token's SHA-256 is stored.
@@ -207,6 +210,13 @@ def visible_invitations(user):
     managed = {d.pk for d in managed_devices(user)}
     return [i for i in Invitation.objects.select_related("invited_by", "accepted_by")
             if i.invited_by_id == user.pk or managed & set(i.device_ids())]
+
+
+def signup_providers(request):
+    """Configured single sign-on providers an invited person can register with: those that
+    report a verified email address, which must be the invited one (so not ORCID)."""
+    from allauth.socialaccount.adapter import get_adapter
+    return [p for p in get_adapter().list_providers(request) if p.id != "orcid"]
 
 
 def pending_for_session(request):

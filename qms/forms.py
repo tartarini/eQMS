@@ -6,8 +6,10 @@ from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator
 
 from . import workflow as wf
-from .models import (Attachment, Device, Document, DocumentVersion, Hazard, Record,
-                     RecordLink, RiskControl, SoupItem, Supplier)
+from .models import (AUTHORISED_REP_ROLE, MANUFACTURER_ROLE, OPERATOR_ROLE_LABELS,
+                     OPERATOR_ROLES, Attachment, Device, Document, DocumentVersion, Hazard,
+                     Organisation, Record, RecordLink, RiskControl, SoupItem, Supplier,
+                     join_operator_roles, parse_operator_roles)
 
 DATE_FIELDS = {"date_aware", "effectiveness_due", "due_date", "period_start", "period_end",
                "last_anomaly_review"}
@@ -298,15 +300,89 @@ class TeamRolesForm(forms.Form):
     note = forms.CharField(max_length=200, required=False, label="Responsibility (optional)")
 
 
+class OperatorRolesField(forms.MultipleChoiceField):
+    """Tick-boxes for EU MDR economic operator roles, stored as a comma-separated string."""
+    widget = forms.CheckboxSelectMultiple
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("choices", OPERATOR_ROLES)
+        kwargs.setdefault("required", False)
+        super().__init__(**kwargs)
+
+    def prepare_value(self, value):
+        return parse_operator_roles(value) if isinstance(value, str) else value
+
+    def clean(self, value):
+        return join_operator_roles(super().clean(value))
+
+
 class DeviceForm(forms.ModelForm):
+    operator_roles = OperatorRolesField(
+        label="Our role for this device",
+        help_text="What your organisation is for this device under the MDR. Choose from the "
+                  "roles in the organisation profile.")
+
     class Meta:
         model = Device
         fields = ["name", "code", "owner", "current_version", "regulatory_status", "markets",
+                  "operator_roles",
                   "description", "intended_purpose", "intended_users", "patient_population",
                   "contraindications", "classification", "classification_rule",
                   "software_safety_class", "software_items", "basic_udi_di", "manufacturer",
                   "uk_responsible_person", "approved_body", "standards_applied", "active"]
         widgets = _widgets(fields)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.organisation = Organisation.current()
+        held = self.organisation.role_list() if self.organisation else []
+        if held:  # offer only the roles the organisation holds, plus any already set
+            keep = set(held) | set(self.instance.operator_role_list())
+            self.fields["operator_roles"].choices = [c for c in OPERATOR_ROLES if c[0] in keep]
+
+    def clean(self):
+        data = super().clean()
+        chosen = parse_operator_roles(data.get("operator_roles", ""))
+        org = self.organisation
+        if org and org.role_list():
+            unheld = [OPERATOR_ROLE_LABELS[r] for r in chosen if r not in org.role_list()]
+            if unheld:
+                self.add_error("operator_roles", f"The organisation profile doesn't list "
+                               f"{', '.join(unheld)}. Add it there first.")
+        # When the organisation is the manufacturer (or authorised representative), its own
+        # name and address go in the matching field unless something else was entered.
+        if org:
+            if MANUFACTURER_ROLE in chosen and not (data.get("manufacturer") or "").strip():
+                data["manufacturer"] = org.name_and_address()
+            if AUTHORISED_REP_ROLE in chosen and not (data.get("uk_responsible_person")
+                                                      or "").strip():
+                data["uk_responsible_person"] = org.name_and_address()
+        return data
+
+
+class OrganisationForm(forms.ModelForm):
+    roles = OperatorRolesField(
+        label="Economic operator roles",
+        help_text="Every role your organisation holds for at least one device.")
+
+    class Meta:
+        model = Organisation
+        fields = ["name", "address", "srn", "uk_registration", "roles"]
+        widgets = {"address": forms.Textarea(attrs={"rows": 3})}
+
+    def clean_roles(self):
+        roles = self.cleaned_data["roles"]
+        kept = set(parse_operator_roles(roles))
+        in_use = {}
+        for d in Device.objects.filter(active=True).exclude(operator_roles=""):
+            for r in d.operator_role_list():
+                if r not in kept:
+                    in_use.setdefault(OPERATOR_ROLE_LABELS[r], []).append(d.code)
+        if in_use:
+            raise forms.ValidationError("Still in use: " + "; ".join(
+                f"{label} on {', '.join(codes)}" for label, codes in in_use.items())
+                + ". Change those devices first.")
+        return roles
 
 
 # --- account ---------------------------------------------------------------------------
@@ -367,47 +443,6 @@ class InvitationForm(forms.Form):
         data = super().clean()
         if self.devices and not any(data.get(f"roles_{d.pk}") for d in self.devices):
             raise forms.ValidationError("Tick at least one role on at least one device.")
-        return data
-
-
-class InvitationSignupForm(forms.Form):
-    """Create an account from an invitation. The email address comes from the invitation."""
-    username = forms.CharField(max_length=150, help_text="Letters, digits and @ . + - _ only.")
-    first_name = forms.CharField(max_length=150)
-    last_name = forms.CharField(max_length=150)
-    password1 = forms.CharField(label="Password", widget=forms.PasswordInput(
-        attrs={"autocomplete": "new-password"}))
-    password2 = forms.CharField(label="Repeat password", widget=forms.PasswordInput(
-        attrs={"autocomplete": "new-password"}))
-
-    def __init__(self, *args, email="", **kwargs):
-        self.email = email
-        super().__init__(*args, **kwargs)
-
-    def clean_username(self):
-        from django.contrib.auth import get_user_model
-        from django.contrib.auth.validators import UnicodeUsernameValidator
-        username = self.cleaned_data["username"].strip()
-        UnicodeUsernameValidator()(username)
-        if get_user_model().objects.filter(username__iexact=username).exists():
-            raise forms.ValidationError("That username is taken. Choose another.")
-        return username
-
-    def clean(self):
-        from django.contrib.auth import get_user_model
-        from django.contrib.auth.password_validation import validate_password
-        data = super().clean()
-        p1, p2 = data.get("password1"), data.get("password2")
-        if p1 and p2 and p1 != p2:
-            self.add_error("password2", "The passwords do not match.")
-        elif p1:
-            user = get_user_model()(username=data.get("username", ""), email=self.email,
-                                    first_name=data.get("first_name", ""),
-                                    last_name=data.get("last_name", ""))
-            try:
-                validate_password(p1, user)
-            except forms.ValidationError as exc:
-                self.add_error("password1", exc)
         return data
 
 

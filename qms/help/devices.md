@@ -2,7 +2,26 @@ Each medical device has its own records, risk file, post-market surveillance (PM
 
 ## Choose a device
 
-Pick a device in the menu at the left of the top bar. Lists, the dashboard and the risk matrices then show only that device, and new records, hazards and documents default to it. Choose **All devices** to see everything. Every list has a **Device** column so you can always tell them apart.
+After you sign in, **Your devices** lists the devices whose team you're on, with your roles on each (a role marked *org-wide* is held organisation-wide and applies on every device). Click **Open** beside a device to work in its QMS: lists, the dashboard and the risk matrices then show only that device, and new records, hazards and documents default to it.
+
+To switch to another device, click **Devices** in the top bar and **Open** another one. The device menu at the left of the top bar does the same from any page. **Work across all my devices** (or **All devices** in the menu) shows everything you can see; every list has a **Device** column so you can always tell them apart.
+
+If you're only a Device admin on a device, you can manage its team but there's no **Open** button: working in its QMS needs the Engineer, QA or Clinical Safety Officer role.
+
+## Your organisation and its roles
+
+Under the EU MDR, the organisation running this QMS is an **economic operator**, and its obligations depend on its role for each device:
+
+- **Manufacturer**: places the device on the market under its own name, and holds its technical file.
+- **Authorised representative**: acts in the EU for a manufacturer based outside it. In the UK the equivalent is the UK Responsible Person.
+- **Importer**: the first to place a device from outside the EU on the EU market.
+- **Distributor**: makes a device available further down the supply chain.
+
+An organisation can hold different roles for different devices, for example manufacturer of one and distributor of another.
+
+**Organisation profile.** Open **Organisation** from the **Your devices** page to see the legal name, registered address, EU Single Registration Number (SRN), MHRA registration number and every role the organisation holds. QA held organisation-wide can change it under **Edit**. A role still set on a device can't be removed from the profile; change those devices first.
+
+**Our role for each device.** QA on a device sets **Our role for this device** under **Edit** on the device page, choosing from the roles in the profile. If you choose **Manufacturer** or **Authorised representative** and leave the matching field below empty, it is filled with the organisation's name and address. The role appears on the device page, on **Your devices**, and in section 1 of the technical file. The completeness check warns while it isn't set.
 
 ## Device teams
 
@@ -38,7 +57,7 @@ Device admins and QA invite new people by email. One invitation can cover severa
 4. Choose when the link expires (14 days by default, at most 30) and, if you like, add a message.
 5. Click **Send invitation**.
 
-They get an email with a link to create an account (or sign in, or use single sign-on) and accept. When they accept, they join each team with the roles you chose. If they already have roles on a device, the invitation adds to them and never removes any.
+They get an email with a link. They register with single sign-on (Google, Microsoft, LinkedIn or GitHub) using the invited email address, or sign in if they already have an account, and accept. Invite the address they use with their organisation's sign-in. When they accept, they join each team with the roles you chose. If they already have roles on a device, the invitation adds to them and never removes any.
 
 ## Manage invitations
 

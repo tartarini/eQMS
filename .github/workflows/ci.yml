@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
 
+      - name: Install Chromium for the interface tests
+        run: python -m playwright install --with-deps chromium
+
       - name: Django checks
         run: |
           python manage.py check
@@ -142,7 +145,7 @@ jobs:
         run: pip install ansible-core shellcheck-py
 
       - name: Shell scripts
-        run: shellcheck deploy/scripts/*.sh
+        run: shellcheck deploy/scripts/*.sh scripts/*.sh
 
       - name: Compose files
         run: |

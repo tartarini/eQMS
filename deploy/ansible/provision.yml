@@ -145,18 +145,91 @@
         state: started
         enabled: true
 
-    # --- off-site backups (optional) ---------------------------------------------------
-    - name: Schedule the nightly off-site copy of backups
+    # --- off-site backups (finding F5; required on production by deploy.yml) -------------
+    - name: Check the off-site backup settings
+      ansible.builtin.assert:
+        that:
+          - backup_offsite_method in ['', 'rsync', 'gdrive']
+          - backup_offsite_method != 'rsync' or backup_offsite_target is match('^[^:]+:.+')
+          - >-
+            backup_offsite_method != 'gdrive' or (backup_gdrive_shared_drive_id | length > 0
+            and vault_backup_gdrive_service_account_json | default('') | length > 0
+            and vault_backup_crypt_password | default('') | length >= 24
+            and vault_backup_crypt_salt | default('') | length >= 24)
+        fail_msg: >-
+          Off-site backups: backup_offsite_method is '', 'rsync' (set backup_offsite_target to
+          user@host:/path/) or 'gdrive' (set backup_gdrive_shared_drive_id and, in the vault,
+          vault_backup_gdrive_service_account_json, vault_backup_crypt_password and
+          vault_backup_crypt_salt). See docs/deployment.md.
+      no_log: true
+
+    - name: Install rclone (Google shared drive backups)
+      ansible.builtin.apt:
+        name: rclone
+        state: present
+      when: backup_offsite_method == 'gdrive'
+
+    - name: Create the rclone configuration directory
+      ansible.builtin.file:
+        path: "{{ rclone_dir }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0700"
+      when: backup_offsite_method == 'gdrive'
+
+    - name: Install the Google service account key
+      ansible.builtin.copy:
+        content: "{{ vault_backup_gdrive_service_account_json }}"
+        dest: "{{ rclone_dir }}/gdrive-service-account.json"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"
+      when: backup_offsite_method == 'gdrive'
+      no_log: true
+
+    - name: Obscure the encryption passwords for rclone
+      ansible.builtin.command: rclone obscure -
+      args:
+        stdin: "{{ item.value }}"
+      loop:
+        - {name: password, value: "{{ vault_backup_crypt_password | default('') }}"}
+        - {name: salt, value: "{{ vault_backup_crypt_salt | default('') }}"}
+      register: rclone_obscured
+      changed_when: false
+      when: backup_offsite_method == 'gdrive'
+      no_log: true
+
+    - name: Write the rclone configuration
+      ansible.builtin.template:
+        src: templates/rclone.conf.j2
+        dest: "{{ rclone_dir }}/rclone.conf"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0600"
+      vars:
+        rclone_crypt_password: "{{ rclone_obscured.results[0] }}"
+        rclone_crypt_salt: "{{ rclone_obscured.results[1] }}"
+      when: backup_offsite_method == 'gdrive'
+      no_log: true
+
+    - name: Install the off-site backup script
+      ansible.builtin.template:
+        src: templates/offsite-backup.sh.j2
+        dest: "{{ qms_dir }}/offsite-backup.sh"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: "0750"
+      when: backup_offsite_method != ''
+
+    - name: Schedule the nightly off-site copy of backups (after the 02:30 backup)
       ansible.builtin.cron:
         name: samd_qms off-site backup
         user: "{{ deploy_user }}"
         minute: "15"
         hour: "4"
-        job: >-
-          rsync -a --delete-after -e "ssh -o BatchMode=yes"
-          {{ backup_host_dir }}/ {{ backup_offsite_target }}
-          || echo "off-site backup failed" | logger -t samd_qms
-        state: "{{ 'present' if backup_offsite_target else 'absent' }}"
+        job: "{{ qms_dir }}/offsite-backup.sh >/dev/null 2>&1"
+        state: "{{ 'present' if backup_offsite_method else 'absent' }}"
 
   handlers:
     - name: Restart docker

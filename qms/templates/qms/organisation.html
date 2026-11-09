@@ -1,0 +1,36 @@
+{% extends "qms/base.html" %}
+{% block title %}Organisation – SAMD_QMS{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+  <h1>{% if org %}{{ org.name }}{% else %}Organisation{% endif %}</h1>
+  {% if can_edit %}<a class="btn{% if org %} secondary{% endif %}" href="{% url 'qms:organisation_edit' %}">{% if org %}Edit{% else %}Set up the organisation profile{% endif %}</a>{% endif %}
+</div>
+<p class="muted small">The legal entity running this QMS and its economic operator roles under the EU MDR (Art. 2). It can hold different roles for different devices: manufacturer of one, importer or distributor of another.</p>
+
+{% if org %}
+<div class="panel">
+<table>
+  <tr><th style="width:32%">Legal name</th><td>{{ org.name }}</td></tr>
+  <tr><th>Registered address</th><td style="white-space:pre-wrap">{{ org.address|default:"—" }}</td></tr>
+  <tr><th>EU Single Registration Number (SRN)</th><td>{{ org.srn|default:"—" }}</td></tr>
+  <tr><th>MHRA registration number</th><td>{{ org.uk_registration|default:"—" }}</td></tr>
+  <tr><th>Economic operator roles</th><td class="operator-roles">{% for label in org.role_labels %}<span class="badge">{{ label }}</span> {% empty %}<span class="muted">None set</span>{% endfor %}</td></tr>
+</table>
+</div>
+{% else %}
+<div class="msg info">No organisation profile yet. {% if can_edit %}Set it up so each device can record your role for it.{% else %}QA held organisation-wide can set it up.{% endif %}</div>
+{% endif %}
+
+<div class="panel">
+<h2 style="margin-top:0">Our role for each device</h2>
+<table>
+  <tr><th>Device</th><th>Our role</th></tr>
+  {% for d in devices %}
+  <tr><td><a href="{% url 'qms:device_detail' d.code %}">{{ d.name }}</a> <span class="muted small">{{ d.code }}</span></td>
+    <td class="small">{% for label in d.operator_role_labels %}<span class="badge">{{ label }}</span> {% empty %}<span class="muted">Not set. QA on the device sets it under Edit.</span>{% endfor %}</td></tr>
+  {% empty %}<tr><td colspan="2" class="muted">No devices you can see.</td></tr>{% endfor %}
+</table>
+</div>
+
+{% if events %}{% include "qms/_audit.html" %}{% endif %}
+{% endblock %}

@@ -71,13 +71,15 @@ qms/
     core.py             AuditEvent, AuditedModel, Record, RecordLink, Signature, SigningPin,
                         Attachment, PMSSchedule, helpers (add_months, sha256_of)
     devices.py          Device, TechnicalFileBuild, TECH_FILE_SECTIONS
+    organisation.py     Organisation (the one profile), OPERATOR_ROLES (EU MDR economic operators)
     documents.py        Document, DocumentVersion, TrainingRequirement, TrainingAssignment
     risk.py             Hazard, RiskControl, risk_level()
     suppliers.py        Supplier, SoupItem
   views.py              dashboard, records, attachments, audit, signing PIN
   views_docs.py         documents and training
   views_risk.py         hazards, controls, suppliers, SOUP
-  views_devices.py      devices, device switcher, teams and roles, technical file pages
+  views_devices.py      devices, device switcher, teams and roles, technical file pages,
+                        the organisation profile
   views_invitations.py  invite people, invitations list, the accept page (/invite/<token>/)
   roles.py              who holds which role on which device (every role check uses it)
   invitations.py        invitation rules: create, resend, revoke, accept
@@ -105,7 +107,8 @@ qms/
   test_modules.py       documents, training, risk, suppliers, attachments, notifications,
                         security, SSO, connected accounts, pages (29 tests)
   test_devices.py       device scoping, completeness checks, technical file builds, software
-                        items and their migration (23 tests)
+                        items and their migration, choosing a device (29 tests)
+  test_organisation.py  organisation profile and per-device economic operator roles (9 tests)
   test_teams.py         device-team isolation, multi-team members, All-device access (13 tests)
   test_ops.py           health check, scheduler and alerts (8 tests)
   test_help.py          every page and form field has help; help pages and icons (11 tests)
@@ -314,6 +317,13 @@ Callers must verify the credential first with `verify_signing_credential(user, s
   that only within `QMS_PIN_REAUTH_MINUTES` of a login (the login time is stored in the session
   by the `user_logged_in` receiver). Users with a password must enter it to set a PIN.
 
+Every signing path goes through `services._check_secret`, which first applies
+`sso.signer_identity_errors(user)`. When `QMS_SIGNER_SSO_PROVIDERS` is set (production only, by
+Ansible), the signer's account must have a `SocialAccount` with one of those providers and, when
+`QMS_SIGNER_EMAIL_DOMAINS` is set, a verified allauth `EmailAddress` at one of those domains
+(subdomains count). It applies to superusers too. Empty settings (development, staging, tests)
+mean no restriction. URS-24, `qms/test_signer_identity.py`.
+
 Signature meanings in use: *Approval*, *Reportability decision*, *Regulatory submission*,
 *Review*, *Document approval*, *Periodic review: no change needed*, *Document withdrawal*,
 *Read and understood*, *Risk acceptance*, *Hazard retirement*, *Supplier evaluation*.
@@ -333,7 +343,11 @@ organisation-wide; superusers always pass) or, for device and team pages, `acces
 without a role gets `access_pending.html` with HTTP 403.
 
 The admin site is for staff users only. `seed_qms` gives the QA group all `qms` model permissions;
-make QA leads `is_staff` so they can manage users and roles.
+make QA leads `is_staff` so they can manage users and roles. On production it answers only
+through the SSH tunnel: Caddy returns 404 for `/admin/` on the public site, and
+`qms.admin_access.AdminHostMiddleware` does the same for any host not in `QMS_ADMIN_HOSTS`
+(production: `localhost:8443`), which also hides the header's Admin link (finding F7;
+[deployment guide](deployment.md#administration-admin-through-an-ssh-tunnel)).
 
 ### Single sign-on
 
@@ -410,6 +424,9 @@ the media directory publicly.
 | `QMS_RISK_ACCEPTABLE_MAX` | `4` | Score ≤ this is acceptable |
 | `QMS_RISK_UNACCEPTABLE_MIN` | `10` | Score ≥ this is unacceptable |
 | `QMS_ATTACHMENT_MAX_MB` | `25` | Upload size limit |
+| `QMS_ADMIN_HOSTS` | empty | Hosts where Django admin answers (production: `localhost:8443`, the SSH tunnel); empty = all |
+| `QMS_SIGNER_SSO_PROVIDERS` | empty | Production: signers must be connected to one of these providers (env, comma-separated) |
+| `QMS_SIGNER_EMAIL_DOMAINS` | empty | Production: and have a verified email at one of these domains |
 | `QMS_ATTACHMENT_EXTENSIONS` | pdf, docx, xlsx, csv, txt, md, png, jpg, jpeg, json, zip, log, html | Upload allowlist |
 | `QMS_NOTIFICATIONS_ENABLED` | `True` | Master switch for email |
 | `QMS_REMINDER_LOOKAHEAD_DAYS` | `7` | "Due soon" window in the daily digest |
@@ -435,11 +452,34 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 ## Testing
 
 ```bash
-python manage.py test qms                 # 134 tests, ~90 s on SQLite
+python manage.py test qms                 # 172 tests, ~2 min on SQLite
 python manage.py run_oq --executed-by "Name" --release 1.0.0 --output oq_evidence/
 python manage.py test qms.test_modules.SSOTests
+python manage.py test qms.test_ui         # browser interface tests only (or: scripts/local.sh ui)
 make coverage                             # coverage report and htmlcov/ (pip install -r requirements-dev.txt)
 ```
+
+**Interface tests.** `qms/test_ui.py` drives the app in headless Chromium with
+[Playwright](https://playwright.dev/python/) against Django's live test server
+(`StaticLiveServerTestCase`): signing in from the landing page, every main page, the help link and
+field-help popovers, choosing a device after sign-in and switching to another, the device
+switcher, raising a Problem Report and signing its rejection (a
+wrong password first), the account-request captcha solved by the page's own JavaScript, and the
+SSO-only invitation page. Every test also fails on any JavaScript error or console error. They are
+traced to URS-83.
+
+- Set up once: `pip install -r requirements-dev.txt && python -m playwright install chromium`
+  (`scripts/local.sh setup` does both). CI installs Chromium before the OQ.
+- Without Playwright the tests are skipped with that hint, and `run_oq` then fails URS-83: OQ
+  evidence must include them. The Docker dev image has no browser, so `make test` skips them;
+  `make oq` and `make ui` run on your machine instead.
+- Watch them: `QMS_UI_HEADED=1 QMS_UI_SLOWMO=300 python manage.py test qms.test_ui`, or
+  `make ui HEADED=1`.
+- Write new ones with `BrowserTestCase`: `self.sign_in(username)`, `self.field(label, scope)`
+  (the control with that label, not its help icon), Playwright's `expect(...)` for anything that
+  appears after a request, and `self.assertNoBrowserErrors()` at the end. The live server
+  commits for real, so `on_commit` emails are sent at once (no `captureOnCommitCallbacks`).
+  Prefer roles and labels to CSS selectors so the tests also check what people see.
 
 **Coverage.** `.coveragerc` measures `qms` and `config` with branch coverage, leaving out
 migrations and the tests themselves. CI runs the OQ under `coverage`, puts the report in the run's
@@ -456,7 +496,7 @@ signatures), locking and no-delete, audit attribution, immutability and tamper d
 document lifecycle including file tampering, training assignment and sign-off, risk acceptance
 rules, supplier evaluation, attachment validation and checksums, notifications, security events,
 the role gate, SSO buttons, redirects to Google, Microsoft, GitHub and ORCID, sign-up rules and
-provider configuration, and rendering of every page.
+provider configuration, rendering of every page, and the main journeys in a real browser.
 
 Not covered automatically: complete SSO round-trips with real providers (LinkedIn's redirect
 needs network access for OIDC discovery). Test those manually per provider when you configure
@@ -518,11 +558,30 @@ A `Device` is the unit a technical file is built for. What belongs to a device:
 | Records (`Record.device`, required), hazards and risk controls, PMS schedules and activities, technical file builds | QMS-wide documents (`Document.device` null), training, suppliers, users and roles |
 | Device-specific documents (`Document.device` set) | SOUP items can be linked to several devices (`SoupItem.devices`) |
 
+**Choosing a device.** `LOGIN_REDIRECT_URL` is `qms:device_list`, so after sign-in (password or
+SSO, unless a `next` link says otherwise) people see **Your devices**: each device they can see,
+their roles on it (`roles.device_roles`, organisation-wide ones flagged), and an **Open** button,
+shown only for a working role, that posts to `set_device` with `next` set to the dashboard.
+**Devices** in the top bar returns to that page to switch.
+
 **Switcher.** `views_devices.set_device` stores the chosen device id in the session
 (`access.SESSION_DEVICE_KEY`); `access.current_device(request)` reads it and
 `access.scope(queryset, request, field)` filters by it. Lists, the dashboard and the risk matrix are
 scoped; create forms default to the current device. Document lists show the device's documents
 plus QMS-wide ones. The `qms.context_processors.devices` processor supplies the switcher.
+
+**Economic operator roles.** `models/organisation.py` holds the EU MDR roles: manufacturer,
+authorised representative, importer and distributor (Art. 2(30)-(34)). There is one
+`Organisation` row (`Organisation.current()`, None until someone fills it in), edited at
+`/organisation/` by QA held organisation-wide only (`views_devices._can_edit_organisation`), and
+audited. Its `roles` list every role the organisation holds; `Device.operator_roles` records which
+apply to that device. Both are comma-separated codes, edited through `forms.OperatorRolesField`.
+`DeviceForm` offers only the profile's roles (all four while the profile lists none) and fills an
+empty manufacturer or UK Responsible Person / authorised rep. field with the organisation's name
+and address when that role is chosen. `OrganisationForm` refuses to drop a role an active device
+still uses. Technical file section 1 shows the organisation, its SRN and its role for the device;
+`completeness_checks` warns while a device has no role. The roles are recorded only: they don't
+change workflows or which checks apply. Traced to URS-74.
 
 **New devices.** Creating a device (QA only) calls `services.setup_device_pms`, which copies
 `DEFAULT_PMS_SCHEDULES`. Edit those defaults, or the device's schedules in the admin.
@@ -617,10 +676,12 @@ the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
   (`notifications.invitation`) carries `https://HOST/invite/<token>/`.
 - `invitation_accept` (`/invite/<token>/`) needs no login: the link is the credential. Signed in,
   the account must have the invited address (`user.email` or a verified allauth `EmailAddress`).
-  Signed out, the person creates a local account (`InvitationSignupForm`, Django's password
-  validators; the address is recorded as verified) or uses single sign-on: opening the link stores
-  the token in the session, and `sso.SocialAccountAdapter.is_open_for_signup` allows a new account
-  for that verified address.
+  Signed out, a person without an account registers **only with single sign-on** (no local
+  username or password): opening the link stores the token in the session, and
+  `sso.SocialAccountAdapter.is_open_for_signup` allows a new account for that provider-verified
+  address. `invitations.signup_providers` lists the configured providers that verify email (all
+  but ORCID). With none configured the page says so and offers no way to register; an
+  administrator can still create an account in `/admin/` and the person signs in to accept.
 - `accept()` re-checks every grant (`valid_grants`: device active, inviter still manages it),
   adds roles to existing memberships (never removes any), marks the invitation accepted under
   `select_for_update` so it can't be used twice, and runs `sync_training()`.

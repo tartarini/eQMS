@@ -41,3 +41,11 @@ def release(request):
     return {"qms_version": settings.QMS_VERSION, "qms_commit": commit,
             "qms_commit_short": commit[:7] if commit != "unknown" else commit,
             "qms_copyright": settings.QMS_COPYRIGHT}
+
+
+def admin_link(request):
+    """Show the header's Admin link to staff only where admin answers (see admin_access)."""
+    from .admin_access import admin_allowed
+    user = getattr(request, "user", None)
+    return {"show_admin_link": bool(user and user.is_authenticated and user.is_staff
+                                    and admin_allowed(request))}

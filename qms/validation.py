@@ -52,16 +52,19 @@ REQUIREMENTS = [
       "test_roles.PerDeviceRoleTests.test_training_follows_the_role_on_the_documents_device",
       "test_roles.RoleMigrationTests.test_roles_move_to_teams"], ["PQ-02"]),
     ("URS-07", "Access", "Device admins and QA invite people by email to the devices whose team "
-     "they manage, with roles on each. The link is single use, expires, can only be accepted by "
-     "an account with the invited address, can be resent or revoked, and is stored only as a "
-     "hash; invitations and acceptances are audited.", "H",
+     "they manage, with roles on each. A new person registers from the link only with single "
+     "sign-on that verifies the invited address; no local username and password. The link is "
+     "single use, expires, can only be accepted by an account with the invited address, can be "
+     "resent or revoked, and is stored only as a hash; invitations and acceptances are "
+     "audited.", "H",
      ["test_invitations.InvitationTests.test_invitation_email_lists_devices_roles_and_expiry",
       "test_invitations.InvitationTests.test_only_the_token_hash_is_stored",
       "test_invitations.InvitationTests.test_you_can_only_grant_roles_on_teams_you_manage",
       "test_invitations.InvitationTests.test_input_is_checked",
       "test_invitations.InvitationTests.test_one_pending_invitation_per_person_and_device",
-      "test_invitations.InvitationTests.test_new_person_creates_an_account_and_joins_each_team",
-      "test_invitations.InvitationTests.test_weak_password_and_taken_username_are_refused",
+      "test_invitations.InvitationTests.test_new_person_registers_only_with_single_sign_on",
+      "test_invitations.InvitationTests.test_without_single_sign_on_nobody_can_register_from_an_invitation",
+      "test_invitations.InvitationTests.test_new_person_registers_with_single_sign_on_and_joins_each_team",
       "test_invitations.InvitationTests.test_existing_account_signs_in_and_roles_are_added_not_replaced",
       "test_invitations.InvitationTests.test_another_account_cannot_accept",
       "test_invitations.InvitationTests.test_expired_invitation_is_refused_until_resent",
@@ -153,6 +156,17 @@ REQUIREMENTS = [
      "signing PIN.", "M",
      ["test_modules.SecurityTests.test_sso_user_without_password_cannot_sign_without_pin"],
      ["PQ-01"]),
+    ("URS-24", "Signatures", "On production, only people whose identity is confirmed by an "
+     "approved institutional single sign-on provider (connected account, and a verified email "
+     "address at an approved domain when domains are set) can sign; this applies to "
+     "superusers too. Other environments are not restricted.", "H",
+     ["test_signer_identity.SignerIdentityTests.test_without_the_setting_anyone_with_the_role_signs",
+      "test_signer_identity.SignerIdentityTests.test_password_only_account_cannot_sign_even_as_superuser",
+      "test_signer_identity.SignerIdentityTests.test_other_providers_do_not_count",
+      "test_signer_identity.SignerIdentityTests.test_allowed_provider_needs_a_verified_address_at_the_domain",
+      "test_signer_identity.SignerIdentityTests.test_institutional_account_signs_and_wrong_secret_still_fails",
+      "test_signer_identity.SignerIdentityTests.test_domains_are_optional"],
+     ["IQ-05", "PQ-01"]),
 
     ("URS-30", "Audit trail", "Every create and change is recorded with who, when, and old and "
      "new values.", "H",
@@ -210,10 +224,38 @@ REQUIREMENTS = [
       "test_teams.TeamTests.test_notifications_go_only_to_the_team"], ["IQ-04"]),
 
     ("URS-70", "Devices", "Data is kept per device; the device switcher filters every list "
-     "safely.", "M",
+     "safely. After sign-in people see the devices whose team they are on, with their roles on "
+     "each, and open one device's QMS; Devices in the top bar switches to another.", "M",
      ["test_devices.DeviceScopingTests.test_switcher_filters_lists",
       "test_devices.DeviceScopingTests.test_switcher_rejects_external_redirect",
+      "test_devices.DeviceChoiceTests.test_sign_in_lands_on_the_list_of_your_devices_and_roles",
+      "test_devices.DeviceChoiceTests.test_a_link_followed_before_signing_in_still_wins",
+      "test_devices.DeviceChoiceTests."
+      "test_opening_a_device_loads_its_qms_and_devices_switches_to_another",
+      "test_devices.DeviceChoiceTests.test_cannot_open_a_device_whose_team_you_are_not_on",
+      "test_devices.DeviceChoiceTests.test_device_admin_alone_sees_the_role_but_no_open_button",
+      "test_devices.DeviceChoiceTests.test_organisation_wide_roles_are_marked",
+      "test_ui.DeviceSwitcherTests.test_sign_in_shows_your_devices_and_opens_one",
       "test_devices.CompletenessTests.test_other_devices_data_is_excluded"], []),
+    ("URS-74", "Devices", "The organisation profile records the organisation's EU MDR economic "
+     "operator roles (manufacturer, authorised representative, importer, distributor); each "
+     "device records which of them apply, shown on the device page and in technical file "
+     "section 1. Only QA held organisation-wide changes the profile, and changes are audited.",
+     "M",
+     ["test_organisation.OrganisationProfileTests."
+      "test_organisation_wide_qa_sets_up_the_profile_and_it_is_audited",
+      "test_organisation.OrganisationProfileTests.test_device_level_qa_cannot_change_the_profile",
+      "test_organisation.OrganisationProfileTests."
+      "test_a_role_still_set_on_a_device_cannot_be_removed",
+      "test_organisation.DeviceOperatorRoleTests.test_device_offers_only_the_organisations_roles",
+      "test_organisation.DeviceOperatorRoleTests.test_a_profile_without_roles_offers_all_four",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_manufacturer_role_fills_in_the_manufacturer_from_the_profile",
+      "test_organisation.DeviceOperatorRoleTests.test_an_entered_manufacturer_is_kept",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_role_shows_on_the_device_page_and_in_the_technical_file",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_completeness_check_warns_until_the_role_is_set"], []),
     ("URS-71", "Technical file", "The technical file contains the device's data and effective "
      "documents in MDR Annex II/III order, and the completeness check reports gaps correctly.",
      "H",
@@ -267,10 +309,25 @@ REQUIREMENTS = [
       "test_release.ReleaseBannerTests.test_oq_report_carries_the_notice_and_commit",
       "test_ops.HealthTests.test_healthz_ok_without_login_and_reveals_only_status"],
      ["IQ-01"]),
+    ("URS-83", "Usability", "The main user journeys work in a real web browser (Chromium) with "
+     "no script errors: signing in from the landing page, every main page, help links and "
+     "field help, the device switcher, raising and signing a record, the account-request "
+     "captcha, and the invitation page.", "M",
+     ["test_ui.SignInAndNavigationTests.test_visitor_sees_the_landing_page_and_signs_in",
+      "test_ui.SignInAndNavigationTests.test_every_main_page_opens_without_browser_errors",
+      "test_ui.SignInAndNavigationTests.test_help_link_and_field_help_popover",
+      "test_ui.DeviceSwitcherTests.test_switcher_limits_the_record_list_to_one_device",
+      "test_ui.RecordWorkflowTests.test_problem_report_from_creation_to_a_signed_rejection",
+      "test_ui.RegistrationTests.test_captcha_is_solved_in_the_browser_then_providers_are_offered",
+      "test_ui.RegistrationTests.test_invitation_link_offers_only_single_sign_on"],
+     ["PQ-08"]),
     ("URS-90", "Operation", "Data and files can be backed up and restored without loss, and the "
      "audit chain verifies after restore.", "H", [], ["IQ-08"]),
     ("URS-91", "Operation", "The service is reachable only over HTTPS, with secure cookies and "
-     "session time-out.", "H", [], ["IQ-03"]),
+     "session time-out. On production, Django admin answers only through the SSH tunnel, not "
+     "on the public site.", "H",
+     ["test_admin_access.AdminAccessTests.test_admin_answers_everywhere_when_no_hosts_are_set",
+      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host"], ["IQ-03"]),
     ("URS-92", "Operation", "Scheduled jobs (backup, PMS generation, reminders, audit "
      "verification) run daily and alert on failure.", "M",
      ["test_ops.SchedulerTests.test_next_run",

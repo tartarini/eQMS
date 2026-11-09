@@ -20,7 +20,9 @@
         <tr><th>Classification rationale</th><td style="white-space:pre-wrap">{{ device.classification_rule|default:"—" }}</td></tr>
         <tr><th>Software items</th><td>{% for i in device.software_item_list %}{{ i }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">None listed. QA can add them under Edit.</span>{% endfor %}</td></tr>
         <tr><th>Basic UDI-DI</th><td>{{ device.basic_udi_di|default:"—" }}</td></tr>
+        <tr><th>Our role</th><td class="operator-roles">{% for label in device.operator_role_labels %}<span class="badge">{{ label }}</span> {% empty %}<span class="muted">Not set.{% if is_qa %} Set it under Edit.{% endif %}</span>{% endfor %}{% if organisation %} <span class="small muted">as <a href="{% url 'qms:organisation' %}">{{ organisation.name }}</a></span>{% endif %}</td></tr>
         <tr><th>Manufacturer</th><td style="white-space:pre-wrap">{{ device.manufacturer|default:"—" }}</td></tr>
+        <tr><th>UK Responsible Person / authorised rep.</th><td style="white-space:pre-wrap">{{ device.uk_responsible_person|default:"—" }}</td></tr>
         <tr><th>Owner</th><td>{{ device.owner|default:"—" }}</td></tr>
       </table>
     </div>

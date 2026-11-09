@@ -1,5 +1,5 @@
 {% extends "qms/base.html" %}
-{% load socialaccount qms_help %}
+{% load socialaccount %}
 {% block title %}Invitation – SAMD_QMS{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:560px;margin:30px auto">
@@ -29,27 +29,25 @@
         <form method="post">{% csrf_token %}<button class="btn">Accept as {{ user.get_full_name|default:user.username }}</button></form>
       {% endif %}
     {% else %}
-      {% get_providers as providers %}
       {% if has_account %}
         <p>There's already an account for {{ invitation.email }}. Sign in to accept.</p>
         <a class="btn" href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in</a>
+      {% elif providers %}
+        <h2>Register with single sign-on</h2>
+        <p>Sign in with an account that uses <strong>{{ invitation.email }}</strong>. Your SAMD_QMS account is created with that address and you join the teams above.</p>
       {% else %}
-        <h2>Create your account</h2>
-        <form method="post">{% csrf_token %}
-          <p><span class="label-row"><label for="invite-email">Email</label>{% help_for "signup" "email" %}</span><input type="text" id="invite-email" value="{{ invitation.email }}" disabled></p>
-          {{ form.as_p }}
-          <button class="btn">Create account and accept</button>
-        </form>
-        <p class="small muted" style="margin-top:12px">Already have an account with a different email address? Ask to be invited at that address instead.</p>
+        <h2>Single sign-on isn't available</h2>
+        <p>You register from an invitation with single sign-on, and none is switched on here. Ask {{ invitation.invited_by.get_full_name|default:invitation.invited_by.username }} or your administrator to set it up, then open this link again.</p>
       {% endif %}
       {% if providers %}
-        <p class="divider">or sign in with single sign-on, using {{ invitation.email }}</p>
+        {% if has_account %}<p class="divider">or continue with single sign-on, using {{ invitation.email }}</p>{% endif %}
         <div class="sso">
-          {% for provider in providers %}{% if provider.id != "orcid" %}
+          {% for provider in providers %}
           <form method="post" action="{% provider_login_url provider process='login' next=request.path %}">{% csrf_token %}
-            <button class="btn secondary" type="submit">Continue with {{ provider.name }}</button></form>
-          {% endif %}{% endfor %}
+            <button class="btn{% if has_account %} secondary{% endif %}" type="submit">Continue with {{ provider.name }}</button></form>
+          {% endfor %}
         </div>
+        {% if not has_account %}<p class="small muted" style="margin-top:12px">Your provider must confirm {{ invitation.email }}. To use another address, ask to be invited at that one.</p>{% endif %}
       {% endif %}
     {% endif %}
   {% endif %}

@@ -10,23 +10,29 @@ from django.views.decorators.http import require_POST
 
 from . import services, techfile
 from . import workflow as wf
-from .access import (SESSION_DEVICE_KEY, accessible_devices, form_page, qms_member,
-                     require_access, run, team_member)
-from .forms import DeviceForm, SignForm, TeamMemberForm, TeamRolesForm
+from .access import (SESSION_DEVICE_KEY, accessible_devices, current_device, form_page,
+                     qms_member, require_access, run, team_member)
+from .forms import DeviceForm, OrganisationForm, SignForm, TeamMemberForm, TeamRolesForm
 from .invitations import device_invitations
-from .roles import can_manage_team
-from .models import AuditEvent, Device, DeviceMembership, Signature, TechnicalFileBuild
+from .roles import can_manage_team, device_roles, org_roles
+from .models import (AuditEvent, Device, DeviceMembership, Organisation, Signature,
+                     TechnicalFileBuild)
 
 
 @qms_member
 @require_POST
 def set_device(request):
     """Header switcher: choose a device to focus on, or all devices."""
-    device_id = request.POST.get("device")
-    if device_id and accessible_devices(request.user).filter(pk=device_id, active=True).exists():
-        request.session[SESSION_DEVICE_KEY] = int(device_id)
+    device_id = request.POST.get("device", "")
+    device = (accessible_devices(request.user).filter(pk=device_id, active=True).first()
+              if device_id.isdigit() else None)
+    if device:
+        request.session[SESSION_DEVICE_KEY] = device.pk
+        messages.info(request, f"Now working in the {device.name} QMS. Switch from Devices "
+                               "in the top bar.")
     else:
         request.session.pop(SESSION_DEVICE_KEY, None)
+        messages.info(request, "Now working across all your devices.")
     nxt = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(nxt, {request.get_host()}):
         nxt = reverse("qms:dashboard")
@@ -35,15 +41,29 @@ def set_device(request):
 
 @team_member
 def device_list(request):
-    devices = accessible_devices(request.user)
+    """Your devices and your roles on each; opening one loads its QMS. Shown after sign-in,
+    and from Devices in the top bar to switch to another device's QMS."""
+    user = request.user
+    labels = dict(wf.RECORD_TYPES)
+    org = org_roles(user)
+    current = current_device(request)
     rows = []
-    for d in devices:
-        labels = dict(wf.RECORD_TYPES)
+    for d in accessible_devices(user).order_by("-active", "name"):
         open_counts = Counter(labels[t] for t in d.records.exclude(
             status__in=wf.TERMINAL_STATES).values_list("record_type", flat=True))
-        rows.append((d, sorted(open_counts.items()),
-                     d.technical_files.filter(status="approved").first()))
-    return render(request, "qms/device_list.html", {"rows": rows})
+        held = device_roles(user, d)
+        rows.append({
+            "device": d,
+            "roles": [(r, r in org) for r in wf.ROLES if r in held],
+            # Device admin alone manages the team but doesn't work in the QMS.
+            "can_open": d.active and bool(held & set(wf.ANY_ROLE)),
+            "current": current is not None and current.pk == d.pk,
+            "open_counts": sorted(open_counts.items()),
+            "approved": d.technical_files.filter(status="approved").first(),
+        })
+    return render(request, "qms/device_list.html", {
+        "rows": rows, "current": current, "organisation": Organisation.current(),
+        "can_open_all": sum(r["can_open"] for r in rows) > 1})
 
 
 @qms_member
@@ -114,6 +134,7 @@ def device_detail(request, code):
         "can_manage_team": can_manage_team(request.user, device),
         "invitations": device_invitations(device) if can_manage_team(request.user, device)
         else [],
+        "organisation": Organisation.current(),
     })
 
 
@@ -265,3 +286,40 @@ def techfile_approve(request, pk):
         form.cleaned_data.get("password", ""), form.cleaned_data.get("comment", ""),
         success=f"{build.label} approved and signed.")
     return redirect("qms:device_detail", code=build.device.code)
+
+
+# --- the organisation and its economic operator roles -----------------------------------
+
+def _can_edit_organisation(user) -> bool:
+    """QA held organisation-wide (superusers hold every role): the profile applies to all
+    devices, so a device-level role isn't enough."""
+    return wf.QA in org_roles(user)
+
+
+@team_member
+def organisation_detail(request):
+    org = Organisation.current()
+    devices = accessible_devices(request.user).filter(active=True).order_by("name")
+    return render(request, "qms/organisation.html", {
+        "org": org, "devices": devices, "can_edit": _can_edit_organisation(request.user),
+        "events": AuditEvent.objects.filter(object_type="Organisation").order_by("-id")[:20]
+        if org else [],
+    })
+
+
+@team_member
+def organisation_edit(request):
+    if not _can_edit_organisation(request.user):
+        messages.error(request, "Only QA held organisation-wide can change the organisation "
+                                "profile. Ask an administrator.")
+        return redirect("qms:organisation")
+    org = Organisation.current()
+    form = OrganisationForm(request.POST or None, instance=org)
+    if request.method == "POST" and form.is_valid():
+        saved = form.save(commit=False)
+        saved.save(_actor=request.user)
+        messages.success(request, "Organisation profile saved.")
+        return redirect("qms:organisation")
+    return form_page(request, form, "Organisation profile", reverse("qms:organisation"),
+                     intro="The legal entity running this QMS and its roles under the EU MDR. "
+                           "Each device then records which of these roles apply to it.")

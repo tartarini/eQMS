@@ -1,2 +1,4 @@
 # Tools for developing and testing SAMD_QMS (not installed in the production image).
 coverage>=7.6,<8
+# Interface tests (qms/test_ui.py); also run: python -m playwright install chromium
+playwright>=1.49,<2

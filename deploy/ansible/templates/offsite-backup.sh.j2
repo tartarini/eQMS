@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Copy the server's backups off-site (finding F5), nightly from cron and on demand
+# (scripts/remote.sh offsite-backup). Method: {{ backup_offsite_method }}.
+#   rsync  - to another VM or server over SSH ({{ backup_offsite_target or 'unset' }})
+#   gdrive - to a Google shared drive with rclone, encrypted before it leaves this server
+# New backup folders are copied; nothing already off-site is changed. Copies older than
+# {{ backup_offsite_keep_days }} days are then removed off-site. A failure emails QMS_ALERT_EMAILS.
+set -euo pipefail
+
+SRC="{{ backup_host_dir }}"
+KEEP_DAYS="{{ backup_offsite_keep_days }}"
+LOG="{{ qms_dir }}/OFFSITE.log"
+COMPOSE="docker compose --project-directory {{ qms_dir }} -f {{ qms_dir }}/compose.prod.yaml"
+
+exec 9>"/tmp/samd_qms_offsite.lock"
+flock -n 9 || { echo "another off-site copy is running"; exit 0; }
+
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+
+copy() {
+{% if backup_offsite_method == 'rsync' %}
+  local target="{{ backup_offsite_target }}"
+  local host="${target%%:*}" path="${target#*:}"
+  rsync -a --exclude '*.partial' -e "ssh -o BatchMode=yes" "$SRC/" "$target"
+  # shellcheck disable=SC2029  # path and days are expanded here on purpose
+  ssh -o BatchMode=yes "$host" \
+    "find '$path' -mindepth 1 -maxdepth 1 -type d -mtime +$KEEP_DAYS -exec rm -rf {} +"
+{% elif backup_offsite_method == 'gdrive' %}
+  rclone copy "$SRC" offsite: --exclude '*.partial/**' --log-level ERROR
+  rclone delete offsite: --min-age "${KEEP_DAYS}d" --log-level ERROR
+  rclone rmdirs offsite: --leave-root --log-level ERROR
+{% else %}
+  echo "no off-site method configured (backup_offsite_method)"
+  return 1
+{% endif %}
+}
+
+if copy >"$out" 2>&1; then
+  echo "$(date -u +%FT%TZ) ok {{ backup_offsite_method }} $(find "$SRC" -mindepth 1 -maxdepth 1 -type d ! -name '*.partial' | wc -l) local backups" >> "$LOG"
+else
+  echo "$(date -u +%FT%TZ) FAILED {{ backup_offsite_method }}" >> "$LOG"
+  logger -t samd_qms "off-site backup failed"
+  $COMPOSE exec -T app python manage.py send_alert \
+    "Off-site backup failed on {{ inventory_hostname }}" "$(tail -n 40 "$out")" || true
+  cat "$out" >&2
+  exit 1
+fi

@@ -17,3 +17,7 @@ htmlcov/
 coverage.json
 coverage.xml
 badges/
+
+# local working copies (scripts/local.sh, scripts/remote.sh)
+.env.local
+backups/

@@ -5,8 +5,8 @@ ANSIBLE := cd deploy/ansible && ansible-playbook
 ENV ?= staging
 VERSION ?=
 
-.PHONY: help dev dev-down dev-reset demo shell manage test oq jobs logs coverage \
-        check provision deploy restore-test
+.PHONY: help dev dev-down dev-reset demo shell manage test oq ui jobs logs coverage \
+        check provision deploy restore-test remote local-setup local
 
 help:  ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -39,8 +39,11 @@ coverage:  ## Test coverage on this machine (SQLite); needs: pip install -r requ
 	coverage report
 	coverage html && echo "Report: htmlcov/index.html"
 
-oq:  ## Write OQ evidence to ./oq_evidence: make oq NAME="Your Name"
-	$(COMPOSE) exec app python manage.py run_oq --executed-by "$(NAME)" --release dev --output oq_evidence
+oq:  ## OQ evidence in ./oq_evidence, on the dev PostgreSQL, browser tests included: make oq NAME="Your Name"
+	DATABASE_URL=postgres://qms:qms@localhost:5432/qms scripts/local.sh oq "$(NAME)"
+
+ui:  ## Browser interface tests only (Playwright); make ui HEADED=1 to watch
+	scripts/local.sh ui $(if $(HEADED),--headed,)
 
 jobs:  ## Also run the scheduler (daily jobs) in development
 	$(COMPOSE) --profile jobs up -d scheduler
@@ -49,7 +52,7 @@ logs:  ## Follow logs of all dev services
 	$(COMPOSE) logs -f
 
 check:  ## Lint shell scripts, Compose files and Ansible playbooks
-	shellcheck deploy/scripts/*.sh
+	shellcheck deploy/scripts/*.sh scripts/*.sh
 	$(COMPOSE) -f compose.yaml config --quiet
 	cd deploy/ansible && for p in provision.yml deploy.yml restore-test.yml; do \
 	  ansible-playbook --syntax-check $$p; done
@@ -64,3 +67,13 @@ deploy:  ## Deploy a release: make deploy ENV=production VERSION=1.0.0
 
 restore-test:  ## Restore the latest backup into a scratch database and verify it
 	$(ANSIBLE) restore-test.yml --limit $(ENV)
+
+remote:  ## Routine work on a server: make remote ENV=production CMD="status" (see scripts/remote.sh)
+	scripts/remote.sh -e $(ENV) $(CMD)
+
+# --- local, without Docker -----------------------------------------------------------
+local-setup:  ## Virtualenv + SQLite + demo data, no Docker (scripts/local.sh)
+	scripts/local.sh setup
+
+local:  ## Run the app from .venv on http://localhost:8000
+	scripts/local.sh run

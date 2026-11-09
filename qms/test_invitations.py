@@ -15,6 +15,7 @@ from . import workflow as wf
 from .models import AuditEvent, Device, DeviceMembership, Invitation
 from .roles import device_roles
 from .services import TransitionError
+from .test_modules import PROVIDERS
 from .test_roles import PW, member, person
 
 
@@ -92,24 +93,80 @@ class InvitationTests(TestCase):
 
     # --- accepting ------------------------------------------------------------------------
 
-    def test_new_person_creates_an_account_and_joins_each_team(self):
-        inv, _ = self.invite()
+    @override_settings(SOCIALACCOUNT_PROVIDERS=PROVIDERS)
+    def test_new_person_registers_only_with_single_sign_on(self):
+        self.invite()
         url = self.link()
         page = self.client.get(url)
         self.assertContains(page, "You're invited to SAMD_QMS")
         self.assertContains(page, "Device A (DA)")
-        self.assertContains(page, 'class="help-icon" popovertarget=')
+        self.assertContains(page, "Register with single sign-on")
+        for name in ("Google", "Microsoft", "GitHub", "LinkedIn"):
+            self.assertContains(page, f"Continue with {name}")
+        self.assertNotContains(page, "Continue with ORCID")  # gives no email to match
+        self.assertNotContains(page, 'type="password"')
+        self.assertNotContains(page, 'name="username"')
+        # a local account can't be created by posting to the link
         resp = self.client.post(url, {"username": "newbie", "first_name": "New",
                                       "last_name": "Person", "password1": "c0rrect-Horse-77",
                                       "password2": "c0rrect-Horse-77"})
-        self.assertRedirects(resp, reverse("qms:device_detail", args=["DA"]))
-        user = User.objects.get(username="newbie")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(User.objects.filter(email="new.person@example.org").exists())
+        self.assertEqual(Invitation.objects.get().status, "pending")
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS={})
+    def test_without_single_sign_on_nobody_can_register_from_an_invitation(self):
+        self.invite()
+        page = self.client.get(self.link())
+        self.assertContains(page, "Single sign-on isn't available")
+        self.assertNotContains(page, "Continue with")
+        self.assertNotContains(page, 'type="password"')
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=PROVIDERS, QMS_SSO_ALLOWED_DOMAINS=[])
+    def test_new_person_registers_with_single_sign_on_and_joins_each_team(self):
+        from allauth.account.models import EmailAddress
+        from allauth.core import context
+        from allauth.socialaccount.helpers import complete_social_login
+        from allauth.socialaccount.models import SocialAccount, SocialLogin
+        from django.contrib.auth.models import AnonymousUser
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.contrib.sessions.backends.db import SessionStore
+        from django.test import RequestFactory
+        inv, _ = self.invite()
+        url = self.link()
+        self.client.get(url)                                  # remembers the invitation
+
+        def sso(email, uid):
+            request = RequestFactory().get("/accounts/google/login/callback/")
+            request.session = SessionStore(self.client.session.session_key)
+            request.user = AnonymousUser()
+            request._messages = FallbackStorage(request)
+            from allauth.socialaccount.adapter import get_adapter
+            sociallogin = SocialLogin(
+                provider=get_adapter().get_provider(request, "google"),
+                user=User(first_name="New", last_name="Person", email=email),
+                account=SocialAccount(provider="google", uid=uid),
+                email_addresses=[EmailAddress(email=email, verified=True, primary=True)])
+            sociallogin.state = {"process": "login", "next": url}
+            with context.request_context(request):
+                resp = complete_social_login(request, sociallogin)
+            request.session.save()
+            return resp
+
+        # another address is refused, even with the link open in this browser
+        sso("someone.else@example.org", "g-2")
+        self.assertFalse(User.objects.filter(email="someone.else@example.org").exists())
+        # the invited address registers, without a usable password
+        self.assertEqual(sso("new.person@example.org", "g-1").status_code, 302)
+        user = User.objects.get(socialaccount__uid="g-1")
         self.assertEqual(user.email, "new.person@example.org")
+        self.assertFalse(user.has_usable_password())
+        self.client.force_login(user)
+        self.assertContains(self.client.get(url), "Accept as New Person")
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse("qms:device_detail", args=["DA"]))
         self.assertEqual(device_roles(user, self.a), {wf.QA})
         self.assertEqual(device_roles(user, self.b), {wf.ENGINEER})
-        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
-        from allauth.account.models import EmailAddress
-        self.assertTrue(EmailAddress.objects.get(user=user).verified)
         inv.refresh_from_db()
         self.assertEqual((inv.status, inv.accepted_by), ("accepted", user))
         joined = AuditEvent.objects.filter(object_type="Device Membership", actor=user)
@@ -118,15 +175,6 @@ class InvitationTests(TestCase):
         # the link works once
         self.client.logout()
         self.assertContains(self.client.get(url), "already been used", status_code=410)
-
-    def test_weak_password_and_taken_username_are_refused(self):
-        self.invite()
-        url = self.link()
-        resp = self.client.post(url, {"username": "admin", "first_name": "N", "last_name": "P",
-                                      "password1": "12345678", "password2": "12345678"})
-        self.assertContains(resp, "That username is taken")
-        self.assertContains(resp, "too common")
-        self.assertFalse(User.objects.filter(email="new.person@example.org").exists())
 
     def test_existing_account_signs_in_and_roles_are_added_not_replaced(self):
         existing = person("existing")
@@ -161,7 +209,7 @@ class InvitationTests(TestCase):
         new_url = self.link()
         self.assertNotEqual(old_url, new_url)
         self.assertEqual(self.client.get(old_url).status_code, 404)   # old link replaced
-        self.assertContains(self.client.get(new_url), "Create your account")
+        self.assertContains(self.client.get(new_url), "You're invited to SAMD_QMS")
         self.assertIn("resent", AuditEvent.for_object(inv).last().comment)
 
     def test_revoked_invitation_cannot_be_used(self):

@@ -17,7 +17,7 @@ QA and the teams' Device admins are then emailed. You get an email when your req
 Most people join through an invitation email from a Device admin or QA. It lists the devices and your roles on each, and expires after the date shown.
 
 1. Open the link in the email.
-2. Create your account: choose a username, enter your name and choose a password. Or, if single sign-on is switched on, choose **Continue with…** and sign in with an account that uses the invited email address.
+2. Choose **Continue with…** and sign in with a Google, Microsoft, LinkedIn or GitHub account that uses the invited email address. Your SAMD_QMS account is created from it; there is no separate username or password to choose. (ORCID can't be used here because it doesn't share your email address; connect it later from **Connected accounts**.)
 3. If you already have a SAMD_QMS account with that email address, sign in instead and click **Accept**.
 
 You're then on each device's team with the roles listed. The link works once. If it has expired or says it isn't valid, ask the person who invited you to send it again: each resend replaces the previous link.
@@ -66,6 +66,8 @@ If you sign in with single sign-on you have no SAMD_QMS password, so you need a 
 
 Local-account users can set a PIN too. Once set, the PIN replaces your password whenever you sign.
 
+On the live system, only people whose identity is confirmed by the organisation's sign-in (for example Microsoft or Google with your work email address) can sign. If a signature is refused for that reason, open **Connected accounts** under your name, connect your organisation account, and sign again.
+
 ## Electronic signatures
 
 When a step shows a **signature** badge, you confirm it by re-entering your password or signing PIN. Your signature is legally your approval.
@@ -76,7 +78,9 @@ Some approvals must be **independent**: you can't approve something you wrote. T
 
 ## Finding your way
 
-The top bar has **Dashboard**, **Records**, **Documents**, **Training**, **Risk**, **Suppliers**, **Devices** and **Audit**. Use the device menu at the far left to focus every page on one device, or choose **All devices**. QA and administrators also see **Admin**, which manages users and roles.
+After you sign in you see **Your devices**: the devices whose team you're on and your roles on each. Click **Open** beside one to work in that device's QMS. To switch later, click **Devices** in the top bar and open another; see [Choose a device](/help/devices/#choose-a-device).
+
+The top bar has **Dashboard**, **Records**, **Documents**, **Training**, **Risk**, **Suppliers**, **Devices** and **Audit**. The device menu at the far left also switches device from any page, or choose **All devices**. QA and administrators also see **Admin**, which manages users and roles.
 
 Help is always one click away:
 

@@ -66,6 +66,11 @@ def sign(obj, user, secret: str, meaning: str, *, from_status="", to_status="",
 
 
 def _check_secret(errors, user, secret):
+    from .sso import signer_identity_errors
+    identity = signer_identity_errors(user)
+    if identity:
+        errors.extend(identity)
+        return
     if not verify_signing_credential(user, secret):
         errors.append("Signature failed: password or signing PIN not recognised.")
 

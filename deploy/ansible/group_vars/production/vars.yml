@@ -1,0 +1,15 @@
+# Production-only settings: these override group_vars/qms/vars.yml for hosts in [production].
+
+# Who may sign (finding F6): accounts connected to an institutional provider, with a verified
+# email address at the organisation's domain(s). deploy.yml refuses production without them.
+# Staging and development are unrestricted so testers can sign with demo accounts.
+qms_signer_sso_providers: microsoft,google
+qms_signer_email_domains: "{{ qms_sso_allowed_domains }}"
+
+# Off-site backups (finding F5) are required on production: choose one.
+#   Another VM or server over SSH:
+# backup_offsite_method: rsync
+# backup_offsite_target: backup@backup.example.org:/srv/samd_qms/
+#   A Google shared drive (encrypted; secrets in the vault):
+# backup_offsite_method: gdrive
+# backup_gdrive_shared_drive_id: 0ABcDeFgHiJkLmNoPQ

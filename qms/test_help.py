@@ -21,13 +21,12 @@ def app_forms():
     out = [(f"record:{t}", F.record_form_class(t)()) for t, _ in wf.RECORD_TYPES]
     for name in ["SignForm", "LinkForm", "AttachmentForm", "DocumentForm", "VersionForm",
                  "TrainingRequirementForm", "HazardForm", "RiskControlForm", "SupplierForm",
-                 "SupplierEvaluationForm", "SoupItemForm", "DeviceForm"]:
+                 "SupplierEvaluationForm", "SoupItemForm", "DeviceForm", "OrganisationForm"]:
         out.append((name, getattr(F, name)()))
     out.append(("TeamMemberForm", F.TeamMemberForm(device=None)))
     out.append(("TeamRolesForm", F.TeamRolesForm()))
     from .models import Device
     out.append(("InvitationForm", F.InvitationForm(devices=[Device(pk=1, name="X", code="X")])))
-    out.append(("InvitationSignupForm", F.InvitationSignupForm(email="a@example.org")))
     out.append(("SigningPinForm", F.SigningPinForm(user=User(password="x"))))
     out.append(("AuthenticationForm", AuthenticationForm()))
     return out
