@@ -33,6 +33,27 @@
           vault.example.yml and encrypt it with ansible-vault.
       no_log: true
 
+    - name: Refuse production without off-site backups and the signer rule (F5, F6)
+      ansible.builtin.assert:
+        that:
+          - backup_offsite_method in ['rsync', 'gdrive']
+          - qms_signer_sso_providers | length > 0
+          - qms_signer_email_domains | length > 0
+          - >-
+            qms_signer_sso_providers.split(',') | map('trim')
+            | reject('in', sso_enabled_providers) | list | length == 0
+        fail_msg: >-
+          Production needs off-site backups (backup_offsite_method: rsync or gdrive) and the
+          signer rule (qms_signer_sso_providers, qms_signer_email_domains) with a client id set
+          for each of those providers. See group_vars/production/vars.yml.
+      vars:
+        sso_enabled_csv: >-
+          {% for p in ['microsoft', 'google', 'github', 'orcid', 'linkedin'] -%}
+          {% if lookup('vars', 'sso_' ~ p ~ '_client_id') %}{{ p }},{% endif %}
+          {%- endfor %}
+        sso_enabled_providers: "{{ sso_enabled_csv | trim | split(',') | reject('equalto', '') | list }}"
+      when: "'production' in group_names"
+
     - name: Refuse an unpinned release
       ansible.builtin.assert:
         that: qms_version not in ['latest', 'main', '']

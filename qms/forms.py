@@ -370,47 +370,6 @@ class InvitationForm(forms.Form):
         return data
 
 
-class InvitationSignupForm(forms.Form):
-    """Create an account from an invitation. The email address comes from the invitation."""
-    username = forms.CharField(max_length=150, help_text="Letters, digits and @ . + - _ only.")
-    first_name = forms.CharField(max_length=150)
-    last_name = forms.CharField(max_length=150)
-    password1 = forms.CharField(label="Password", widget=forms.PasswordInput(
-        attrs={"autocomplete": "new-password"}))
-    password2 = forms.CharField(label="Repeat password", widget=forms.PasswordInput(
-        attrs={"autocomplete": "new-password"}))
-
-    def __init__(self, *args, email="", **kwargs):
-        self.email = email
-        super().__init__(*args, **kwargs)
-
-    def clean_username(self):
-        from django.contrib.auth import get_user_model
-        from django.contrib.auth.validators import UnicodeUsernameValidator
-        username = self.cleaned_data["username"].strip()
-        UnicodeUsernameValidator()(username)
-        if get_user_model().objects.filter(username__iexact=username).exists():
-            raise forms.ValidationError("That username is taken. Choose another.")
-        return username
-
-    def clean(self):
-        from django.contrib.auth import get_user_model
-        from django.contrib.auth.password_validation import validate_password
-        data = super().clean()
-        p1, p2 = data.get("password1"), data.get("password2")
-        if p1 and p2 and p1 != p2:
-            self.add_error("password2", "The passwords do not match.")
-        elif p1:
-            user = get_user_model()(username=data.get("username", ""), email=self.email,
-                                    first_name=data.get("first_name", ""),
-                                    last_name=data.get("last_name", ""))
-            try:
-                validate_password(p1, user)
-            except forms.ValidationError as exc:
-                self.add_error("password1", exc)
-        return data
-
-
 # --- account requests -------------------------------------------------------------
 
 ACCESS_ROLE_CHOICES = [("", "Choose…")] + [(r, r) for r in wf.ANY_ROLE] + [

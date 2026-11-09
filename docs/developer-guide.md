@@ -314,6 +314,13 @@ Callers must verify the credential first with `verify_signing_credential(user, s
   that only within `QMS_PIN_REAUTH_MINUTES` of a login (the login time is stored in the session
   by the `user_logged_in` receiver). Users with a password must enter it to set a PIN.
 
+Every signing path goes through `services._check_secret`, which first applies
+`sso.signer_identity_errors(user)`. When `QMS_SIGNER_SSO_PROVIDERS` is set (production only, by
+Ansible), the signer's account must have a `SocialAccount` with one of those providers and, when
+`QMS_SIGNER_EMAIL_DOMAINS` is set, a verified allauth `EmailAddress` at one of those domains
+(subdomains count). It applies to superusers too. Empty settings (development, staging, tests)
+mean no restriction. URS-24, `qms/test_signer_identity.py`.
+
 Signature meanings in use: *Approval*, *Reportability decision*, *Regulatory submission*,
 *Review*, *Document approval*, *Periodic review: no change needed*, *Document withdrawal*,
 *Read and understood*, *Risk acceptance*, *Hazard retirement*, *Supplier evaluation*.
@@ -410,6 +417,8 @@ the media directory publicly.
 | `QMS_RISK_ACCEPTABLE_MAX` | `4` | Score ≤ this is acceptable |
 | `QMS_RISK_UNACCEPTABLE_MIN` | `10` | Score ≥ this is unacceptable |
 | `QMS_ATTACHMENT_MAX_MB` | `25` | Upload size limit |
+| `QMS_SIGNER_SSO_PROVIDERS` | empty | Production: signers must be connected to one of these providers (env, comma-separated) |
+| `QMS_SIGNER_EMAIL_DOMAINS` | empty | Production: and have a verified email at one of these domains |
 | `QMS_ATTACHMENT_EXTENSIONS` | pdf, docx, xlsx, csv, txt, md, png, jpg, jpeg, json, zip, log, html | Upload allowlist |
 | `QMS_NOTIFICATIONS_ENABLED` | `True` | Master switch for email |
 | `QMS_REMINDER_LOOKAHEAD_DAYS` | `7` | "Due soon" window in the daily digest |
@@ -617,10 +626,12 @@ the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
   (`notifications.invitation`) carries `https://HOST/invite/<token>/`.
 - `invitation_accept` (`/invite/<token>/`) needs no login: the link is the credential. Signed in,
   the account must have the invited address (`user.email` or a verified allauth `EmailAddress`).
-  Signed out, the person creates a local account (`InvitationSignupForm`, Django's password
-  validators; the address is recorded as verified) or uses single sign-on: opening the link stores
-  the token in the session, and `sso.SocialAccountAdapter.is_open_for_signup` allows a new account
-  for that verified address.
+  Signed out, a person without an account registers **only with single sign-on** (no local
+  username or password): opening the link stores the token in the session, and
+  `sso.SocialAccountAdapter.is_open_for_signup` allows a new account for that provider-verified
+  address. `invitations.signup_providers` lists the configured providers that verify email (all
+  but ORCID). With none configured the page says so and offers no way to register; an
+  administrator can still create an account in `/admin/` and the person signs in to accept.
 - `accept()` re-checks every grant (`valid_grants`: device active, inviter still manages it),
   adds roles to existing memberships (never removes any), marks the invitation accepted under
   `select_for_update` so it can't be used twice, and runs `sync_training()`.

@@ -31,7 +31,7 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 | --- | --- | --- |
 | Device teams and roles | People are on one or more device teams with **roles per device** (Engineer, QA, Clinical Safety Officer, Device admin), so someone can be QA on one device and an Engineer on another. They only see and act on their devices; an All-device access role covers heads of quality and auditors. Enforced in pages, forms, business rules, emails and training | ISO 13485 §4.2.5, §6.2 |
 | Landing page and account requests | A public home page explains the platform. Anyone can **request an account**: they pass a captcha (self-hosted proof of work, or Cloudflare Turnstile), register with Google, Microsoft, LinkedIn or ORCID single sign-on, then describe who they are and what they need. Emails not verified by the provider (ORCID) are confirmed by link. Device admins and QA approve onto a team they manage; QA can decline with a reason. A request alone gives no access | ISO 13485 §6.2 |
-| Invitations | Device admins and QA invite people by email, with roles on each device they manage. The link is single use, expires (14 days by default), works only for the invited address, and can be resent or revoked. New people create an account or use single sign-on | ISO 13485 §6.2 |
+| Invitations | Device admins and QA invite people by email, with roles on each device they manage. The link is single use, expires (14 days by default), works only for the invited address, and can be resent or revoked. New people register with single sign-on only (no local password) | ISO 13485 §6.2 |
 | Validation support | User requirements traced to automated tests; `run_oq` writes signed-off-ready OQ evidence for the validation plan | ISO 13485 §4.1.6 |
 | Devices | Manage any number of medical devices. Each has its own regulatory particulars, software items, quality records, risk file, PMS schedule, SOUP list and technical file; QMS-wide procedures and training are shared. A header switcher focuses every page on one device | ISO 13485 §4.2.3 |
 | Technical file | One click builds a device's technical documentation (MDR Annex II/III structure) from live QMS data: Word and HTML documents, CSV registers, every effective document file, and a checksummed manifest, in a frozen ZIP. A completeness check lists gaps; QA approves a build with a signature | EU MDR Annex II, III; UK MDR |
@@ -64,15 +64,16 @@ make demo       # demo devices and users
 make test
 ```
 
-Without Docker (SQLite):
+Without Docker (virtualenv and SQLite, e.g. from PyCharm):
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py load_demo_data
-python manage.py runserver
+scripts/local.sh setup   # .venv, requirements, migrate, demo data
+scripts/local.sh run     # http://localhost:8000
 ```
+
+To work on a staging or production server: `scripts/remote.sh status`, `logs`, `backup`,
+`createsuperuser` and more. Both scripts are described in
+[docs/deployment.md](docs/deployment.md).
 
 Sign in as `engineer`, `qa`, `qa2` or `cso` (password `demo-pass-123`). Roles are per device:
 `engineer` is an Engineer on SkinCheck but Engineer, QA and Device admin on RespiTrack; `qa` is the
@@ -84,7 +85,7 @@ your head of quality an account with the QA group and `All-device access` in Adm
 devices (becoming QA and Device admin on each) and **invite** everyone else from each device's
 page, choosing their roles on that device.
 
-Run the tests: `python manage.py test qms` (156 tests). For validation evidence:
+Run the tests: `python manage.py test qms` (163 tests). For validation evidence:
 `python manage.py run_oq --executed-by "Your Name" --release 1.0.0`.
 
 ## Deployment
@@ -124,7 +125,7 @@ Because these are public identity providers, access is controlled separately:
 
 - Signing in gives no access. A person needs a role on a device team; until then they see
   "Access pending", and QA is emailed. The usual route in is an invitation from a Device admin or
-  QA, which can also create the account through single sign-on for the invited address.
+  QA; a new person registers from it with single sign-on for the invited address (no local password).
 - An SSO login joins an existing account when the provider confirms the email address is
   verified and it matches. So the safest set-up is: an admin creates the account with the
   person's email, and they sign in with SSO.
@@ -134,6 +135,9 @@ Because these are public identity providers, access is controlled separately:
 - ORCID does not share email addresses, so it cannot create or match an account. Sign in another
   way, open **Connected accounts**, and connect your ORCID iD; after that it works for sign-in.
 - Provider login starts with a POST (CSRF-protected), and no provider tokens are stored.
+- On production, only accounts connected to an institutional provider (Microsoft or Google by
+  default) with a verified email at your domain can sign (`QMS_SIGNER_SSO_PROVIDERS`,
+  `QMS_SIGNER_EMAIL_DOMAINS`, set by Ansible). Staging and development are not restricted.
 
 ## Scheduled jobs
 
@@ -152,7 +156,10 @@ python manage.py verify_audit              # exits non-zero if the audit chain w
 - Email: `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, `DJANGO_EMAIL_USER`, `DJANGO_EMAIL_PASSWORD`,
   `DJANGO_FROM_EMAIL`. Without them, emails are printed to the console.
 - Use PostgreSQL rather than SQLite, serve over HTTPS only, and back up the database and media
-  together. The hash chain shows tampering but cannot restore deleted data.
+  together, with a copy off the server (another VM, or an encrypted Google shared drive). The
+  hash chain shows tampering but cannot restore deleted data.
+- The production set-up does not serve `/admin/` publicly; administrators reach it through an
+  SSH tunnel (`scripts/remote.sh tunnel`).
 - Check `QMS_VIGILANCE_DEADLINES` and the risk thresholds (`QMS_RISK_ACCEPTABLE_MAX`,
   `QMS_RISK_UNACCEPTABLE_MIN`) in `config/settings.py` against current MHRA guidance and your
   risk management plan.

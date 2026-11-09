@@ -21,3 +21,12 @@ vault_sso_google_secret: ""
 vault_sso_github_secret: ""
 vault_sso_orcid_secret: ""
 vault_sso_linkedin_secret: ""
+
+# Off-site backups to a Google shared drive (backup_offsite_method: gdrive). Leave empty
+# otherwise. The key is the JSON of a Google Cloud service account that is a Content manager
+# of the shared drive. The two crypt values encrypt the backups before upload (24+ random
+# characters each); store a copy outside this server and vault too, or the off-site copies
+# cannot be decrypted after a disaster.
+vault_backup_gdrive_service_account_json: ""
+vault_backup_crypt_password: ""
+vault_backup_crypt_salt: ""

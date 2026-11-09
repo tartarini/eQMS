@@ -29,6 +29,36 @@ def email_domain_allowed(email: str) -> bool:
     return any(domain == d or domain.endswith("." + d) for d in allowed)
 
 
+PROVIDER_NAMES = {"microsoft": "Microsoft", "google": "Google", "linkedin": "LinkedIn",
+                  "orcid": "ORCID", "github": "GitHub"}
+
+
+def signer_identity_errors(user) -> list:
+    """Who may sign, when QMS_SIGNER_SSO_PROVIDERS is set (production): only people whose
+    account is connected to one of those providers and, when QMS_SIGNER_EMAIL_DOMAINS is set,
+    who have a verified email address at one of those domains. Applies to everyone, including
+    superusers. Empty settings (development, staging) mean no restriction."""
+    providers = [p.strip().lower() for p in settings.QMS_SIGNER_SSO_PROVIDERS if p.strip()]
+    if not providers:
+        return []
+    from allauth.account.models import EmailAddress
+    from allauth.socialaccount.models import SocialAccount
+    names = " or ".join(PROVIDER_NAMES.get(p, p) for p in providers)
+    if not SocialAccount.objects.filter(user=user, provider__in=providers).exists():
+        return [f"You can't sign until your identity is confirmed by {names}: connect your "
+                "organisation account under Connected accounts, then sign again."]
+    domains = [d.strip().lower().lstrip("@") for d in settings.QMS_SIGNER_EMAIL_DOMAINS
+               if d.strip()]
+    if domains:
+        verified = EmailAddress.objects.filter(user=user, verified=True).values_list(
+            "email", flat=True)
+        if not any(e.rsplit("@", 1)[-1].lower() == d or e.lower().endswith("." + d)
+                   for e in verified for d in domains):
+            return ["You can't sign until your account has a verified email address at "
+                    + ", ".join(domains) + f", confirmed by {names}."]
+    return []
+
+
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
         return False  # local accounts are created by an administrator

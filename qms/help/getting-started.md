@@ -17,7 +17,7 @@ QA and the teams' Device admins are then emailed. You get an email when your req
 Most people join through an invitation email from a Device admin or QA. It lists the devices and your roles on each, and expires after the date shown.
 
 1. Open the link in the email.
-2. Create your account: choose a username, enter your name and choose a password. Or, if single sign-on is switched on, choose **Continue with…** and sign in with an account that uses the invited email address.
+2. Choose **Continue with…** and sign in with a Google, Microsoft, LinkedIn or GitHub account that uses the invited email address. Your SAMD_QMS account is created from it; there is no separate username or password to choose. (ORCID can't be used here because it doesn't share your email address; connect it later from **Connected accounts**.)
 3. If you already have a SAMD_QMS account with that email address, sign in instead and click **Accept**.
 
 You're then on each device's team with the roles listed. The link works once. If it has expired or says it isn't valid, ask the person who invited you to send it again: each resend replaces the previous link.
@@ -65,6 +65,8 @@ If you sign in with single sign-on you have no SAMD_QMS password, so you need a 
 3. Enter a PIN of at least 6 characters twice and save.
 
 Local-account users can set a PIN too. Once set, the PIN replaces your password whenever you sign.
+
+On the live system, only people whose identity is confirmed by the organisation's sign-in (for example Microsoft or Google with your work email address) can sign. If a signature is refused for that reason, open **Connected accounts** under your name, connect your organisation account, and sign again.
 
 ## Electronic signatures
 

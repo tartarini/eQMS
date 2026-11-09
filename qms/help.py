@@ -363,17 +363,6 @@ FIELD_HELP = {
         "message": ("Message", "Optional note included in the email, for example why you're "
                     "inviting them. Don't include passwords or patient data."),
     }),
-    "signup": ("getting-started", "Account fields (from an invitation)", {
-        "email": ("Email", "The address the invitation was sent to. It becomes your account's "
-                  "email address and can't be changed here."),
-        "username": ("Username", "What you'll type to sign in. Letters, digits and @ . + - _ "
-                     "only."),
-        "first_name": ("First name", "Shown on records you create and signatures you make."),
-        "last_name": ("Last name", "Shown on records you create and signatures you make."),
-        "password1": ("Password", "At least 8 characters, not too similar to your name or "
-                      "email, and not a common or all-numeric password."),
-        "password2": ("Repeat password", "Type the same password again."),
-    }),
     "device": ("devices", "Device fields", {
         "name": ("Name", "The device's name as on its label."),
         "code": ("Code", "A short unique code shown in lists, emails and technical file names, "
@@ -487,7 +476,7 @@ FORM_GROUPS = {
     "SupplierEvaluationForm": "suppliereval", "TeamMemberForm": "team",
     "SigningPinForm": "signingpin", "AuthenticationForm": "login",
     "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
-    "InvitationSignupForm": "signup", "AccessRequestForm": "accessrequest",
+    "AccessRequestForm": "accessrequest",
     "AccessApproveForm": "accessapprove", "AccessDeclineForm": "accessdecline",
 }
 

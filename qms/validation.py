@@ -52,16 +52,19 @@ REQUIREMENTS = [
       "test_roles.PerDeviceRoleTests.test_training_follows_the_role_on_the_documents_device",
       "test_roles.RoleMigrationTests.test_roles_move_to_teams"], ["PQ-02"]),
     ("URS-07", "Access", "Device admins and QA invite people by email to the devices whose team "
-     "they manage, with roles on each. The link is single use, expires, can only be accepted by "
-     "an account with the invited address, can be resent or revoked, and is stored only as a "
-     "hash; invitations and acceptances are audited.", "H",
+     "they manage, with roles on each. A new person registers from the link only with single "
+     "sign-on that verifies the invited address; no local username and password. The link is "
+     "single use, expires, can only be accepted by an account with the invited address, can be "
+     "resent or revoked, and is stored only as a hash; invitations and acceptances are "
+     "audited.", "H",
      ["test_invitations.InvitationTests.test_invitation_email_lists_devices_roles_and_expiry",
       "test_invitations.InvitationTests.test_only_the_token_hash_is_stored",
       "test_invitations.InvitationTests.test_you_can_only_grant_roles_on_teams_you_manage",
       "test_invitations.InvitationTests.test_input_is_checked",
       "test_invitations.InvitationTests.test_one_pending_invitation_per_person_and_device",
-      "test_invitations.InvitationTests.test_new_person_creates_an_account_and_joins_each_team",
-      "test_invitations.InvitationTests.test_weak_password_and_taken_username_are_refused",
+      "test_invitations.InvitationTests.test_new_person_registers_only_with_single_sign_on",
+      "test_invitations.InvitationTests.test_without_single_sign_on_nobody_can_register_from_an_invitation",
+      "test_invitations.InvitationTests.test_new_person_registers_with_single_sign_on_and_joins_each_team",
       "test_invitations.InvitationTests.test_existing_account_signs_in_and_roles_are_added_not_replaced",
       "test_invitations.InvitationTests.test_another_account_cannot_accept",
       "test_invitations.InvitationTests.test_expired_invitation_is_refused_until_resent",
@@ -153,6 +156,17 @@ REQUIREMENTS = [
      "signing PIN.", "M",
      ["test_modules.SecurityTests.test_sso_user_without_password_cannot_sign_without_pin"],
      ["PQ-01"]),
+    ("URS-24", "Signatures", "On production, only people whose identity is confirmed by an "
+     "approved institutional single sign-on provider (connected account, and a verified email "
+     "address at an approved domain when domains are set) can sign; this applies to "
+     "superusers too. Other environments are not restricted.", "H",
+     ["test_signer_identity.SignerIdentityTests.test_without_the_setting_anyone_with_the_role_signs",
+      "test_signer_identity.SignerIdentityTests.test_password_only_account_cannot_sign_even_as_superuser",
+      "test_signer_identity.SignerIdentityTests.test_other_providers_do_not_count",
+      "test_signer_identity.SignerIdentityTests.test_allowed_provider_needs_a_verified_address_at_the_domain",
+      "test_signer_identity.SignerIdentityTests.test_institutional_account_signs_and_wrong_secret_still_fails",
+      "test_signer_identity.SignerIdentityTests.test_domains_are_optional"],
+     ["IQ-05", "PQ-01"]),
 
     ("URS-30", "Audit trail", "Every create and change is recorded with who, when, and old and "
      "new values.", "H",

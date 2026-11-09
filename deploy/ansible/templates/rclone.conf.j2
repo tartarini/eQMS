@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+# Off-site backups to a Google shared drive (backup_offsite_method: gdrive).
+# "offsite" encrypts file contents and names before upload; keep the two crypt passwords
+# from the vault somewhere safe as well: without them the copies cannot be restored.
+[gdrive]
+type = drive
+scope = drive
+service_account_file = {{ rclone_dir }}/gdrive-service-account.json
+team_drive = {{ backup_gdrive_shared_drive_id }}
+
+[offsite]
+type = crypt
+remote = gdrive:{{ backup_gdrive_folder }}
+filename_encryption = standard
+directory_name_encryption = true
+password = {{ rclone_crypt_password.stdout }}
+password2 = {{ rclone_crypt_salt.stdout }}

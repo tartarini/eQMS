@@ -5,6 +5,13 @@ PermitRootLogin no
 PubkeyAuthentication yes
 MaxAuthTries 4
 X11Forwarding no
-AllowTcpForwarding no
+# Only local forwarding, and only to the admin site on the server's loopback (finding F7:
+# scripts/remote.sh tunnel). No remote or dynamic forwarding, no agent forwarding.
+AllowTcpForwarding local
+PermitOpen 127.0.0.1:8443
+AllowAgentForwarding no
+AllowStreamLocalForwarding no
+GatewayPorts no
+PermitTunnel no
 ClientAliveInterval 300
 ClientAliveCountMax 2

@@ -280,6 +280,13 @@ QMS_TURNSTILE_SITE_KEY = os.environ.get("QMS_TURNSTILE_SITE_KEY", "")
 QMS_TURNSTILE_SECRET_KEY = os.environ.get("QMS_TURNSTILE_SECRET_KEY", "")
 # Minutes after login during which an SSO-only user may set their signing PIN.
 QMS_PIN_REAUTH_MINUTES = 15
+# Who may sign (finding F6). Set on production only, by Ansible: signers' accounts must be
+# connected to one of these providers (e.g. "microsoft,google") and, if domains are given,
+# have a verified email address at one of them. Empty = no restriction (development, staging).
+QMS_SIGNER_SSO_PROVIDERS = [p for p in os.environ.get("QMS_SIGNER_SSO_PROVIDERS", "").split(",")
+                            if p.strip()]
+QMS_SIGNER_EMAIL_DOMAINS = [d for d in os.environ.get("QMS_SIGNER_EMAIL_DOMAINS", "").split(",")
+                            if d.strip()]
 
 # --- Production security (active whenever DEBUG is off; verified in IQ-03) ---------
 if not DEBUG:
