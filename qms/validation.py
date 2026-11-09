@@ -281,6 +281,18 @@ REQUIREMENTS = [
       "test_release.ReleaseBannerTests.test_oq_report_carries_the_notice_and_commit",
       "test_ops.HealthTests.test_healthz_ok_without_login_and_reveals_only_status"],
      ["IQ-01"]),
+    ("URS-83", "Usability", "The main user journeys work in a real web browser (Chromium) with "
+     "no script errors: signing in from the landing page, every main page, help links and "
+     "field help, the device switcher, raising and signing a record, the account-request "
+     "captcha, and the invitation page.", "M",
+     ["test_ui.SignInAndNavigationTests.test_visitor_sees_the_landing_page_and_signs_in",
+      "test_ui.SignInAndNavigationTests.test_every_main_page_opens_without_browser_errors",
+      "test_ui.SignInAndNavigationTests.test_help_link_and_field_help_popover",
+      "test_ui.DeviceSwitcherTests.test_switcher_limits_the_record_list_to_one_device",
+      "test_ui.RecordWorkflowTests.test_problem_report_from_creation_to_a_signed_rejection",
+      "test_ui.RegistrationTests.test_captcha_is_solved_in_the_browser_then_providers_are_offered",
+      "test_ui.RegistrationTests.test_invitation_link_offers_only_single_sign_on"],
+     ["PQ-08"]),
     ("URS-90", "Operation", "Data and files can be backed up and restored without loss, and the "
      "audit chain verifies after restore.", "H", [], ["IQ-08"]),
     ("URS-91", "Operation", "The service is reachable only over HTTPS, with secure cookies and "

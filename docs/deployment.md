@@ -34,7 +34,8 @@ Requirements: Docker with the Compose plugin, and `make`.
 ```bash
 make dev            # build and start; app at http://localhost:8000, emails at http://localhost:8025
 make demo           # load the two demo devices and users (password demo-pass-123)
-make test           # run the test suite against the dev PostgreSQL
+make test           # run the test suite against the dev PostgreSQL (browser tests skipped: no browser in the image)
+make oq NAME="You"  # OQ evidence on your machine against the dev PostgreSQL, browser tests included
 make shell          # Django shell
 make manage CMD="createsuperuser"
 make jobs           # also run the scheduler
@@ -54,10 +55,11 @@ Microsoft accept `localhost` over HTTP for testing).
 console. It needs Python 3.12 or newer (3.13 matches production).
 
 ```bash
-scripts/local.sh setup            # .venv, requirements, .env.local, migrate, demo data
+scripts/local.sh setup            # .venv, requirements, Chromium, .env.local, migrate, demo data
 scripts/local.sh setup --clean    # ...or an empty QMS (seed_qms) and a superuser instead
 scripts/local.sh run              # http://localhost:8000 (migrates first)
 scripts/local.sh test             # python manage.py test qms
+scripts/local.sh ui [--headed]    # browser interface tests (Playwright, Chromium)
 scripts/local.sh oq "Your Name"   # OQ evidence in ./oq_evidence
 scripts/local.sh jobs             # the daily jobs once: PMS activities, reminders, audit check
 scripts/local.sh check            # system checks and missing migrations

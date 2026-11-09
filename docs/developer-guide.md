@@ -449,11 +449,33 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 ## Testing
 
 ```bash
-python manage.py test qms                 # 134 tests, ~90 s on SQLite
+python manage.py test qms                 # 172 tests, ~2 min on SQLite
 python manage.py run_oq --executed-by "Name" --release 1.0.0 --output oq_evidence/
 python manage.py test qms.test_modules.SSOTests
+python manage.py test qms.test_ui         # browser interface tests only (or: scripts/local.sh ui)
 make coverage                             # coverage report and htmlcov/ (pip install -r requirements-dev.txt)
 ```
+
+**Interface tests.** `qms/test_ui.py` drives the app in headless Chromium with
+[Playwright](https://playwright.dev/python/) against Django's live test server
+(`StaticLiveServerTestCase`): signing in from the landing page, every main page, the help link and
+field-help popovers, the device switcher, raising a Problem Report and signing its rejection (a
+wrong password first), the account-request captcha solved by the page's own JavaScript, and the
+SSO-only invitation page. Every test also fails on any JavaScript error or console error. They are
+traced to URS-83.
+
+- Set up once: `pip install -r requirements-dev.txt && python -m playwright install chromium`
+  (`scripts/local.sh setup` does both). CI installs Chromium before the OQ.
+- Without Playwright the tests are skipped with that hint, and `run_oq` then fails URS-83: OQ
+  evidence must include them. The Docker dev image has no browser, so `make test` skips them;
+  `make oq` and `make ui` run on your machine instead.
+- Watch them: `QMS_UI_HEADED=1 QMS_UI_SLOWMO=300 python manage.py test qms.test_ui`, or
+  `make ui HEADED=1`.
+- Write new ones with `BrowserTestCase`: `self.sign_in(username)`, `self.field(label, scope)`
+  (the control with that label, not its help icon), Playwright's `expect(...)` for anything that
+  appears after a request, and `self.assertNoBrowserErrors()` at the end. The live server
+  commits for real, so `on_commit` emails are sent at once (no `captureOnCommitCallbacks`).
+  Prefer roles and labels to CSS selectors so the tests also check what people see.
 
 **Coverage.** `.coveragerc` measures `qms` and `config` with branch coverage, leaving out
 migrations and the tests themselves. CI runs the OQ under `coverage`, puts the report in the run's
@@ -470,7 +492,7 @@ signatures), locking and no-delete, audit attribution, immutability and tamper d
 document lifecycle including file tampering, training assignment and sign-off, risk acceptance
 rules, supplier evaluation, attachment validation and checksums, notifications, security events,
 the role gate, SSO buttons, redirects to Google, Microsoft, GitHub and ORCID, sign-up rules and
-provider configuration, and rendering of every page.
+provider configuration, rendering of every page, and the main journeys in a real browser.
 
 Not covered automatically: complete SSO round-trips with real providers (LinkedIn's redirect
 needs network access for OIDC discovery). Test those manually per provider when you configure

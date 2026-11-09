@@ -7,6 +7,7 @@
 #                                      (--clean: empty QMS with seed_qms, then createsuperuser)
 #   scripts/local.sh run [PORT]        start the dev server (default 8000)
 #   scripts/local.sh test [LABELS...]  run the tests (default: qms)
+#   scripts/local.sh ui [--headed]     run only the browser (Playwright) interface tests
 #   scripts/local.sh oq [NAME]         write OQ evidence to ./oq_evidence
 #   scripts/local.sh jobs              run the daily jobs once (PMS, reminders, audit check)
 #   scripts/local.sh manage ARGS...    any manage.py command, e.g. manage createsuperuser
@@ -67,6 +68,8 @@ cmd_setup() {
   say "Installing requirements"
   "$PY" -m pip install --quiet --upgrade pip
   "$PY" -m pip install --quiet -r requirements.txt -r requirements-dev.txt
+  say "Installing Chromium for the interface tests (Playwright)"
+  "$PY" -m playwright install chromium
   if [[ ! -f .env.local ]]; then
     say "Writing .env.local (local settings, not committed)"
     cat > .env.local <<'EOF'
@@ -133,6 +136,12 @@ cmd_test() {
   manage test "$@"
 }
 
+cmd_ui() {
+  need_venv; load_env
+  if [[ "${1:-}" == "--headed" ]]; then export QMS_UI_HEADED=1 QMS_UI_SLOWMO="${QMS_UI_SLOWMO:-300}"; fi
+  manage test qms.test_ui
+}
+
 cmd_oq() {
   need_venv; load_env
   local name="${1:-$(git config user.name 2>/dev/null || whoami)}"
@@ -174,6 +183,7 @@ case "$command" in
   setup)  cmd_setup "$@" ;;
   run)    cmd_run "$@" ;;
   test)   cmd_test "$@" ;;
+  ui)     cmd_ui "$@" ;;
   oq)     cmd_oq "$@" ;;
   jobs)   cmd_jobs ;;
   manage) need_venv; load_env; manage "$@" ;;

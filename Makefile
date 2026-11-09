@@ -5,7 +5,7 @@ ANSIBLE := cd deploy/ansible && ansible-playbook
 ENV ?= staging
 VERSION ?=
 
-.PHONY: help dev dev-down dev-reset demo shell manage test oq jobs logs coverage \
+.PHONY: help dev dev-down dev-reset demo shell manage test oq ui jobs logs coverage \
         check provision deploy restore-test remote local-setup local
 
 help:  ## Show this help
@@ -39,8 +39,11 @@ coverage:  ## Test coverage on this machine (SQLite); needs: pip install -r requ
 	coverage report
 	coverage html && echo "Report: htmlcov/index.html"
 
-oq:  ## Write OQ evidence to ./oq_evidence: make oq NAME="Your Name"
-	$(COMPOSE) exec app python manage.py run_oq --executed-by "$(NAME)" --release dev --output oq_evidence
+oq:  ## OQ evidence in ./oq_evidence, on the dev PostgreSQL, browser tests included: make oq NAME="Your Name"
+	DATABASE_URL=postgres://qms:qms@localhost:5432/qms scripts/local.sh oq "$(NAME)"
+
+ui:  ## Browser interface tests only (Playwright); make ui HEADED=1 to watch
+	scripts/local.sh ui $(if $(HEADED),--headed,)
 
 jobs:  ## Also run the scheduler (daily jobs) in development
 	$(COMPOSE) --profile jobs up -d scheduler
