@@ -2,7 +2,11 @@ Each medical device has its own records, risk file, post-market surveillance (PM
 
 ## Choose a device
 
-Pick a device in the menu at the left of the top bar. Lists, the dashboard and the risk matrices then show only that device, and new records, hazards and documents default to it. Choose **All devices** to see everything. Every list has a **Device** column so you can always tell them apart.
+After you sign in, **Your devices** lists the devices whose team you're on, with your roles on each (a role marked *org-wide* is held organisation-wide and applies on every device). Click **Open** beside a device to work in its QMS: lists, the dashboard and the risk matrices then show only that device, and new records, hazards and documents default to it.
+
+To switch to another device, click **Devices** in the top bar and **Open** another one. The device menu at the left of the top bar does the same from any page. **Work across all my devices** (or **All devices** in the menu) shows everything you can see; every list has a **Device** column so you can always tell them apart.
+
+If you're only a Device admin on a device, you can manage its team but there's no **Open** button: working in its QMS needs the Engineer, QA or Clinical Safety Officer role.
 
 ## Device teams
 

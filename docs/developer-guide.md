@@ -459,7 +459,8 @@ make coverage                             # coverage report and htmlcov/ (pip in
 **Interface tests.** `qms/test_ui.py` drives the app in headless Chromium with
 [Playwright](https://playwright.dev/python/) against Django's live test server
 (`StaticLiveServerTestCase`): signing in from the landing page, every main page, the help link and
-field-help popovers, the device switcher, raising a Problem Report and signing its rejection (a
+field-help popovers, choosing a device after sign-in and switching to another, the device
+switcher, raising a Problem Report and signing its rejection (a
 wrong password first), the account-request captcha solved by the page's own JavaScript, and the
 SSO-only invitation page. Every test also fails on any JavaScript error or console error. They are
 traced to URS-83.
@@ -553,6 +554,12 @@ A `Device` is the unit a technical file is built for. What belongs to a device:
 | --- | --- |
 | Records (`Record.device`, required), hazards and risk controls, PMS schedules and activities, technical file builds | QMS-wide documents (`Document.device` null), training, suppliers, users and roles |
 | Device-specific documents (`Document.device` set) | SOUP items can be linked to several devices (`SoupItem.devices`) |
+
+**Choosing a device.** `LOGIN_REDIRECT_URL` is `qms:device_list`, so after sign-in (password or
+SSO, unless a `next` link says otherwise) people see **Your devices**: each device they can see,
+their roles on it (`roles.device_roles`, organisation-wide ones flagged), and an **Open** button,
+shown only for a working role, that posts to `set_device` with `next` set to the dashboard.
+**Devices** in the top bar returns to that page to switch.
 
 **Switcher.** `views_devices.set_device` stores the chosen device id in the session
 (`access.SESSION_DEVICE_KEY`); `access.current_device(request)` reads it and

@@ -224,9 +224,18 @@ REQUIREMENTS = [
       "test_teams.TeamTests.test_notifications_go_only_to_the_team"], ["IQ-04"]),
 
     ("URS-70", "Devices", "Data is kept per device; the device switcher filters every list "
-     "safely.", "M",
+     "safely. After sign-in people see the devices whose team they are on, with their roles on "
+     "each, and open one device's QMS; Devices in the top bar switches to another.", "M",
      ["test_devices.DeviceScopingTests.test_switcher_filters_lists",
       "test_devices.DeviceScopingTests.test_switcher_rejects_external_redirect",
+      "test_devices.DeviceChoiceTests.test_sign_in_lands_on_the_list_of_your_devices_and_roles",
+      "test_devices.DeviceChoiceTests.test_a_link_followed_before_signing_in_still_wins",
+      "test_devices.DeviceChoiceTests."
+      "test_opening_a_device_loads_its_qms_and_devices_switches_to_another",
+      "test_devices.DeviceChoiceTests.test_cannot_open_a_device_whose_team_you_are_not_on",
+      "test_devices.DeviceChoiceTests.test_device_admin_alone_sees_the_role_but_no_open_button",
+      "test_devices.DeviceChoiceTests.test_organisation_wide_roles_are_marked",
+      "test_ui.DeviceSwitcherTests.test_sign_in_shows_your_devices_and_opens_one",
       "test_devices.CompletenessTests.test_other_devices_data_is_excluded"], []),
     ("URS-71", "Technical file", "The technical file contains the device's data and effective "
      "documents in MDR Annex II/III order, and the completeness check reports gaps correctly.",

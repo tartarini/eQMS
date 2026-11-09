@@ -380,3 +380,80 @@ class SoftwareItemMigrationTests(TransactionTestCase):
         self.assertEqual(dev.software_item_list(), ["ASR", "Scoring model", "Web app"])
         self.assertEqual(Device.objects.get(code="UNU").software_items, "")
         self.assertTrue(empty.pk)
+
+
+class DeviceChoiceTests(TestCase):
+    """After sign-in people see their devices and roles, and open one device's QMS."""
+
+    def setUp(self):
+        from .test_roles import member, person
+        for r in wf.ROLES + (wf.ALL_DEVICES,):
+            Group.objects.get_or_create(name=r)
+        self.skin = Device.objects.create(name="SkinCheck", code="SKN")
+        self.respi = Device.objects.create(name="RespiTrack", code="RSP")
+        self.other = Device.objects.create(name="Elsewhere", code="ELS")
+        self.user = person("dana")
+        member(self.skin, self.user, wf.QA, wf.DEVICE_ADMIN)
+        member(self.respi, self.user, wf.ENGINEER)
+        member(self.other, person("someone"), wf.QA)
+
+    def test_sign_in_lands_on_the_list_of_your_devices_and_roles(self):
+        resp = self.client.post(reverse("login"), {"username": "dana", "password": PW},
+                                follow=True)
+        self.assertEqual(resp.redirect_chain[-1][0], reverse("qms:device_list"))
+        rows = {r["device"].code: r for r in resp.context["rows"]}
+        self.assertEqual(set(rows), {"SKN", "RSP"})  # not a device whose team they're not on
+        self.assertEqual(rows["SKN"]["roles"], [(wf.QA, False), (wf.DEVICE_ADMIN, False)])
+        self.assertEqual(rows["RSP"]["roles"], [(wf.ENGINEER, False)])
+        self.assertContains(resp, "Open SkinCheck")
+        self.assertContains(resp, "Open RespiTrack")
+        self.assertNotContains(resp, "Elsewhere")
+
+    def test_a_link_followed_before_signing_in_still_wins(self):
+        resp = self.client.post(reverse("login") + "?next=/records/",
+                                {"username": "dana", "password": PW, "next": "/records/"})
+        self.assertEqual(resp["Location"], "/records/")
+
+    def test_opening_a_device_loads_its_qms_and_devices_switches_to_another(self):
+        self.client.login(username="dana", password=PW)
+        Record.objects.create(device=self.skin, record_type=wf.PROBLEM_REPORT, title="Skin bug")
+        Record.objects.create(device=self.respi, record_type=wf.PROBLEM_REPORT, title="Respi bug")
+        resp = self.client.post(reverse("qms:set_device"),
+                                {"device": self.skin.pk, "next": reverse("qms:dashboard")},
+                                follow=True)
+        self.assertEqual(resp.redirect_chain[-1][0], reverse("qms:dashboard"))
+        self.assertContains(resp, "Now working in the SkinCheck QMS")
+        records = self.client.get(reverse("qms:record_list"))
+        self.assertContains(records, "Skin bug")
+        self.assertNotContains(records, "Respi bug")
+        listing = self.client.get(reverse("qms:device_list"))
+        self.assertTrue(next(r for r in listing.context["rows"]
+                             if r["device"] == self.skin)["current"])
+        self.client.post(reverse("qms:set_device"), {"device": self.respi.pk})
+        records = self.client.get(reverse("qms:record_list"))
+        self.assertContains(records, "Respi bug")
+        self.assertNotContains(records, "Skin bug")
+
+    def test_cannot_open_a_device_whose_team_you_are_not_on(self):
+        self.client.login(username="dana", password=PW)
+        self.client.post(reverse("qms:set_device"), {"device": self.other.pk})
+        self.assertIsNone(self.client.session.get("qms_device_id"))
+
+    def test_device_admin_alone_sees_the_role_but_no_open_button(self):
+        from .test_roles import member, person
+        admin = person("admin_only")
+        member(self.skin, admin, wf.DEVICE_ADMIN)
+        self.client.login(username="admin_only", password=PW)
+        resp = self.client.get(reverse("qms:device_list"))
+        row = resp.context["rows"][0]
+        self.assertEqual(row["roles"], [(wf.DEVICE_ADMIN, False)])
+        self.assertFalse(row["can_open"])
+        self.assertNotContains(resp, "Open SkinCheck")
+
+    def test_organisation_wide_roles_are_marked(self):
+        from .test_roles import person
+        head = person("head", wf.QA, wf.ALL_DEVICES)
+        self.client.login(username=head.username, password=PW)
+        rows = self.client.get(reverse("qms:device_list")).context["rows"]
+        self.assertEqual({r["device"].code for r in rows}, {"SKN", "RSP", "ELS"})
+        self.assertTrue(all(r["roles"] == [(wf.QA, True)] and r["can_open"] for r in rows))

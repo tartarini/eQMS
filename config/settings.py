@@ -168,7 +168,9 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "qms:dashboard"
+# After sign-in people choose which device's QMS to work in (unless the link they followed
+# sent them somewhere else).
+LOGIN_REDIRECT_URL = "qms:device_list"
 LOGOUT_REDIRECT_URL = "login"
 
 # Sessions expire after 30 minutes of inactivity.

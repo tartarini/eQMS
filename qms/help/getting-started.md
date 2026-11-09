@@ -78,7 +78,9 @@ Some approvals must be **independent**: you can't approve something you wrote. T
 
 ## Finding your way
 
-The top bar has **Dashboard**, **Records**, **Documents**, **Training**, **Risk**, **Suppliers**, **Devices** and **Audit**. Use the device menu at the far left to focus every page on one device, or choose **All devices**. QA and administrators also see **Admin**, which manages users and roles.
+After you sign in you see **Your devices**: the devices whose team you're on and your roles on each. Click **Open** beside one to work in that device's QMS. To switch later, click **Devices** in the top bar and open another; see [Choose a device](/help/devices/#choose-a-device).
+
+The top bar has **Dashboard**, **Records**, **Documents**, **Training**, **Risk**, **Suppliers**, **Devices** and **Audit**. The device menu at the far left also switches device from any page, or choose **All devices**. QA and administrators also see **Admin**, which manages users and roles.
 
 Help is always one click away:
 

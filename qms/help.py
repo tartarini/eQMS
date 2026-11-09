@@ -92,7 +92,7 @@ PAGE_HELP = {
     "soup_create": ("suppliers", "the-soup-list"),
     "soup_edit": ("suppliers", "the-soup-list"),
     # devices
-    "device_list": ("devices", ""),
+    "device_list": ("devices", "choose-a-device"),
     "device_create": ("devices", "add-a-device"),
     "device_detail": ("devices", ""),
     "device_edit": ("devices", "add-a-device"),

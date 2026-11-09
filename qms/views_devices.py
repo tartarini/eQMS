@@ -10,11 +10,11 @@ from django.views.decorators.http import require_POST
 
 from . import services, techfile
 from . import workflow as wf
-from .access import (SESSION_DEVICE_KEY, accessible_devices, form_page, qms_member,
-                     require_access, run, team_member)
+from .access import (SESSION_DEVICE_KEY, accessible_devices, current_device, form_page,
+                     qms_member, require_access, run, team_member)
 from .forms import DeviceForm, SignForm, TeamMemberForm, TeamRolesForm
 from .invitations import device_invitations
-from .roles import can_manage_team
+from .roles import can_manage_team, device_roles, org_roles
 from .models import AuditEvent, Device, DeviceMembership, Signature, TechnicalFileBuild
 
 
@@ -22,11 +22,16 @@ from .models import AuditEvent, Device, DeviceMembership, Signature, TechnicalFi
 @require_POST
 def set_device(request):
     """Header switcher: choose a device to focus on, or all devices."""
-    device_id = request.POST.get("device")
-    if device_id and accessible_devices(request.user).filter(pk=device_id, active=True).exists():
-        request.session[SESSION_DEVICE_KEY] = int(device_id)
+    device_id = request.POST.get("device", "")
+    device = (accessible_devices(request.user).filter(pk=device_id, active=True).first()
+              if device_id.isdigit() else None)
+    if device:
+        request.session[SESSION_DEVICE_KEY] = device.pk
+        messages.info(request, f"Now working in the {device.name} QMS. Switch from Devices "
+                               "in the top bar.")
     else:
         request.session.pop(SESSION_DEVICE_KEY, None)
+        messages.info(request, "Now working across all your devices.")
     nxt = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(nxt, {request.get_host()}):
         nxt = reverse("qms:dashboard")
@@ -35,15 +40,29 @@ def set_device(request):
 
 @team_member
 def device_list(request):
-    devices = accessible_devices(request.user)
+    """Your devices and your roles on each; opening one loads its QMS. Shown after sign-in,
+    and from Devices in the top bar to switch to another device's QMS."""
+    user = request.user
+    labels = dict(wf.RECORD_TYPES)
+    org = org_roles(user)
+    current = current_device(request)
     rows = []
-    for d in devices:
-        labels = dict(wf.RECORD_TYPES)
+    for d in accessible_devices(user).order_by("-active", "name"):
         open_counts = Counter(labels[t] for t in d.records.exclude(
             status__in=wf.TERMINAL_STATES).values_list("record_type", flat=True))
-        rows.append((d, sorted(open_counts.items()),
-                     d.technical_files.filter(status="approved").first()))
-    return render(request, "qms/device_list.html", {"rows": rows})
+        held = device_roles(user, d)
+        rows.append({
+            "device": d,
+            "roles": [(r, r in org) for r in wf.ROLES if r in held],
+            # Device admin alone manages the team but doesn't work in the QMS.
+            "can_open": d.active and bool(held & set(wf.ANY_ROLE)),
+            "current": current is not None and current.pk == d.pk,
+            "open_counts": sorted(open_counts.items()),
+            "approved": d.technical_files.filter(status="approved").first(),
+        })
+    return render(request, "qms/device_list.html", {
+        "rows": rows, "current": current,
+        "can_open_all": sum(r["can_open"] for r in rows) > 1})
 
 
 @qms_member

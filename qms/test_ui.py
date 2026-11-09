@@ -144,6 +144,44 @@ class SignInAndNavigationTests(BrowserTestCase):
 
 
 class DeviceSwitcherTests(BrowserTestCase):
+    def test_sign_in_shows_your_devices_and_opens_one(self):
+        a = Device.objects.create(name="SkinCheck", code="SKN")
+        b = Device.objects.create(name="RespiTrack", code="RSP")
+        Device.objects.create(name="Elsewhere", code="ELS")
+        dana = person("dana")
+        member(a, dana, wf.QA, wf.DEVICE_ADMIN)
+        member(b, dana, wf.ENGINEER)
+        Record.objects.create(device=a, record_type=wf.PROBLEM_REPORT, title="Skin issue",
+                              created_by=dana)
+        Record.objects.create(device=b, record_type=wf.PROBLEM_REPORT, title="Respi issue",
+                              created_by=dana)
+        page = self.page
+        self.sign_in("dana")
+        expect(page).to_have_url(re.compile(r"/devices/$"))
+        main = page.locator("main")
+        expect(main.get_by_role("heading", name="Your devices")).to_be_visible()
+        skin_row = main.locator("tr", has_text="SkinCheck")
+        expect(skin_row.locator(".device-roles")).to_have_text(re.compile(r"QA\s+Device admin"))
+        expect(main.locator("tr", has_text="RespiTrack").locator(".device-roles")) \
+            .to_have_text("Engineer")
+        expect(main).not_to_contain_text("Elsewhere")
+
+        page.get_by_role("button", name="Open SkinCheck").click()
+        expect(page).to_have_url(re.compile(r"/$"))
+        expect(main).to_contain_text("Now working in the SkinCheck QMS")
+        page.locator("header").get_by_role("link", name="Records", exact=True).click()
+        expect(main).to_contain_text("Skin issue")
+        expect(main).not_to_contain_text("Respi issue")
+
+        page.locator("header").get_by_role("link", name="Devices", exact=True).click()
+        expect(main.locator("tr", has_text="SkinCheck")).to_contain_text("Open")
+        page.get_by_role("button", name="Open RespiTrack").click()
+        expect(main).to_contain_text("Now working in the RespiTrack QMS")
+        page.locator("header").get_by_role("link", name="Records", exact=True).click()
+        expect(main).to_contain_text("Respi issue")
+        expect(main).not_to_contain_text("Skin issue")
+        self.assertNoBrowserErrors()
+
     def test_switcher_limits_the_record_list_to_one_device(self):
         a = Device.objects.create(name="SkinCheck", code="SKN")
         b = Device.objects.create(name="RespiTrack", code="RSP")
