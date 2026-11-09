@@ -10,3 +10,8 @@ from .devices import (CLASSIFICATIONS, REG_STATUSES, TECH_FILE_SECTIONS, Device,
                       DeviceMembership, TechnicalFileBuild)
 from .invitations import Invitation  # noqa
 from .access_requests import AccessRequest  # noqa
+from .organisation import (AUTHORISED_REP as AUTHORISED_REP_ROLE,  # noqa
+                           DISTRIBUTOR as DISTRIBUTOR_ROLE, IMPORTER as IMPORTER_ROLE,
+                           MANUFACTURER as MANUFACTURER_ROLE, OPERATOR_ROLE_LABELS,
+                           OPERATOR_ROLES, Organisation, join_operator_roles,
+                           parse_operator_roles)

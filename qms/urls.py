@@ -64,6 +64,8 @@ urlpatterns = [
     path("soup/new/", views_risk.soup_create, name="soup_create"),
     path("soup/<int:pk>/edit/", views_risk.soup_edit, name="soup_edit"),
     # Devices and technical files
+    path("organisation/", views_devices.organisation_detail, name="organisation"),
+    path("organisation/edit/", views_devices.organisation_edit, name="organisation_edit"),
     path("devices/", views_devices.device_list, name="device_list"),
     path("devices/new/", views_devices.device_create, name="device_create"),
     path("devices/select/", views_devices.set_device, name="set_device"),

@@ -21,7 +21,7 @@ def app_forms():
     out = [(f"record:{t}", F.record_form_class(t)()) for t, _ in wf.RECORD_TYPES]
     for name in ["SignForm", "LinkForm", "AttachmentForm", "DocumentForm", "VersionForm",
                  "TrainingRequirementForm", "HazardForm", "RiskControlForm", "SupplierForm",
-                 "SupplierEvaluationForm", "SoupItemForm", "DeviceForm"]:
+                 "SupplierEvaluationForm", "SoupItemForm", "DeviceForm", "OrganisationForm"]:
         out.append((name, getattr(F, name)()))
     out.append(("TeamMemberForm", F.TeamMemberForm(device=None)))
     out.append(("TeamRolesForm", F.TeamRolesForm()))

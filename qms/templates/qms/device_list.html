@@ -6,13 +6,14 @@
   <a class="btn secondary" href="{% url 'qms:device_create' %}">New device</a>
 </div>
 <p class="muted small">Each device has its own QMS: records, risk file, PMS schedule, SOUP list and technical file. Open one to work in it; come back here from <strong>Devices</strong> in the top bar to switch. QMS-wide procedures and training apply to all of them.</p>
+<p class="small"><a href="{% url 'qms:organisation' %}">Organisation</a>: {% if organisation %}{{ organisation.name }}{% if organisation.role_labels %} <span class="muted">({{ organisation.role_labels|join:", " }})</span>{% endif %}{% else %}<span class="muted">not set up yet</span>{% endif %}</p>
 {% if current %}<p class="small">Working in: <strong>{{ current.name }}</strong> <span class="muted">{{ current.code }}</span></p>{% elif can_open_all %}<p class="small">Working in: <strong>all your devices</strong></p>{% endif %}
 <div class="panel">
 <table>
   <tr><th>Device</th><th>Your roles</th><th></th><th>Class</th><th>Version</th><th>Status</th><th>Open records</th><th>Approved technical file</th></tr>
   {% for row in rows %}{% with d=row.device %}
   <tr{% if row.current %} style="background:#e7f1fb"{% endif %}>
-    <td><a href="{% url 'qms:device_detail' d.code %}">{{ d.name }}</a> <span class="muted small">{{ d.code }}</span>{% if not d.active %} <span class="badge">inactive</span>{% endif %}</td>
+    <td><a href="{% url 'qms:device_detail' d.code %}">{{ d.name }}</a> <span class="muted small">{{ d.code }}</span>{% if not d.active %} <span class="badge">inactive</span>{% endif %}{% if d.operator_role_labels %}<br><span class="small muted" title="Our role for this device">{{ d.operator_role_labels|join:", " }}</span>{% endif %}</td>
     <td class="small device-roles">{% for role, org_wide in row.roles %}<span class="badge"{% if org_wide %} title="Held organisation-wide"{% endif %}>{{ role }}{% if org_wide %} (org-wide){% endif %}</span> {% empty %}<span class="muted">none</span>{% endfor %}</td>
     <td>{% if row.current %}<span class="badge done">Open</span>{% elif row.can_open %}
       <form method="post" action="{% url 'qms:set_device' %}" style="margin:0">{% csrf_token %}

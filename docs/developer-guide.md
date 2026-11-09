@@ -71,13 +71,15 @@ qms/
     core.py             AuditEvent, AuditedModel, Record, RecordLink, Signature, SigningPin,
                         Attachment, PMSSchedule, helpers (add_months, sha256_of)
     devices.py          Device, TechnicalFileBuild, TECH_FILE_SECTIONS
+    organisation.py     Organisation (the one profile), OPERATOR_ROLES (EU MDR economic operators)
     documents.py        Document, DocumentVersion, TrainingRequirement, TrainingAssignment
     risk.py             Hazard, RiskControl, risk_level()
     suppliers.py        Supplier, SoupItem
   views.py              dashboard, records, attachments, audit, signing PIN
   views_docs.py         documents and training
   views_risk.py         hazards, controls, suppliers, SOUP
-  views_devices.py      devices, device switcher, teams and roles, technical file pages
+  views_devices.py      devices, device switcher, teams and roles, technical file pages,
+                        the organisation profile
   views_invitations.py  invite people, invitations list, the accept page (/invite/<token>/)
   roles.py              who holds which role on which device (every role check uses it)
   invitations.py        invitation rules: create, resend, revoke, accept
@@ -105,7 +107,8 @@ qms/
   test_modules.py       documents, training, risk, suppliers, attachments, notifications,
                         security, SSO, connected accounts, pages (29 tests)
   test_devices.py       device scoping, completeness checks, technical file builds, software
-                        items and their migration (23 tests)
+                        items and their migration, choosing a device (29 tests)
+  test_organisation.py  organisation profile and per-device economic operator roles (9 tests)
   test_teams.py         device-team isolation, multi-team members, All-device access (13 tests)
   test_ops.py           health check, scheduler and alerts (8 tests)
   test_help.py          every page and form field has help; help pages and icons (11 tests)
@@ -566,6 +569,19 @@ shown only for a working role, that posts to `set_device` with `next` set to the
 `access.scope(queryset, request, field)` filters by it. Lists, the dashboard and the risk matrix are
 scoped; create forms default to the current device. Document lists show the device's documents
 plus QMS-wide ones. The `qms.context_processors.devices` processor supplies the switcher.
+
+**Economic operator roles.** `models/organisation.py` holds the EU MDR roles: manufacturer,
+authorised representative, importer and distributor (Art. 2(30)-(34)). There is one
+`Organisation` row (`Organisation.current()`, None until someone fills it in), edited at
+`/organisation/` by QA held organisation-wide only (`views_devices._can_edit_organisation`), and
+audited. Its `roles` list every role the organisation holds; `Device.operator_roles` records which
+apply to that device. Both are comma-separated codes, edited through `forms.OperatorRolesField`.
+`DeviceForm` offers only the profile's roles (all four while the profile lists none) and fills an
+empty manufacturer or UK Responsible Person / authorised rep. field with the organisation's name
+and address when that role is chosen. `OrganisationForm` refuses to drop a role an active device
+still uses. Technical file section 1 shows the organisation, its SRN and its role for the device;
+`completeness_checks` warns while a device has no role. The roles are recorded only: they don't
+change workflows or which checks apply. Traced to URS-74.
 
 **New devices.** Creating a device (QA only) calls `services.setup_device_pms`, which copies
 `DEFAULT_PMS_SCHEDULES`. Edit those defaults, or the device's schedules in the admin.

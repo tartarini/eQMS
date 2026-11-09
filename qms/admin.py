@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (Attachment, AuditEvent, Device, DeviceMembership, Document, DocumentVersion, Hazard, PMSSchedule,
                      Record, RecordLink, RiskControl, Signature, SoupItem, Supplier,
                      TechnicalFileBuild, TrainingAssignment, TrainingRequirement, Invitation,
-                     AccessRequest)
+                     AccessRequest, Organisation)
 
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -163,6 +163,11 @@ class DeviceMembershipAdmin(NoDeleteAdmin):
     list_display = ("user", "device", "roles", "note", "active", "added_at")
     list_filter = ("device", "active")
     search_fields = ("user__username", "user__email")
+
+
+@admin.register(Organisation)
+class OrganisationAdmin(NoDeleteAdmin):
+    list_display = ("name", "srn", "roles", "updated_at")
 
 
 @admin.register(Device)

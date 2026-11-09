@@ -237,6 +237,25 @@ REQUIREMENTS = [
       "test_devices.DeviceChoiceTests.test_organisation_wide_roles_are_marked",
       "test_ui.DeviceSwitcherTests.test_sign_in_shows_your_devices_and_opens_one",
       "test_devices.CompletenessTests.test_other_devices_data_is_excluded"], []),
+    ("URS-74", "Devices", "The organisation profile records the organisation's EU MDR economic "
+     "operator roles (manufacturer, authorised representative, importer, distributor); each "
+     "device records which of them apply, shown on the device page and in technical file "
+     "section 1. Only QA held organisation-wide changes the profile, and changes are audited.",
+     "M",
+     ["test_organisation.OrganisationProfileTests."
+      "test_organisation_wide_qa_sets_up_the_profile_and_it_is_audited",
+      "test_organisation.OrganisationProfileTests.test_device_level_qa_cannot_change_the_profile",
+      "test_organisation.OrganisationProfileTests."
+      "test_a_role_still_set_on_a_device_cannot_be_removed",
+      "test_organisation.DeviceOperatorRoleTests.test_device_offers_only_the_organisations_roles",
+      "test_organisation.DeviceOperatorRoleTests.test_a_profile_without_roles_offers_all_four",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_manufacturer_role_fills_in_the_manufacturer_from_the_profile",
+      "test_organisation.DeviceOperatorRoleTests.test_an_entered_manufacturer_is_kept",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_role_shows_on_the_device_page_and_in_the_technical_file",
+      "test_organisation.DeviceOperatorRoleTests."
+      "test_completeness_check_warns_until_the_role_is_set"], []),
     ("URS-71", "Technical file", "The technical file contains the device's data and effective "
      "documents in MDR Annex II/III order, and the completeness check reports gaps correctly.",
      "H",

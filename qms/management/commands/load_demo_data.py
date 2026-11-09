@@ -6,7 +6,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 from qms import services
 from qms import workflow as wf
-from qms.models import (Device, DeviceMembership, Document, Hazard, Record, RiskControl, SoupItem, Supplier,
+from qms.models import (DISTRIBUTOR_ROLE, MANUFACTURER_ROLE, Organisation, join_operator_roles,
+                        Device, DeviceMembership, Document, Hazard, Record, RiskControl, SoupItem, Supplier,
                         TrainingAssignment, TrainingRequirement)
 
 PW = "demo-pass-123"
@@ -25,6 +26,10 @@ class Command(BaseCommand):
         qa2.set_password(PW)
         qa2.save()
 
+        Organisation(name="Example manufacturer Ltd", address="1 Example Street\nSheffield",
+                     srn="GB-MF-000000000",
+                     roles=join_operator_roles([MANUFACTURER_ROLE, DISTRIBUTOR_ROLE])
+                     ).save(_actor=qa)
         skn = Device(
             name="SkinCheck", code="SKN", owner=eng, current_version="2.3.1",
             regulatory_status="clinical_investigation", markets="UK (UKCA)",
@@ -40,6 +45,7 @@ class Command(BaseCommand):
             classification_rule="MDR Annex VIII Rule 11: software providing information used to "
                                 "take decisions with diagnostic purposes.",
             software_safety_class="B", basic_udi_di="", manufacturer="Example manufacturer Ltd",
+            operator_roles=MANUFACTURER_ROLE,
             software_items="Mobile app\nImage quality check\nClassification model\n"
                            "Clinician portal\nInfrastructure",
             standards_applied="IEC 62304:2006+A1:2015\nISO 14971:2019\nIEC 62366-1:2015\n"

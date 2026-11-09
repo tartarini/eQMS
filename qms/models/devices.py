@@ -34,7 +34,8 @@ class Device(AuditedModel):
                "patient_population", "contraindications", "classification",
                "classification_rule", "software_safety_class", "basic_udi_di", "manufacturer",
                "uk_responsible_person", "approved_body", "regulatory_status", "markets",
-               "standards_applied", "current_version", "software_items", "owner_id", "active"]
+               "standards_applied", "current_version", "software_items", "owner_id", "active",
+               "operator_roles"]
 
     name = models.CharField(max_length=120, unique=True)
     code = models.CharField(max_length=12, unique=True,
@@ -54,6 +55,10 @@ class Device(AuditedModel):
     manufacturer = models.TextField("Legal manufacturer (name and address)", blank=True)
     uk_responsible_person = models.TextField("UK Responsible Person / authorised rep.",
                                              blank=True)
+    operator_roles = models.CharField(
+        "Our role for this device", max_length=200, blank=True,
+        help_text="The organisation's economic operator roles for this device, separated by "
+                  "commas: manufacturer, authorised_representative, importer, distributor.")
     approved_body = models.CharField("Approved / notified body", max_length=200, blank=True)
     regulatory_status = models.CharField(max_length=30, choices=REG_STATUSES,
                                          default="development")
@@ -78,6 +83,14 @@ class Device(AuditedModel):
     @property
     def audit_ref(self):
         return self.code
+
+    def operator_role_list(self) -> list:
+        from .organisation import parse_operator_roles
+        return parse_operator_roles(self.operator_roles)
+
+    def operator_role_labels(self) -> list:
+        from .organisation import OPERATOR_ROLE_LABELS
+        return [OPERATOR_ROLE_LABELS[r] for r in self.operator_role_list()]
 
     def software_item_list(self) -> list:
         """The device's software items, in the order entered, without blanks or duplicates."""

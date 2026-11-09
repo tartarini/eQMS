@@ -93,6 +93,8 @@ PAGE_HELP = {
     "soup_edit": ("suppliers", "the-soup-list"),
     # devices
     "device_list": ("devices", "choose-a-device"),
+    "organisation": ("devices", "your-organisation-and-its-roles"),
+    "organisation_edit": ("devices", "your-organisation-and-its-roles"),
     "device_create": ("devices", "add-a-device"),
     "device_detail": ("devices", ""),
     "device_edit": ("devices", "add-a-device"),
@@ -365,6 +367,12 @@ FIELD_HELP = {
     }),
     "device": ("devices", "Device fields", {
         "name": ("Name", "The device's name as on its label."),
+        "operator_roles": ("Our role for this device", "What your organisation is for this "
+                           "device under the MDR: manufacturer, authorised representative, "
+                           "importer or distributor (one or more). Only the roles in the "
+                           "organisation profile are offered. Choosing Manufacturer or "
+                           "Authorised representative fills that field below with the "
+                           "organisation's name and address if it is empty."),
         "code": ("Code", "A short unique code shown in lists, emails and technical file names, "
                  "for example HRT1. Letters and numbers only; it cannot easily be changed."),
         "owner": ("Owner", "The person accountable for the device's quality records."),
@@ -404,6 +412,22 @@ FIELD_HELP = {
         "standards_applied": ("Standards applied", "Harmonised or recognised standards applied, "
                               "one per line, with their versions."),
         "active": ("Active", "Untick when the device is retired. Its records are kept."),
+    }),
+    "organisation": ("devices", "Organisation profile fields", {
+        "name": ("Legal name", "The legal entity running this QMS, as registered."),
+        "address": ("Registered address", "Its registered address, as it appears on labels "
+                    "and the declaration of conformity."),
+        "srn": ("EU Single Registration Number (SRN)", "The number EUDAMED issued when the "
+                "organisation registered as an economic operator, for example "
+                "GB-MF-000012345. Leave blank if not registered in the EU."),
+        "uk_registration": ("MHRA registration number", "The organisation's MHRA device "
+                            "registration number, for the UK market."),
+        "roles": ("Economic operator roles", "Every role the organisation holds for at least "
+                  "one device: manufacturer (places a device on the market under its own "
+                  "name), authorised representative (acts in the EU for a manufacturer outside "
+                  "it), importer (first places a non-EU device on the EU market) or "
+                  "distributor (makes a device available further down the supply chain). A "
+                  "role still set on a device can't be removed."),
     }),
     "signingpin": ("getting-started", "Signing PIN fields", {
         "current_password": ("Current password", "Your SAMD_QMS password, to confirm it is "

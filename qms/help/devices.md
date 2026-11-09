@@ -8,6 +8,21 @@ To switch to another device, click **Devices** in the top bar and **Open** anoth
 
 If you're only a Device admin on a device, you can manage its team but there's no **Open** button: working in its QMS needs the Engineer, QA or Clinical Safety Officer role.
 
+## Your organisation and its roles
+
+Under the EU MDR, the organisation running this QMS is an **economic operator**, and its obligations depend on its role for each device:
+
+- **Manufacturer**: places the device on the market under its own name, and holds its technical file.
+- **Authorised representative**: acts in the EU for a manufacturer based outside it. In the UK the equivalent is the UK Responsible Person.
+- **Importer**: the first to place a device from outside the EU on the EU market.
+- **Distributor**: makes a device available further down the supply chain.
+
+An organisation can hold different roles for different devices, for example manufacturer of one and distributor of another.
+
+**Organisation profile.** Open **Organisation** from the **Your devices** page to see the legal name, registered address, EU Single Registration Number (SRN), MHRA registration number and every role the organisation holds. QA held organisation-wide can change it under **Edit**. A role still set on a device can't be removed from the profile; change those devices first.
+
+**Our role for each device.** QA on a device sets **Our role for this device** under **Edit** on the device page, choosing from the roles in the profile. If you choose **Manufacturer** or **Authorised representative** and leave the matching field below empty, it is filled with the organisation's name and address. The role appears on the device page, on **Your devices**, and in section 1 of the technical file. The completeness check warns while it isn't set.
+
 ## Device teams
 
 Each device has a team, shown on its page under **Team**. You can be on as many teams as your work needs, and the device menu lists only your devices.

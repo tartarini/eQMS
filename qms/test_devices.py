@@ -39,6 +39,7 @@ def complete_device(code="SKN", name="SkinCheck"):
                software_items="Mobile app\nClassification model",
                classification_rule="Rule 11", software_safety_class="B",
                basic_udi_di="5060000000000ABC", manufacturer="Example Ltd",
+               operator_roles="manufacturer",
                standards_applied="IEC 62304\nISO 14971", current_version="2.3.1",
                markets="UK")
     d.save()
