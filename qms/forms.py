@@ -12,8 +12,11 @@ from .models import (AUTHORISED_REP_ROLE, MANUFACTURER_ROLE, OPERATOR_ROLE_LABEL
                      join_operator_roles, parse_operator_roles)
 
 DATE_FIELDS = {"date_aware", "effectiveness_due", "due_date", "period_start", "period_end",
+               "planned_date",
                "last_anomaly_review"}
 TEXTAREAS = {"description", "investigation_summary", "root_cause", "impact_analysis",
+             "audit_scope", "attendees", "review_inputs", "resource_needs",
+             "concession_justification", "acceptance_criteria",
              "resolution", "reportability_rationale", "change_summary", "hazard", "cause",
              "hazardous_situation", "harm", "benefit_risk_rationale", "scope", "notes",
              "purpose", "known_anomalies", "intended_purpose", "intended_users",
@@ -330,7 +333,8 @@ class DeviceForm(forms.ModelForm):
                   "contraindications", "eu_classification", "uk_classification",
                   "us_classification", "classification_rule",
                   "software_safety_class", "software_items", "basic_udi_di", "manufacturer",
-                  "uk_responsible_person", "approved_body", "standards_applied", "active"]
+                  "uk_responsible_person", "approved_body", "standards_applied",
+                  "expected_lifetime_years", "active"]
         widgets = _widgets(fields)
 
     def __init__(self, *args, **kwargs):

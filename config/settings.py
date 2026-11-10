@@ -189,6 +189,9 @@ QMS_VIGILANCE_DEADLINES = {
 QMS_REQUIRE_INDEPENDENT_APPROVAL = True
 # generate_pms_activities creates activities this many days before they are due.
 QMS_PMS_HORIZON_DAYS = 30
+# Minimum retention of records and obsolete documents after closure or withdrawal (ISO 13485
+# 4.2.5). The retention period is the longer of this and the device's expected lifetime.
+QMS_RETENTION_MIN_YEARS = 2
 
 # --- Files --------------------------------------------------------------------
 # Uploaded evidence and controlled documents. Served only through login-protected views.

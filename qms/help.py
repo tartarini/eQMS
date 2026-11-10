@@ -194,6 +194,34 @@ FIELD_HELP = {
                      "schedule."),
         "period_start": ("Period start", "First day of the period this PMS activity reviews."),
         "period_end": ("Period end", "Last day of the period this PMS activity reviews."),
+        "audit_scope": ("Audit scope", "The clauses, processes, documents or areas being "
+                        "audited, for example \"ISO 13485 7.4 purchasing, supplier SOUP "
+                        "evaluations\"."),
+        "auditee": ("Auditee", "The person responsible for the area being audited. The lead "
+                    "auditor, who is the record's owner, cannot be the auditee: auditors do "
+                    "not audit their own work."),
+        "planned_date": ("Planned date", "The date the audit, management review or design "
+                         "review is planned for. It is shown as due until the record is held."),
+        "attendees": ("Attendees / participants", "Who took part, by name and role. For a design "
+                      "review, the functions and specialists who reviewed the design."),
+        "review_inputs": ("Review inputs", "What the review considered: feedback, complaints, "
+                          "reports to regulators, audits, process and product monitoring, CAPA, "
+                          "changes affecting the QMS, recommendations for improvement, and new or "
+                          "revised regulatory requirements. Say what was considered for each."),
+        "resource_needs": ("Resource needs", "Resources the review decided are needed, such as "
+                           "people, training, tools or budget. Write \"None\" if there are none."),
+        "nc_disposition": ("Disposition", "What happens to the nonconforming product: rework "
+                           "(then verify), use as is under concession, scrap, or return to the "
+                           "supplier. A concession needs QA approval and its justification."),
+        "concession_justification": ("Concession justification", "Why the nonconforming "
+                                     "product can be used or released, the risk to the user, and "
+                                     "what was checked. Required before a concession is approved."),
+        "design_element": ("Design element", "What this record is: a design input (requirements "
+                           "the design must meet), a design output (the design itself and its "
+                           "acceptance criteria), or a design review."),
+        "acceptance_criteria": ("Acceptance criteria", "The measurable criteria the design must "
+                                "meet, or the requirements it must satisfy. Output records must "
+                                "contain or reference them."),
     }),
     "sign": ("getting-started", "Signature fields", {
         "comment": ("Comment", "Why you are taking this step. Required when rejecting or sending "
@@ -427,6 +455,10 @@ FIELD_HELP = {
                           "one is involved."),
         "standards_applied": ("Standards applied", "Harmonised or recognised standards applied, "
                               "one per line, with their versions."),
+        "expected_lifetime_years": ("Expected lifetime (years)", "How long the device is "
+                                    "expected to be in use. Closed records and withdrawn "
+                                    "documents are kept at least this long, and never less "
+                                    "than two years. Leave blank only until it is decided."),
         "active": ("Active", "Untick when the device is retired. Its records are kept."),
     }),
     "organisation": ("devices", "Organisation profile fields", {

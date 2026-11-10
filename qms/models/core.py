@@ -230,6 +230,8 @@ AUDITED_FIELDS = [
     "reportability_rationale", "deadline_category", "mhra_reference", "investigation_summary",
     "root_cause", "impact_analysis", "verification_evidence", "effectiveness_due", "fix_version",
     "resolution", "due_date", "period_start", "period_end",
+    "audit_scope", "auditee_id", "planned_date", "attendees", "review_inputs", "resource_needs",
+    "nc_disposition", "concession_justification", "design_element", "acceptance_criteria",
 ]
 
 
@@ -303,6 +305,41 @@ class Record(models.Model):
     pms_schedule = models.ForeignKey("PMSSchedule", null=True, blank=True,
                                      on_delete=models.PROTECT, related_name="activities")
 
+    # Internal audit (8.2.4)
+    audit_scope = models.TextField(
+        "Audit scope", blank=True,
+        help_text="The clauses, processes, documents or areas being audited.")
+    auditee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="audited_records",
+        help_text="The person responsible for the area audited. Must not be the lead auditor.")
+
+    # Management review (5.6), design review (7.3.5)
+    planned_date = models.DateField(null=True, blank=True)
+    attendees = models.TextField(blank=True)
+    review_inputs = models.TextField(
+        "Review inputs", blank=True,
+        help_text="What was reviewed: feedback, complaints, reports to regulators, audits, "
+                  "process and product monitoring, CAPA, changes affecting the QMS, "
+                  "recommendations, and new regulatory requirements.")
+    resource_needs = models.TextField("Resource needs", blank=True)
+
+    # Nonconforming product (8.3)
+    nc_disposition = models.CharField(
+        "Disposition", max_length=30, blank=True, choices=wf.NC_DISPOSITIONS)
+    concession_justification = models.TextField(
+        "Concession justification", blank=True,
+        help_text="Why the nonconforming product can be used or released, and the risk to the "
+                  "user. Required before a concession is approved.")
+
+    # Design control (7.3.3 to 7.3.5)
+    design_element = models.CharField("Design element", max_length=10, blank=True,
+                                      choices=wf.DESIGN_ELEMENTS)
+    acceptance_criteria = models.TextField(
+        "Acceptance criteria", blank=True,
+        help_text="The measurable criteria the design must meet, or the requirements it must "
+                  "satisfy.")
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -345,6 +382,8 @@ class Record(models.Model):
             return self.effectiveness_due
         if self.record_type == wf.PMS_ACTIVITY:
             return self.due_date
+        if self.record_type in (wf.INTERNAL_AUDIT, wf.MANAGEMENT_REVIEW) and self.status == "planned":
+            return self.planned_date
         return None
 
     @property

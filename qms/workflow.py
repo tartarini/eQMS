@@ -33,6 +33,10 @@ INCIDENT = "incident"
 CAPA = "capa"
 CHANGE_REQUEST = "change_request"
 PMS_ACTIVITY = "pms_activity"
+INTERNAL_AUDIT = "internal_audit"          # ISO 13485 8.2.4
+MANAGEMENT_REVIEW = "management_review"    # ISO 13485 5.6
+NONCONFORMANCE = "nonconformance"          # ISO 13485 8.3
+DESIGN_CONTROL = "design_control"          # ISO 13485 7.3.3 to 7.3.5
 
 RECORD_TYPES = [
     (PROBLEM_REPORT, "Problem Report"),
@@ -41,6 +45,10 @@ RECORD_TYPES = [
     (CAPA, "CAPA"),
     (CHANGE_REQUEST, "Change Request"),
     (PMS_ACTIVITY, "PMS Activity"),
+    (INTERNAL_AUDIT, "Internal Audit"),
+    (MANAGEMENT_REVIEW, "Management Review"),
+    (NONCONFORMANCE, "Nonconforming Product"),
+    (DESIGN_CONTROL, "Design Control"),
 ]
 
 REF_PREFIX = {
@@ -50,7 +58,26 @@ REF_PREFIX = {
     CAPA: "CAPA",
     CHANGE_REQUEST: "CR",
     PMS_ACTIVITY: "PMS",
+    INTERNAL_AUDIT: "IA",
+    MANAGEMENT_REVIEW: "MR",
+    NONCONFORMANCE: "NC",
+    DESIGN_CONTROL: "DES",
 }
+
+# Dispositions of nonconforming product (ISO 13485 8.3.2). "Pending" is not a disposition.
+NC_DISPOSITIONS = [
+    ("rework", "Rework (then verify)"),
+    ("use_as_is_concession", "Use as is under concession"),
+    ("scrap", "Scrap / destroy"),
+    ("return_to_supplier", "Return to supplier"),
+]
+
+# What a design control record is (ISO 13485 7.3.3 inputs, 7.3.4 outputs, 7.3.5 reviews).
+DESIGN_ELEMENTS = [
+    ("input", "Design input"),
+    ("output", "Design output"),
+    ("review", "Design review"),
+]
 
 # Which record fields are shown/editable for each type (besides title/description/owner).
 TYPE_FIELDS = {
@@ -75,6 +102,22 @@ TYPE_FIELDS = {
         "verification_evidence", "fix_version",
     ],
     PMS_ACTIVITY: ["due_date", "period_start", "period_end", "investigation_summary", "resolution"],
+    INTERNAL_AUDIT: [
+        "audit_scope", "auditee", "planned_date", "investigation_summary", "verification_evidence",
+        "resolution",
+    ],
+    MANAGEMENT_REVIEW: [
+        "planned_date", "attendees", "review_inputs", "resolution", "resource_needs",
+    ],
+    NONCONFORMANCE: [
+        "software_version", "software_item", "risk_file_updated", "investigation_summary",
+        "root_cause", "nc_disposition", "concession_justification", "verification_evidence",
+        "resolution",
+    ],
+    DESIGN_CONTROL: [
+        "design_element", "software_item", "acceptance_criteria", "planned_date", "attendees",
+        "investigation_summary",
+    ],
 }
 
 # Statuses in which a record is locked against further edits.
@@ -106,6 +149,33 @@ def _has_link(link_type: str, target_type: Optional[str] = None, label: str = ""
             return f"Needs a '{label or link_type}' link before this step."
         return None
     return check
+
+
+def _auditor_independent(record):
+    """ISO 13485 8.2.4: auditors shall not audit their own work."""
+    if record.owner_id and record.owner_id == record.auditee_id:
+        return "The lead auditor cannot be the auditee: auditors do not audit their own work."
+    return None
+
+
+def _concession_justified(record):
+    """ISO 13485 8.3.2: a concession needs justification, approval and the risk file checked."""
+    if record.nc_disposition != "use_as_is_concession":
+        return None
+    if not record.concession_justification.strip():
+        return "A concession needs its justification written down first."
+    if record.risk_file_updated in ("", "pending"):
+        return ("A concession needs the risk file checked first: set 'Risk file updated' to "
+                "Yes or Not needed.")
+    return None
+
+
+def _design_review_complete(record):
+    """ISO 13485 7.3.5: a design review records the design reviewed, participants and date."""
+    if record.design_element == "review" and not (record.attendees.strip()
+                                                  and record.planned_date):
+        return "A design review needs its participants and review date."
+    return None
 
 
 def _complaint_reportability(record):
@@ -221,6 +291,60 @@ WORKFLOWS = {
                        comment_required=True),
             Transition("complete", "Approve and complete", ("review",), "done", roles=(QA,),
                        signature="Review", independent=True),
+        ],
+    },
+    INTERNAL_AUDIT: {
+        "states": ["planned", "in_progress", "report_issued", "closed"],
+        "initial": "planned",
+        "transitions": [
+            Transition("start", "Start audit", ("planned",), "in_progress",
+                       required=("audit_scope", "auditee", "owner", "planned_date"),
+                       checks=(_auditor_independent,)),
+            Transition("report", "Issue audit report", ("in_progress",), "report_issued",
+                       required=("investigation_summary",)),
+            Transition("close", "Close audit", ("report_issued",), "closed", roles=(QA,),
+                       signature="Approval", independent=True, required=("resolution",)),
+        ],
+    },
+    MANAGEMENT_REVIEW: {
+        "states": ["planned", "held", "closed"],
+        "initial": "planned",
+        "transitions": [
+            Transition("hold", "Record review held", ("planned",), "held", roles=(QA,),
+                       required=("planned_date", "attendees", "review_inputs")),
+            Transition("close", "Record outputs and close", ("held",), "closed", roles=(QA,),
+                       signature="Approval", required=("resolution", "resource_needs")),
+        ],
+    },
+    NONCONFORMANCE: {
+        "states": ["open", "evaluation", "disposition", "verification", "closed", "rejected"],
+        "initial": "open",
+        "transitions": [
+            Transition("evaluate", "Start evaluation", ("open",), "evaluation"),
+            Transition("decide", "Record disposition", ("evaluation",), "disposition", roles=(QA,),
+                       signature="Disposition approval", independent=True,
+                       required=("investigation_summary", "nc_disposition"),
+                       checks=(_concession_justified,)),
+            Transition("verify", "Verify disposition", ("disposition",), "verification",
+                       required=("verification_evidence",)),
+            Transition("close", "Close", ("verification",), "closed", roles=(QA,),
+                       signature="Approval", independent=True, required=("resolution",)),
+            Transition("reject", "Reject (not nonconforming)", ("open", "evaluation"), "rejected",
+                       roles=(QA,), signature="Approval", comment_required=True),
+        ],
+    },
+    DESIGN_CONTROL: {
+        "states": ["draft", "in_review", "closed", "rejected"],
+        "initial": "draft",
+        "transitions": [
+            Transition("submit", "Submit for review", ("draft",), "in_review",
+                       required=("design_element", "acceptance_criteria"),
+                       checks=(_design_review_complete,)),
+            Transition("approve", "Approve", ("in_review",), "closed", roles=(QA,),
+                       signature="Design approval", independent=True,
+                       required=("investigation_summary",)),
+            Transition("reject", "Reject", ("in_review",), "rejected", roles=(QA,),
+                       signature="Approval", comment_required=True),
         ],
     },
 }

@@ -59,7 +59,7 @@ class Device(AuditedModel):
                "classification_rule", "software_safety_class", "basic_udi_di", "manufacturer",
                "uk_responsible_person", "approved_body", "regulatory_status", "markets",
                "standards_applied", "current_version", "software_items", "owner_id", "active",
-               "operator_roles"]
+               "operator_roles", "expected_lifetime_years"]
 
     name = models.CharField(max_length=120, unique=True)
     code = models.CharField(max_length=12, unique=True,
@@ -75,6 +75,11 @@ class Device(AuditedModel):
                                          choices=UK_CLASSES, blank=True, default="")
     us_classification = models.CharField("FDA class", max_length=5, choices=US_CLASSES,
                                          blank=True, default="")
+    expected_lifetime_years = models.PositiveSmallIntegerField(
+        "Expected lifetime (years)", null=True, blank=True,
+        help_text="How long the device is expected to be in use, as the organisation defines it "
+                  "(ISO 13485 4.2.5). Records and obsolete documents are kept at least this long, "
+                  "and never less than two years.")
     classification_rule = models.TextField(
         "Classification rationale", blank=True,
         help_text="Rule applied and why, e.g. MDR Annex VIII Rule 11.")

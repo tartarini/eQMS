@@ -23,7 +23,7 @@ DOC_TYPES = [
 class Document(AuditedModel):
     """A controlled document (SOP, plan, policy…). Its content lives in versions."""
     AUDITED = ["title", "doc_type", "device_id", "tech_file_section", "owner_id",
-               "review_period_months", "description", "obsolete"]
+               "review_period_months", "description", "obsolete", "obsolete_on"]
 
     number = models.CharField(max_length=20, unique=True, editable=False)
     title = models.CharField(max_length=200)
@@ -41,6 +41,8 @@ class Document(AuditedModel):
     review_period_months = models.PositiveSmallIntegerField(
         default=24, help_text="How often the effective version must be reviewed.")
     obsolete = models.BooleanField(default=False, editable=False)
+    obsolete_on = models.DateField(null=True, blank=True, editable=False,
+                                   help_text="Date the document was withdrawn.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

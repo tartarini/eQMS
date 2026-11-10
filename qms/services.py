@@ -328,6 +328,7 @@ def obsolete_document(document: Document, user, secret: str, comment: str):
                                                       "approved"]):
             _set_version_status(v, "obsolete", user, comment)
         document.obsolete = True
+        document.obsolete_on = timezone.now().date()
         document.save(_via_workflow=True, _actor=user, _comment=comment)
     return document
 

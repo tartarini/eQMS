@@ -1,4 +1,4 @@
-There are six kinds of quality record. Each belongs to one device, moves through fixed statuses, and the next step only becomes available once the information it needs is filled in.
+There are ten kinds of quality record. Each belongs to one device, moves through fixed statuses, and the next step only becomes available once the information it needs is filled in.
 
 | Record | Use it for | Statuses |
 | --- | --- | --- |
@@ -8,6 +8,10 @@ There are six kinds of quality record. Each belongs to one device, moves through
 | CAPA | Root-cause fixes for systemic or repeated problems | Open → Root cause → Action plan → Implementing → Effectiveness check → Closed |
 | Change Request (CR) | Any change to released software, including fixes | Proposed → Impact analysis → Approved → Implemented → Verified → Closed (or Rejected) |
 | PMS Activity (PMS) | Scheduled post-market surveillance tasks, created automatically | To do → In progress → Review → Done |
+| Internal Audit (IA) | Planned audits of QMS processes and documents, with the auditee and lead auditor kept separate (ISO 13485 8.2.4) | Planned → In progress → Report issued → Closed |
+| Management Review (MR) | The top-management review of the QMS: inputs considered, decisions and resource needs (ISO 13485 5.6) | Planned → Held → Closed |
+| Nonconforming Product (NC) | Product or software output that does not meet requirements, with its disposition and verification (ISO 13485 8.3) | Open → Evaluation → Disposition → Verification → Closed (or Rejected) |
+| Design Control (DES) | A design input, design output or design review, approved before use (ISO 13485 7.3) | Draft → In review → Closed (approved) or Rejected |
 
 ## Working on a record
 
@@ -82,3 +86,19 @@ Post-market surveillance tasks are created automatically 30 days before they're 
 1. Open the activity and click **Start**.
 2. Record what you reviewed and found under **Investigation summary / findings**. Raise and link any Problem Report, CAPA or Change Request.
 3. **Submit for review**. QA either approves it with a signature or sends it back with a comment.
+
+## Internal audits, management reviews and nonconforming product
+
+- **Internal audit:** start only when the lead auditor (the record's owner) is different from the auditee. QA closes the audit with a signature from someone other than the person who created the record.
+- **Management review:** QA records the review as held once the inputs are written down, then records the decisions and resource needs and closes it with a signature. The review is recorded against one device; for a multi-device organisation, record a review on each device or keep the QMS-wide minutes as a document.
+- **Nonconforming product:** QA records the disposition with a signature from someone other than the person who created the record. A **use as is under concession** disposition needs a written justification and the risk file checked first. The disposition is then verified before the record closes.
+- **Design control:** a design input or output is submitted for review with its acceptance criteria, and QA approves it with a signature from someone other than the person who created it. A design review also needs its participants and date. Approved design records are locked; a change to them goes through a Change Request.
+
+## Retention
+
+Nothing is deleted. Closed records and withdrawn documents must be kept for the device's expected lifetime (set on the device page) and never less than two years. The retention report lists when each item's retention period ends:
+
+    python manage.py retention_report --within-days 90
+
+If a device has no expected lifetime, the report marks its items so you can set it.
+
