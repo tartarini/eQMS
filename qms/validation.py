@@ -375,6 +375,22 @@ REQUIREMENTS = [
       "test_compliance_records.RetentionTests.test_closed_record_and_withdrawn_document_are_listed",
       "test_compliance_records.RetentionTests.test_report_command_prints_items_and_flags_missing_lifetime",
       "test_compliance_records.RecordPrefixTests.test_new_types_have_prefixes_and_fields"], []),
+    ("URS-100", "Records", "Nonconforming product and design control records can be rejected only "
+     "with a stated reason, and a rejected record is locked.", "H",
+     ["test_compliance_records.RejectionTests.test_nonconformance_can_be_rejected_with_a_reason",
+      "test_compliance_records.RejectionTests.test_design_review_can_be_rejected_with_a_reason"],
+     []),
+    ("URS-101", "Records", "The management review, internal audit, nonconforming product and "
+     "design control records can be created and moved on in the browser, and a step is refused "
+     "in the browser when its required fields are missing.", "H",
+     ["test_compliance_records.WebUITests.test_each_new_type_is_created_and_detail_renders",
+      "test_compliance_records.WebUITests.test_transition_is_refused_in_the_browser_without_required_fields"],
+     []),
+    ("URS-102", "Records", "Withdrawn QMS-wide documents are kept for the longest expected lifetime "
+     "of the active devices, and each device's expected lifetime can be set on its record.", "M",
+     ["test_compliance_records.RetentionOfQmsWideDocumentTests.test_qms_wide_document_uses_the_longest_device_lifetime",
+      "test_compliance_records.WebUITests.test_device_form_offers_expected_lifetime"],
+     []),
 ]
 
 

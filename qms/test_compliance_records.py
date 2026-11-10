@@ -6,6 +6,7 @@ from io import StringIO
 from django.contrib.auth.models import Group, User
 from django.core.management import call_command
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from . import workflow as wf
 from .models import Device, DeviceMembership, Document, ImmutableError, Record
@@ -248,3 +249,76 @@ class RecordPrefixTests(Base):
             self.assertIn(t, wf.TYPE_FIELDS)
             self.assertIn(t, wf.WORKFLOWS)
             self.assertNotIn("pending", [v for v, _ in wf.NC_DISPOSITIONS])
+
+
+class RejectionTests(Base):
+    def test_nonconformance_can_be_rejected_with_a_reason(self):
+        nc = self.new(wf.NONCONFORMANCE, investigation_summary="Reported in error")
+        self.step(nc, "evaluate", self.eng)
+        with self.assertRaisesMessage(TransitionError, "comment"):
+            self.step(nc, "reject", self.qa)
+        self.step(nc, "reject", self.qa, comment="Not a nonconformity: spec was misread")
+        nc.refresh_from_db()
+        self.assertEqual(nc.status, "rejected")
+        self.assertTrue(nc.is_locked)
+
+    def test_design_review_can_be_rejected_with_a_reason(self):
+        des = self.new(wf.DESIGN_CONTROL, design_element="input",
+                       acceptance_criteria="Reads a 10-bit sensor")
+        self.step(des, "submit", self.eng)
+        with self.assertRaisesMessage(TransitionError, "comment"):
+            self.step(des, "reject", self.qa)
+        self.step(des, "reject", self.qa, comment="Criteria are not measurable")
+        des.refresh_from_db()
+        self.assertEqual(des.status, "rejected")
+
+
+class RetentionOfQmsWideDocumentTests(Base):
+    @override_settings(QMS_RETENTION_MIN_YEARS=2)
+    def test_qms_wide_document_uses_the_longest_device_lifetime(self):
+        self.device.expected_lifetime_years = 12
+        self.device.save()
+        doc = Document.objects.create(title="QMS-wide SOP", doc_type="SOP", device=None)
+        obsolete_document(doc, self.qa, PW, "Replaced by a new procedure")
+        doc.refresh_from_db()
+        rows = [r for r in retention_items() if r["kind"] == "Document"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["until"], add_years(doc.obsolete_on, 12))
+        self.assertTrue(rows[0]["lifetime_defined"])
+
+
+class WebUITests(Base):
+    """The four new record types can be created, moved on and viewed in the browser."""
+
+    def test_each_new_type_is_created_and_detail_renders(self):
+        self.client.login(username="eng", password=PW)
+        cases = {
+            wf.INTERNAL_AUDIT: {"title": "Supplier audit", "audit_scope": "7.4 purchasing",
+                                "auditee": self.qa2.pk, "owner": self.eng.pk,
+                                "planned_date": "2026-06-01"},
+            wf.MANAGEMENT_REVIEW: {"title": "Q2 review", "planned_date": "2026-07-01"},
+            wf.NONCONFORMANCE: {"title": "Checksum mismatch", "software_version": "2.3.1"},
+            wf.DESIGN_CONTROL: {"title": "Sensor input", "design_element": "input",
+                                "acceptance_criteria": "Reads a 10-bit sensor"},
+        }
+        for record_type, fields in cases.items():
+            with self.subTest(record_type=record_type):
+                data = {"device": self.device.pk, "description": "", **fields}
+                resp = self.client.post(reverse("qms:record_create", args=[record_type]), data)
+                record = Record.objects.filter(record_type=record_type).latest("pk")
+                self.assertRedirects(resp, reverse("qms:record_detail", args=[record.ref]))
+                self.assertEqual(self.client.get(
+                    reverse("qms:record_detail", args=[record.ref])).status_code, 200)
+
+    def test_transition_is_refused_in_the_browser_without_required_fields(self):
+        self.client.login(username="eng", password=PW)
+        self.client.post(reverse("qms:record_create", args=[wf.NONCONFORMANCE]),
+                         {"device": self.device.pk, "title": "Checksum mismatch"})
+        self.client.post(reverse("qms:record_transition", args=["NC-0001", "evaluate"]))
+        self.assertEqual(Record.objects.get(ref="NC-0001").status, "evaluation")
+        self.client.post(reverse("qms:record_transition", args=["NC-0001", "reject"]))
+        self.assertEqual(Record.objects.get(ref="NC-0001").status, "evaluation")
+
+    def test_device_form_offers_expected_lifetime(self):
+        from .forms import DeviceForm
+        self.assertIn("expected_lifetime_years", DeviceForm().fields)
