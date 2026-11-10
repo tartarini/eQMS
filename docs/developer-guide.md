@@ -698,8 +698,10 @@ the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
    open Problem Reports (known residual anomalies, IEC 62304 §5.8.3), complaints, incidents,
    CAPAs, PMS activities and overdue items.
 2. **`completeness_checks(device, data)`** returns `{level, section, message}` items. *Errors*
-   block approval: missing intended purpose, description or manufacturer; classification not
-   determined; no software safety class; no hazards; an unaccepted hazard whose risk is
+   block approval: missing intended purpose, description or manufacturer; no class for any market,
+   or a market whose class is not yet determined (`Device.eu_classification`,
+   `uk_classification`, `us_classification`, with choices from `EU_CLASSES`, `UK_CLASSES` and
+   `US_CLASSES` in `models/devices.py`; "" means not placed on that market); no software safety class; no hazards; an unaccepted hazard whose risk is
    unacceptable; a tagged document failing its integrity check; no Declaration of Conformity
    for an on-market device; a broken audit chain. Everything else is a *warning* (missing
    section documents, unaccepted or unverified risks, stale SOUP reviews, open safety problems,

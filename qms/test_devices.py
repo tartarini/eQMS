@@ -35,7 +35,8 @@ def join(device, *users):
 def complete_device(code="SKN", name="SkinCheck"):
     d = Device(name=name, code=code, description="Photo capture and classification model",
                intended_purpose="Support referral decisions", intended_users="GPs",
-               patient_population="Adults with a skin lesion", classification="IIa",
+               patient_population="Adults with a skin lesion", eu_classification="IIa",
+               uk_classification="IIa",
                software_items="Mobile app\nClassification model",
                classification_rule="Rule 11", software_safety_class="B",
                basic_udi_di="5060000000000ABC", manufacturer="Example Ltd",
@@ -155,6 +156,51 @@ class CompletenessTests(Base):
         checks = techfile.completeness_checks(device)
         return ([c["message"] for c in checks if c["level"] == "error"],
                 [c["message"] for c in checks if c["level"] == "warning"])
+
+    def test_each_framework_offers_its_own_classes(self):
+        from .forms import DeviceForm
+        fields = DeviceForm().fields
+
+        def offered(name):
+            return [c for c, _ in fields[name].choices]
+        self.assertEqual(offered("eu_classification"),
+                         ["", "I", "Is", "Im", "Ir", "IIa", "IIb", "III", "tbd"])
+        self.assertEqual(offered("uk_classification"), ["", "I", "IIa", "IIb", "III", "tbd"])
+        self.assertEqual(offered("us_classification"), ["", "I", "II", "III", "tbd"])
+        self.dev.eu_classification, self.dev.uk_classification = "Im", "IIa"
+        self.dev.us_classification = "II"
+        self.dev.save()
+        self.assertEqual(self.dev.classifications(),
+                         [("EU MDR", "Class Im (measuring function)"),
+                          ("UK MDR 2002", "Class IIa"), ("FDA", "Class II")])
+        self.assertEqual(self.dev.classification_summary(), "EU MDR Class Im (measuring "
+                         "function) · UK MDR 2002 Class IIa · FDA Class II")
+        errors, _ = self.levels(self.dev)
+        self.assertFalse(any("classification" in e.lower() for e in errors), errors)
+
+    def test_a_market_with_its_class_not_determined_blocks_approval(self):
+        self.dev.us_classification = "tbd"
+        self.dev.save()
+        errors, _ = self.levels(self.dev)
+        self.assertIn("FDA classification has not been determined.", errors)
+        self.dev.eu_classification = self.dev.uk_classification = ""
+        self.dev.us_classification = ""
+        self.dev.save()
+        errors, _ = self.levels(self.dev)
+        self.assertTrue(any("not set for any market" in e for e in errors))
+        self.assertEqual(self.dev.classification_summary(), "Not classified")
+
+    def test_technical_file_lists_the_class_for_each_market(self):
+        from django.utils import timezone
+        self.dev.us_classification = "II"
+        self.dev.save()
+        meta = {"label": "SKN-TF-1", "generated_at": timezone.now(), "generated_by": "qa"}
+        outline = techfile.build_outline(self.dev, techfile.gather(self.dev), [], meta)
+        rows = dict(next(b[1] for b in outline if b[0] == "kv" and
+                         any(k == "Device name" for k, _ in b[1])))
+        self.assertEqual(rows["Classification (EU MDR)"], "Class IIa")
+        self.assertEqual(rows["Classification (UK MDR 2002)"], "Class IIa")
+        self.assertEqual(rows["Classification (FDA)"], "Class II")
 
     def test_empty_device_has_errors(self):
         bare = Device(name="Bare", code="BARE")

@@ -41,7 +41,7 @@ class Command(BaseCommand):
             intended_users="GPs and primary-care clinicians.",
             patient_population="Adults with a skin lesion their clinician is unsure about.",
             contraindications="Lesions on mucosa, nails or scalp; images of children.",
-            classification="IIa",
+            eu_classification="IIa", uk_classification="IIa",
             classification_rule="MDR Annex VIII Rule 11: software providing information used to "
                                 "take decisions with diagnostic purposes.",
             software_safety_class="B", basic_udi_di="", manufacturer="Example manufacturer Ltd",
@@ -53,7 +53,7 @@ class Command(BaseCommand):
         skn.save(_actor=qa)
         resp = Device(
             name="RespiTrack", code="RSPT", owner=eng, current_version="0.4.0",
-            regulatory_status="development", classification="tbd",
+            regulatory_status="development", uk_classification="tbd",
             description="Prototype app estimating breathing rate from phone audio.",
             software_items="Mobile app\nSignal processing\nInfrastructure")
         resp.save(_actor=qa)

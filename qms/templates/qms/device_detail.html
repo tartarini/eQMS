@@ -4,7 +4,7 @@
 {% block content %}
 <p class="muted small">Medical device · {{ device.code }}</p>
 <h1>{{ device.name }}</h1>
-<p class="small muted">{{ device.get_classification_display }} · Software safety {{ device.get_software_safety_class_display|default:"class not set" }} · Version {{ device.current_version|default:"—" }} · {{ device.get_regulatory_status_display }}{% if device.markets %} · {{ device.markets }}{% endif %}</p>
+<p class="small muted">{{ device.classification_summary }} · Software safety {{ device.get_software_safety_class_display|default:"class not set" }} · Version {{ device.current_version|default:"—" }} · {{ device.get_regulatory_status_display }}{% if device.markets %} · {{ device.markets }}{% endif %}</p>
 
 <div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(300px,1fr)">
   <div>

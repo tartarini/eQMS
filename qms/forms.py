@@ -327,7 +327,8 @@ class DeviceForm(forms.ModelForm):
         fields = ["name", "code", "owner", "current_version", "regulatory_status", "markets",
                   "operator_roles",
                   "description", "intended_purpose", "intended_users", "patient_population",
-                  "contraindications", "classification", "classification_rule",
+                  "contraindications", "eu_classification", "uk_classification",
+                  "us_classification", "classification_rule",
                   "software_safety_class", "software_items", "basic_udi_di", "manufacturer",
                   "uk_responsible_person", "approved_body", "standards_applied", "active"]
         widgets = _widgets(fields)

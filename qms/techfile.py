@@ -129,9 +129,13 @@ def completeness_checks(device: Device, data: dict = None) -> list:
     if not device.operator_role_list():
         add("warning", "1", "Our economic operator role for this device (manufacturer, "
                             "authorised representative, importer or distributor) is not set.")
-    if device.classification == "tbd":
-        add("error", "1", "Device classification has not been determined.")
-    elif not device.classification_rule.strip():
+    if not device.classifications():
+        add("error", "1", "Device classification is not set for any market (EU MDR, UK MDR "
+                          "2002 or FDA).")
+    for framework in device.classification_gaps():
+        add("error", "1", f"{framework} classification has not been determined.")
+    if device.classifications() and not device.classification_gaps() \
+            and not device.classification_rule.strip():
         add("warning", "1", "Classification rationale (rule applied) is missing.")
     if not device.software_safety_class:
         add("error", "3", "IEC 62304 software safety class is not set.")
@@ -238,7 +242,7 @@ def build_outline(device: Device, data: dict, checks: list, meta: dict) -> list:
         ("Technical file", meta["label"]),
         ("Device", f"{device.name} ({device.code})"),
         ("Software version", device.current_version),
-        ("Classification", device.get_classification_display()),
+        ("Classification", device.classification_summary()),
         ("Regulatory status", device.get_regulatory_status_display()),
         ("Generated", f"{meta['generated_at']:%d %b %Y %H:%M} by {meta['generated_by']}"),
         ("Completeness", f"{len(errors)} error(s), {len(warnings)} warning(s)"),
@@ -259,7 +263,7 @@ def build_outline(device: Device, data: dict, checks: list, meta: dict) -> list:
         ("Intended patient population", device.patient_population),
         ("Contraindications and limitations", device.contraindications),
         ("Description and principle of operation", device.description),
-        ("Classification", device.get_classification_display()),
+        *[(f"Classification ({fw})", label) for fw, label in device.classifications()],
         ("Classification rationale", device.classification_rule),
         ("IEC 62304 software safety class", device.get_software_safety_class_display()),
         ("Software items", ", ".join(device.software_item_list())),
@@ -614,7 +618,8 @@ def generate_technical_file(device: Device, user) -> TechnicalFileBuild:
             "technical_file": label,
             "device": {"name": device.name, "code": device.code,
                        "software_version": device.current_version,
-                       "classification": device.classification,
+                       "classification": {fw: label for fw, label
+                                          in device.classifications()},
                        "basic_udi_di": device.basic_udi_di},
             "generated_at": now.isoformat(),
             "generated_by": meta["generated_by"],

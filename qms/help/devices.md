@@ -74,7 +74,7 @@ The person who sent an invitation can resend or revoke it, as can anyone who man
 QA only.
 
 1. **Devices → New device**.
-2. Enter the name, a short code (for example HRT1) and the regulatory particulars: intended purpose, users and patients, classification and rationale, IEC 62304 software safety class, Basic UDI-DI, manufacturer, markets and standards applied. You can complete these later; they form section 1 of the technical file.
+2. Enter the name, a short code (for example HRT1) and the regulatory particulars: intended purpose, users and patients, the class for each market (EU MDR, UK MDR 2002 for UKCA, FDA; or *Not for this market*) and the rationale, IEC 62304 software safety class, Basic UDI-DI, manufacturer, markets and standards applied. You can complete these later; they form section 1 of the technical file.
 3. List the device's **software items**, one per line (see below).
 4. Save. The standard post-market surveillance schedule is set up for the device automatically.
 

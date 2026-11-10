@@ -6,8 +6,31 @@ from django.db import models
 
 from .core import AuditedModel, ImmutableError
 
-CLASSIFICATIONS = [("I", "Class I"), ("IIa", "Class IIa"), ("IIb", "Class IIb"),
-                   ("III", "Class III"), ("tbd", "Not yet determined")]
+# Device classification depends on the regulatory framework of each market. "" means the
+# device isn't placed on that market; "tbd" that its class there isn't determined yet.
+NOT_DETERMINED = "tbd"
+# EU: Regulation (EU) 2017/745 (MDR) Annex VIII, applied by the manufacturer and notified bodies
+# (not EMA, which regulates medicines). Class I sub-classes need a notified body for the
+# sterile, measuring or reusable aspect (Art. 52(7)).
+EU_CLASSES = [("", "Not for the EU market"), ("I", "Class I"),
+              ("Is", "Class Is (sterile)"),
+              ("Im", "Class Im (measuring function)"),
+              ("Ir", "Class Ir (reusable surgical instruments)"),
+              ("IIa", "Class IIa"), ("IIb", "Class IIb"), ("III", "Class III"),
+              (NOT_DETERMINED, "Not yet determined")]
+# UK (UKCA): UK MDR 2002 Annex IX as modified by Schedule 2A, four classes, as set out by the
+# MHRA: https://www.gov.uk/government/consultations/consultation-on-the-future-regulation-of-
+# medical-devices-in-the-united-kingdom/chapter-2-classification
+UK_CLASSES = [("", "Not for the UK market"), ("I", "Class I"), ("IIa", "Class IIa"),
+              ("IIb", "Class IIb"), ("III", "Class III"),
+              (NOT_DETERMINED, "Not yet determined")]
+# US: FDA, 21 CFR Part 860.
+US_CLASSES = [("", "Not for the US market"), ("I", "Class I"), ("II", "Class II"),
+              ("III", "Class III"), (NOT_DETERMINED, "Not yet determined")]
+# (field, framework label) in display order.
+CLASSIFICATION_FIELDS = [("eu_classification", "EU MDR"), ("uk_classification", "UK MDR 2002"),
+                         ("us_classification", "FDA")]
+CLASSIFICATIONS = EU_CLASSES  # kept for imports; the EU list was the only one before
 SAFETY_CLASSES = [("A", "Class A"), ("B", "Class B"), ("C", "Class C")]
 REG_STATUSES = [("development", "In development"),
                 ("clinical_investigation", "Clinical investigation / research use"),
@@ -31,7 +54,8 @@ TECH_FILE_SECTIONS = [
 
 class Device(AuditedModel):
     AUDITED = ["name", "code", "description", "intended_purpose", "intended_users",
-               "patient_population", "contraindications", "classification",
+               "patient_population", "contraindications", "eu_classification",
+               "uk_classification", "us_classification",
                "classification_rule", "software_safety_class", "basic_udi_di", "manufacturer",
                "uk_responsible_person", "approved_body", "regulatory_status", "markets",
                "standards_applied", "current_version", "software_items", "owner_id", "active",
@@ -45,7 +69,12 @@ class Device(AuditedModel):
     intended_users = models.TextField(blank=True)
     patient_population = models.TextField("Intended patient population", blank=True)
     contraindications = models.TextField("Contraindications and limitations", blank=True)
-    classification = models.CharField(max_length=5, choices=CLASSIFICATIONS, default="tbd")
+    eu_classification = models.CharField("EU MDR class", max_length=5, choices=EU_CLASSES,
+                                         blank=True, default="")
+    uk_classification = models.CharField("UK MDR 2002 class (UKCA)", max_length=5,
+                                         choices=UK_CLASSES, blank=True, default="")
+    us_classification = models.CharField("FDA class", max_length=5, choices=US_CLASSES,
+                                         blank=True, default="")
     classification_rule = models.TextField(
         "Classification rationale", blank=True,
         help_text="Rule applied and why, e.g. MDR Annex VIII Rule 11.")
@@ -83,6 +112,24 @@ class Device(AuditedModel):
     @property
     def audit_ref(self):
         return self.code
+
+    def classifications(self) -> list:
+        """(framework, class label) for each market the device is placed on, e.g.
+        [("EU MDR", "Class IIa"), ("FDA", "Class II")]."""
+        out = []
+        for field, framework in CLASSIFICATION_FIELDS:
+            if getattr(self, field):
+                out.append((framework, getattr(self, f"get_{field}_display")()))
+        return out
+
+    def classification_summary(self) -> str:
+        return " · ".join(f"{fw} {label}" for fw, label in self.classifications()) \
+            or "Not classified"
+
+    def classification_gaps(self) -> list:
+        """Frameworks whose class is still to be determined."""
+        return [fw for field, fw in CLASSIFICATION_FIELDS
+                if getattr(self, field) == NOT_DETERMINED]
 
     def operator_role_list(self) -> list:
         from .organisation import parse_operator_roles

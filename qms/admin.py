@@ -173,9 +173,11 @@ class OrganisationAdmin(NoDeleteAdmin):
 @admin.register(Device)
 class DeviceAdmin(NoDeleteAdmin):
     inlines = [MembershipInline]
-    list_display = ("name", "code", "classification", "software_safety_class",
+    list_display = ("name", "code", "eu_classification", "uk_classification",
+                    "us_classification", "software_safety_class",
                     "regulatory_status", "current_version", "active")
-    list_filter = ("classification", "regulatory_status", "active")
+    list_filter = ("eu_classification", "uk_classification", "us_classification",
+                   "regulatory_status", "active")
 
 
 @admin.register(TechnicalFileBuild)

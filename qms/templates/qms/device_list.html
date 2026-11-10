@@ -19,7 +19,7 @@
       <form method="post" action="{% url 'qms:set_device' %}" style="margin:0">{% csrf_token %}
         <input type="hidden" name="device" value="{{ d.pk }}"><input type="hidden" name="next" value="{% url 'qms:dashboard' %}">
         <button class="btn" style="padding:3px 12px" aria-label="Open {{ d.name }}">Open</button></form>{% endif %}</td>
-    <td>{{ d.get_classification_display }}</td>
+    <td class="small">{% for fw, label in d.classifications %}{{ fw }}: {{ label }}{% if not forloop.last %}<br>{% endif %}{% empty %}<span class="muted">Not classified</span>{% endfor %}</td>
     <td>{{ d.current_version|default:"—" }}</td>
     <td class="small">{{ d.get_regulatory_status_display }}</td>
     <td class="small">{% for t, n in row.open_counts %}{{ n }} {{ t }}{% if not forloop.last %}, {% endif %}{% empty %}none{% endfor %}</td>

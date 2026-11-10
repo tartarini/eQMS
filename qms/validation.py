@@ -260,6 +260,10 @@ REQUIREMENTS = [
      "documents in MDR Annex II/III order, and the completeness check reports gaps correctly.",
      "H",
      ["test_devices.CompletenessTests.test_empty_device_has_errors",
+      "test_devices.CompletenessTests.test_each_framework_offers_its_own_classes",
+      "test_devices.CompletenessTests."
+      "test_a_market_with_its_class_not_determined_blocks_approval",
+      "test_devices.CompletenessTests.test_technical_file_lists_the_class_for_each_market",
       "test_devices.CompletenessTests.test_complete_device_has_no_gaps",
       "test_devices.CompletenessTests.test_on_market_requires_declaration_and_unaccepted_unacceptable_risk_is_error",
       "test_devices.CompletenessTests.test_qms_wide_documents_count_for_every_device",

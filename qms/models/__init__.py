@@ -6,7 +6,8 @@ from .documents import (DOC_TYPES, Document, DocumentVersion, TrainingAssignment
 from .risk import (LEVEL_LABELS, PROBABILITY_SCALE, SEVERITY_SCALE, Hazard,  # noqa
                    RiskControl, risk_level)
 from .suppliers import SoupItem, Supplier  # noqa
-from .devices import (CLASSIFICATIONS, REG_STATUSES, TECH_FILE_SECTIONS, Device,  # noqa
+from .devices import (CLASSIFICATION_FIELDS, CLASSIFICATIONS, EU_CLASSES, UK_CLASSES,
+                      US_CLASSES, REG_STATUSES, TECH_FILE_SECTIONS, Device,  # noqa
                       DeviceMembership, TechnicalFileBuild)
 from .invitations import Invitation  # noqa
 from .access_requests import AccessRequest  # noqa

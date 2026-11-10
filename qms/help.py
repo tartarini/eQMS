@@ -392,10 +392,26 @@ FIELD_HELP = {
                                 "for."),
         "contraindications": ("Contraindications and limitations", "When it must not be used, "
                               "and its known limitations."),
-        "classification": ("Classification", "The device class under the regulations that "
-                           "apply."),
-        "classification_rule": ("Classification rationale", "The classification rule applied "
-                                "and why, for example \"MDR Annex VIII Rule 11\"."),
+        "eu_classification": ("EU MDR class", "The class under the EU Medical Device "
+                              "Regulation (EU) 2017/745, Annex VIII: I, IIa, IIb or III. Class I "
+                              "devices that are sterile (Is), have a measuring function (Im) or "
+                              "are reusable surgical instruments (Ir) need a notified body for "
+                              "that aspect; software with a measuring function can be Im. In the "
+                              "EU the manufacturer and notified body classify devices, not EMA. "
+                              "Choose \"Not for the EU market\" if it isn't placed there."),
+        "uk_classification": ("UK MDR 2002 class (UKCA)", "The class under the UK Medical "
+                              "Devices Regulations 2002 (Annex IX as modified by Schedule 2A), "
+                              "for the UKCA mark: Class I, IIa, IIb or III, the four classes the "
+                              "MHRA sets out. Choose \"Not for the UK market\" if it isn't "
+                              "placed there."),
+        "us_classification": ("FDA class", "The FDA device class under 21 CFR Part 860: "
+                              "Class I, II or III, as given by the device's classification "
+                              "regulation and product code. Choose \"Not for the US market\" if "
+                              "it isn't placed there."),
+        "classification_rule": ("Classification rationale", "For each market, the rule applied "
+                                "and why, for example \"EU and UK: MDR Annex VIII Rule 11 (Rule "
+                                "11 of UK MDR 2002 Annex IX for the UK); FDA: the classification "
+                                "regulation (21 CFR part 8xx) and product code\"."),
         "software_safety_class": ("IEC 62304 software safety class", "A, B or C, from the "
                                   "worst harm a software failure could contribute to."),
         "software_items": ("Software items", "The main parts of the device's software "
