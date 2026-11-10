@@ -346,6 +346,35 @@ REQUIREMENTS = [
       "test_ops.HealthTests.test_healthz_is_get_only"], ["IQ-03"]),
     ("URS-93", "Operation", "Response times are acceptable with the expected data volume.", "L",
      [], ["PQ-08"]),
+    ("URS-95", "Records", "Management reviews are recorded with their attendees, the inputs "
+     "considered, the decisions and the resource needs, and closed only with a QA signature.", "H",
+     ["test_compliance_records.ManagementReviewTests.test_held_review_needs_inputs_and_closes_with_outputs"], []),
+    ("URS-96", "Records", "Internal audits cannot be led by the auditee of the area audited, and "
+     "are closed by someone other than their author (ISO 13485 8.2.4).", "H",
+     ["test_compliance_records.InternalAuditTests.test_lead_auditor_cannot_audit_their_own_area",
+      "test_compliance_records.InternalAuditTests.test_independent_auditor_runs_and_qa_closes",
+      "test_compliance_records.InternalAuditTests.test_closer_may_not_be_the_record_author"], []),
+    ("URS-97", "Records", "Nonconforming product is dispositioned by QA, a concession needs its "
+     "justification and the risk file checked, and the disposition is verified before closure "
+     "(ISO 13485 8.3).", "H",
+     ["test_compliance_records.NonconformanceTests.test_disposition_needs_a_choice_and_qa_signature",
+      "test_compliance_records.NonconformanceTests.test_concession_needs_justification_and_risk_file_checked",
+      "test_compliance_records.NonconformanceTests.test_disposition_is_verified_then_closed"], []),
+    ("URS-98", "Records", "Design inputs, outputs and reviews need acceptance criteria, and design "
+     "reviews need participants and a date; approval is independent and locks the record "
+     "(ISO 13485 7.3.3 to 7.3.5).", "H",
+     ["test_compliance_records.DesignControlTests.test_output_needs_acceptance_criteria",
+      "test_compliance_records.DesignControlTests.test_review_needs_participants_and_date",
+      "test_compliance_records.DesignControlTests.test_approval_is_independent"], []),
+    ("URS-99", "Records", "Closed records and withdrawn documents are kept for the device's "
+     "expected lifetime and at least two years, and the retention end date is reported; "
+     "nothing is deleted (ISO 13485 4.2.4, 4.2.5).", "M",
+     ["test_compliance_records.RetentionTests.test_add_years_handles_leap_day",
+      "test_compliance_records.RetentionTests.test_minimum_is_two_years_without_lifetime",
+      "test_compliance_records.RetentionTests.test_expected_lifetime_extends_retention",
+      "test_compliance_records.RetentionTests.test_closed_record_and_withdrawn_document_are_listed",
+      "test_compliance_records.RetentionTests.test_report_command_prints_items_and_flags_missing_lifetime",
+      "test_compliance_records.RecordPrefixTests.test_new_types_have_prefixes_and_fields"], []),
 ]
 
 
