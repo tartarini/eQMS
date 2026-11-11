@@ -76,6 +76,7 @@ urlpatterns = [
     path("devices/<str:code>/team/add/", views_devices.team_add, name="team_add"),
     path("team/<int:pk>/remove/", views_devices.team_remove, name="team_remove"),
     path("team/<int:pk>/roles/", views_devices.team_roles, name="team_roles"),
+    path("people/", views_devices.people, name="people"),
     # Invitations (the accept page is open: the emailed link is the credential)
     path("invitations/", views_invitations.invitation_list, name="invitation_list"),
     path("invitations/new/", views_invitations.invitation_create, name="invitation_create"),

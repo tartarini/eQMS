@@ -101,6 +101,7 @@ PAGE_HELP = {
     "gate_approve": ("devices", "my-tasks"),
     "device_edit": ("devices", "add-a-device"),
     "set_device": ("devices", "choose-a-device"),
+    "people": ("devices", "people"),
     "team_add": ("devices", "device-teams"),
     "team_remove": ("devices", "device-teams"),
     "team_roles": ("devices", "roles-on-each-device"),

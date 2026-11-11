@@ -170,6 +170,15 @@ def _managers_left(device, without=None, new_roles=None):
     return count
 
 
+def _back(request, default):
+    """Go back to the page a team form was sent from (``next``), if it is on this site."""
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(
+            nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(nxt)
+    return redirect(default)
+
+
 @team_member
 @require_POST
 def team_add(request, code):
@@ -192,7 +201,7 @@ def team_add(request, code):
                                   f"{device.name} team as {', '.join(m.role_list())}.")
     else:
         messages.error(request, "Choose a person and at least one role.")
-    return redirect("qms:device_detail", code=code)
+    return _back(request, reverse("qms:device_detail", args=[code]))
 
 
 @team_member
@@ -221,7 +230,7 @@ def team_roles(request, pk):
                                       f"{', '.join(m.role_list()) or 'none'}.")
         else:
             messages.success(request, "Saved.")
-    return redirect("qms:device_detail", code=m.device.code)
+    return _back(request, reverse("qms:device_detail", args=[m.device.code]))
 
 
 @team_member
@@ -240,7 +249,41 @@ def team_remove(request, pk):
         m.save(_actor=request.user, _comment="Removed from team")
         messages.success(request, f"{m.user.get_username()} removed from the team. Their "
                                   "past records and signatures are kept.")
-    return redirect("qms:device_detail", code=m.device.code)
+    return _back(request, reverse("qms:device_detail", args=[m.device.code]))
+
+
+@team_member
+def people(request):
+    """Everyone on the teams of the devices this person can see, with their roles on each.
+    Team managers can change roles, remove people and add people from here; every change is
+    recorded in the audit trail."""
+    from .roles import org_roles
+    from django.contrib.auth import get_user_model
+    viewer = request.user
+    devices = list(accessible_devices(viewer).filter(active=True).order_by("name"))
+    memberships = (DeviceMembership.objects.filter(active=True, device__in=devices)
+                   .select_related("user", "device").order_by("user__username", "device__name"))
+    people_rows = {}
+    for m in memberships:
+        manage = can_manage_team(viewer, m.device) and m.user_id != viewer.pk
+        form = (TeamRolesForm(initial={"roles": m.role_list(), "note": m.note},
+                              prefix=f"m{m.pk}") if manage else None)
+        row = people_rows.setdefault(m.user_id, {"user": m.user, "memberships": []})
+        row["memberships"].append({"m": m, "form": form, "manage": manage})
+    managed = [d for d in devices if can_manage_team(viewer, d)]
+    add_forms = [{"device": d, "form": TeamMemberForm(device=d, auto_id=f"add{d.pk}_%s")}
+                 for d in managed]
+    org_people = [
+        {"user": u, "roles": [r for r in wf.ROLES if r in org_roles(u)]}
+        for u in get_user_model().objects.filter(is_active=True, groups__name__in=wf.ROLES)
+        .distinct().order_by("username")
+        if not u.is_superuser
+    ]
+    return render(request, "qms/people.html", {
+        "people": sorted(people_rows.values(), key=lambda r: r["user"].username),
+        "add_forms": add_forms, "org_people": org_people,
+        "devices": devices,
+    })
 
 
 @qms_member

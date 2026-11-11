@@ -122,3 +122,14 @@ column. Its approver role is shown on the card, and **Approve this gate** appear
 that role on the device. Nothing else on the board can be dragged or moved by hand: cards change
 when the underlying record, document or gate changes.
 
+## People
+
+**People** lists everyone on the teams of the devices you can see, with their roles on each device. It also lists people who hold an organisation-wide role (set by an administrator in Admin); those are read-only here.
+
+Device admins and QA on a device can, for each person on that device's team:
+
+- **Change roles:** tick or untick roles and save. Untick every role to keep someone on the team with no role.
+- **Remove from team:** this revokes their access to the device. Their past records and signatures are kept.
+- **Add a person:** choose someone with an account who is not yet on the team, then their roles and responsibility.
+
+You can't change your own roles, and a device must keep at least one Device admin or QA on its team. Every change is recorded in the audit trail with who made it and when.
