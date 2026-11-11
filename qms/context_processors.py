@@ -8,7 +8,10 @@ def devices(request):
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return {}
-    data = {"manages_teams": bool(managed_devices(user))}
+    from .role_lens import role_options
+    from .roles import active_role
+    data = {"manages_teams": bool(managed_devices(user)),
+            "role_options": role_options(user), "active_role": active_role(user)}
     if data["manages_teams"]:
         from .models import AccessRequest
         data["open_access_requests"] = AccessRequest.objects.filter(status="pending").count()

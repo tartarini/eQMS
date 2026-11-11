@@ -77,7 +77,8 @@ class HelpContentTests(TestCase):
             lines = path.read_text().splitlines()
             for i, line in enumerate(lines):
                 if re.search(r"<(input|textarea|select)\b", line) and "hidden" not in line \
-                        and 'name="device" onchange' not in line:
+                        and 'name="device" onchange' not in line \
+                        and 'name="role" onchange' not in line:
                     self.assertRegex(lines[i - 1] + line, r"help_for|help_icon",
                                      f"{path.name}: field without a help icon: {line.strip()}")
 

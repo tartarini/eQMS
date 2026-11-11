@@ -96,6 +96,23 @@ def document_submitted(version):
          users_in_roles([wf.QA], version.document.device))
 
 
+def document_approved(version, actor):
+    """A version is approved and waits for QA to make it effective."""
+    send(f"{version} approved, ready to become effective",
+         f"{version.document.title} v{version.version} was approved by {actor.get_username()} "
+         "and needs to be made effective.\n\n"
+         + _url(reverse("qms:document_detail", args=[version.document.number])),
+         [u for u in users_in_roles([wf.QA], version.document.device) if u.pk != actor.pk])
+
+
+def techfile_ready(build):
+    """A technical file build is generated and waits for the QA signature."""
+    send(f"{build.device.code} technical file {build.label} needs approval",
+         f"Technical file build {build.label} was generated and needs QA approval.\n\n"
+         + _url(reverse("qms:device_tasks", args=[build.device.code])),
+         users_in_roles([wf.QA], build.device))
+
+
 def document_effective(version):
     if version.document.owner:
         send(f"{version} is now effective",

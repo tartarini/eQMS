@@ -1,0 +1,72 @@
+{% extends "qms/base.html" %}
+{% block title %}People · SAMD_QMS{% endblock %}
+{% block content %}
+<h1>People</h1>
+<p class="muted small" style="max-width:760px">Everyone on the teams of the devices you can see, and their roles on each device. Roles apply to one device only. Device admins and QA on a device can change its roles, remove people and add people. Every change is recorded in the audit trail.</p>
+
+<div class="panel">
+  <h2 style="margin-top:0">Device teams</h2>
+  {% if people %}
+  <table>
+    <tr><th style="min-width:160px">Person</th><th>Device</th><th>Roles on device</th><th>Responsibility</th>{% if add_forms %}<th></th>{% endif %}</tr>
+    {% for row in people %}
+      {% for item in row.memberships %}
+      <tr>
+        {% if forloop.first %}<td rowspan="{{ row.memberships|length }}"><strong>{{ row.user.get_full_name|default:row.user.username }}</strong><br><span class="small muted">{{ row.user.username }}</span></td>{% endif %}
+        <td>{{ item.m.device.name }} <span class="small muted">({{ item.m.device.code }})</span></td>
+        <td>{{ item.m.role_list|join:", "|default:"No role" }}</td>
+        <td class="small">{{ item.m.note|default:"" }}</td>
+        {% if add_forms %}<td style="width:1%;white-space:nowrap">
+          {% if item.manage %}
+          <form method="post" action="{% url 'qms:team_roles' item.m.pk %}" style="min-width:220px">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            {{ item.form.as_p }}
+            <button class="btn secondary" style="padding:2px 10px">Save roles</button>
+          </form>
+          <form method="post" action="{% url 'qms:team_remove' item.m.pk %}" style="margin-top:6px">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button class="btn secondary" style="padding:2px 10px">Remove from team</button>
+          </form>
+          {% endif %}
+        </td>{% endif %}
+      </tr>
+      {% endfor %}
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No one is on the teams of the devices you can see.</p>
+  {% endif %}
+</div>
+
+{% if add_forms %}
+<div class="panel">
+  <h2 style="margin-top:0">Add a person to a device team</h2>
+  <p class="small muted">Only people who already have an account can be added. To bring in someone new, use Invitations.</p>
+  {% for item in add_forms %}
+  <details style="margin-bottom:10px">
+    <summary><strong>{{ item.device.name }}</strong> <span class="small muted">({{ item.device.code }})</span></summary>
+    <form method="post" action="{% url 'qms:team_add' item.device.code %}" style="margin-top:8px">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div><label for="{{ item.form.user.id_for_label }}">Person</label>{{ item.form.user }}</div>
+        <div style="flex:1;min-width:180px"><label for="{{ item.form.note.id_for_label }}">Responsibility (optional)</label>{{ item.form.note }}</div>
+      </div>
+      <div style="margin-top:8px"><label>Roles on {{ item.device.code }}</label><div class="checks">{{ item.form.roles }}</div></div>
+      <button class="btn secondary" style="margin-top:8px">Add to team</button>
+    </form>
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2 style="margin-top:0">Organisation-wide roles</h2>
+  <p class="small muted">These apply on every device the person can see. Only an administrator sets them, in Admin.</p>
+  <table>
+    <tr><th>Person</th><th>Roles</th></tr>
+    {% for p in org_people %}
+    <tr><td>{{ p.user.get_full_name|default:p.user.username }}</td><td>{{ p.roles|join:", " }}</td></tr>
+    {% empty %}<tr><td colspan="2" class="muted">None.</td></tr>{% endfor %}
+  </table>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ from .risk import (LEVEL_LABELS, PROBABILITY_SCALE, SEVERITY_SCALE, Hazard,  # n
 from .suppliers import SoupItem, Supplier  # noqa
 from .devices import (CLASSIFICATION_FIELDS, CLASSIFICATIONS, EU_CLASSES, UK_CLASSES,
                       US_CLASSES, REG_STATUSES, TECH_FILE_SECTIONS, Device,  # noqa
-                      DeviceMembership, TechnicalFileBuild)
+                      DeviceMembership, GATES_BY_ROUTE, StageGate, TechnicalFileBuild)
 from .invitations import Invitation  # noqa
 from .access_requests import AccessRequest  # noqa
 from .organisation import (AUTHORISED_REP as AUTHORISED_REP_ROLE,  # noqa
