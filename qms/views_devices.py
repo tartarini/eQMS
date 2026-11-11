@@ -1,6 +1,7 @@
 from collections import Counter
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import FileResponse, HttpResponse
@@ -34,6 +35,26 @@ def set_device(request):
     else:
         request.session.pop(SESSION_DEVICE_KEY, None)
         messages.info(request, "Now working across all your devices.")
+    nxt = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(nxt, {request.get_host()}):
+        nxt = reverse("qms:dashboard")
+    return redirect(nxt)
+
+
+@login_required
+@require_POST
+def set_role(request):
+    """Header "Acting as": work as one role you hold, or as all of them."""
+    from .role_lens import SESSION_ROLE_KEY
+    from .roles import unlensed_all_roles
+    role = request.POST.get("role", "")
+    if role and role in unlensed_all_roles(request.user):
+        request.session[SESSION_ROLE_KEY] = role
+        messages.info(request, f"Now acting as {role}. Functions and permissions are limited "
+                               "to that role.")
+    else:
+        request.session.pop(SESSION_ROLE_KEY, None)
+        messages.info(request, "Now acting with all your roles.")
     nxt = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(nxt, {request.get_host()}):
         nxt = reverse("qms:dashboard")

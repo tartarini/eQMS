@@ -133,3 +133,9 @@ Device admins and QA on a device can, for each person on that device's team:
 - **Add a person:** choose someone with an account who is not yet on the team, then their roles and responsibility.
 
 You can't change your own roles, and a device must keep at least one Device admin or QA on its team. Every change is recorded in the audit trail with who made it and when.
+
+## Acting as one role
+
+If you hold more than one role, the **Acting as** list in the top bar lets you work as one of them. Choose a role and the app works as that role only: what you can do, the functions listed on the dashboard, and the team pages all follow that role. Choose **All my roles** to go back to everything you hold.
+
+The choice can only narrow what you can do. You can't choose a role you don't hold, and the choice is kept for your browser session only.

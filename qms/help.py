@@ -102,6 +102,7 @@ PAGE_HELP = {
     "device_edit": ("devices", "add-a-device"),
     "set_device": ("devices", "choose-a-device"),
     "people": ("devices", "people"),
+    "set_role": ("devices", "acting-as-one-role"),
     "team_add": ("devices", "device-teams"),
     "team_remove": ("devices", "device-teams"),
     "team_roles": ("devices", "roles-on-each-device"),
