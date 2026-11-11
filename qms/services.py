@@ -279,6 +279,7 @@ def approve_version(version: DocumentVersion, user, secret: str, comment="") -> 
         sign(version, user, secret, "Document approval", from_status="in_review",
              to_status="approved", transition="approve", comment=comment)
         _set_version_status(version, "approved", user, comment, approved_at=timezone.now())
+        notifications.document_approved(version, user)
     return version
 
 

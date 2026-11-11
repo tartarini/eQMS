@@ -97,6 +97,8 @@ PAGE_HELP = {
     "organisation_edit": ("devices", "your-organisation-and-its-roles"),
     "device_create": ("devices", "add-a-device"),
     "device_detail": ("devices", ""),
+    "device_tasks": ("devices", "my-tasks"),
+    "gate_approve": ("devices", "my-tasks"),
     "device_edit": ("devices", "add-a-device"),
     "set_device": ("devices", "choose-a-device"),
     "team_add": ("devices", "device-teams"),
@@ -406,6 +408,7 @@ FIELD_HELP = {
         "owner": ("Owner", "The person accountable for the device's quality records."),
         "current_version": ("Current software version", "The version currently released or "
                             "under investigation."),
+        "development_route": ("Documentation route", "Greenfield if the device is still in development and its documentation starts now. Retrofit if it already exists and its documentation is reconstructed. The route sets which approver gates appear on My tasks."),
         "regulatory_status": ("Regulatory status", "Where the device is in its life cycle. "
                               "\"On the market\" makes the technical file check stricter."),
         "markets": ("Markets", "Where it is or will be placed on the market, for example "

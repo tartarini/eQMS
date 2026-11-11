@@ -1,6 +1,7 @@
 from collections import Counter
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,14 +9,14 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from . import services, techfile
+from . import services, tasks, techfile
 from . import workflow as wf
 from .access import (SESSION_DEVICE_KEY, accessible_devices, current_device, form_page,
                      qms_member, require_access, run, team_member)
 from .forms import DeviceForm, OrganisationForm, SignForm, TeamMemberForm, TeamRolesForm
 from .invitations import device_invitations
 from .roles import can_manage_team, device_roles, org_roles
-from .models import (AuditEvent, Device, DeviceMembership, Organisation, Signature,
+from .models import (AuditEvent, Device, DeviceMembership, Organisation, Signature, StageGate,
                      TechnicalFileBuild)
 
 
@@ -323,3 +324,32 @@ def organisation_edit(request):
     return form_page(request, form, "Organisation profile", reverse("qms:organisation"),
                      intro="The legal entity running this QMS and its roles under the EU MDR. "
                            "Each device then records which of these roles apply to it.")
+
+
+@qms_member
+def device_tasks(request, code):
+    """The person's kanban for one device: to do, waiting on others, and done recently."""
+    device = get_object_or_404(Device, code=code)
+    if not device_roles(request.user, device):
+        raise PermissionDenied
+    board = tasks.board(request.user, device)
+    lanes = tasks.gate_lanes(request.user, device, tasks.ensure_gates(device))
+    columns = [
+        ("todo", "To do", board["todo"], "Nothing needs your action on this device."),
+        ("waiting", "Waiting on others", board["waiting"],
+         "Nothing you started is waiting on others."),
+        ("done", "Done recently", board["done"], "No signatures in the last 30 days."),
+    ]
+    return render(request, "qms/device_tasks.html",
+                  {"device": device, "columns": columns, "gate_lanes": lanes,
+                   "route_label": device.get_development_route_display()})
+
+
+@qms_member
+@require_POST
+def gate_approve(request, pk):
+    gate = get_object_or_404(StageGate, pk=pk)
+    require_access(request, gate.device)
+    run(request, tasks.approve_gate, gate, request.user,
+        success=f"Stage {gate.stage} approved: {gate.name}.")
+    return redirect("qms:device_tasks", code=gate.device.code)

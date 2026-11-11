@@ -110,6 +110,7 @@
   <a href="{% url 'qms:record_list' %}">Records</a>
   <a href="{% url 'qms:document_list' %}">Documents</a>
   <a href="{% url 'qms:my_training' %}">Training</a>
+  {% if current_device %}<a href="{% url 'qms:device_tasks' current_device.code %}">My tasks</a>{% endif %}
   <a href="{% url 'qms:hazard_list' %}">Risk</a>
   <a href="{% url 'qms:supplier_list' %}">Suppliers</a>
   {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>

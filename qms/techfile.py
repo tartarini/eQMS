@@ -643,6 +643,8 @@ def generate_technical_file(device: Device, user) -> TechnicalFileBuild:
             generated_by=user)
         build.package.save(os.path.basename(payload.name), payload, save=False)
         build.save(_actor=user)
+        from . import notifications
+        notifications.techfile_ready(build)
     return build
 
 

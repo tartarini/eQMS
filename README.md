@@ -21,6 +21,8 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
 - **Developer guide:** [docs/developer-guide.md](docs/developer-guide.md): architecture,
   invariants, data model, workflow engine, audit trail, signatures, SSO, settings, testing,
   common changes, deployment and validation.
+- **Documenting a software medical device:** [docs/samd-documentation-guide.md](docs/samd-documentation-guide.md):
+  how to document a SaMD from the start or retrofit an existing one, mapped to the SAMD_QMS records.
 - **User help:** built in, at `/help/` (source in `qms/help/`). Every page has a **Help** link to
   the section about that page, and every form field has a **?** icon explaining what to enter.
   It ships with each release, so it always matches the version in use.

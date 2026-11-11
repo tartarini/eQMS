@@ -106,3 +106,19 @@ People who request an account from the home page appear under **Account requests
 
 A request can't be approved until the person has confirmed their email address. Approved and declined requests can't be changed; every step is in the audit trail.
 
+## My tasks
+
+Each device has a task board for you, under **My tasks** in the menu. It shows what you have to
+do on that device, based on the roles you hold there.
+
+- **To do:** actions only your roles can take now: records waiting for your step, documents to
+  approve or make effective, technical file builds to approve, training to complete, and approver
+  gates you can approve.
+- **Waiting on others:** work you started or own that needs another role to act next.
+- **Done recently:** electronic signatures you made on this device in the last 30 days.
+
+Each approver gate for the device's documentation route (Greenfield or Retrofit) has its own
+column. Its approver role is shown on the card, and **Approve this gate** appears only if you hold
+that role on the device. Nothing else on the board can be dragged or moved by hand: cards change
+when the underlying record, document or gate changes.
+
