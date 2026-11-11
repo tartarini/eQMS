@@ -391,6 +391,16 @@ REQUIREMENTS = [
      ["test_compliance_records.RetentionOfQmsWideDocumentTests.test_qms_wide_document_uses_the_longest_device_lifetime",
       "test_compliance_records.WebUITests.test_device_form_offers_expected_lifetime"],
      []),
+    ("URS-103", "Devices", "Each device's page shows its documentation route: six stages from "
+     "set-up to release and post-market, each with checks worked out from the QMS's own data, "
+     "the gate checks marked, and a link to where each open check is fixed.", "L",
+     ["test_doc_route.DocumentationRouteTests.test_new_device_starts_at_stage_one_with_nothing_done_beyond_its_record",
+      "test_doc_route.DocumentationRouteTests.test_checks_follow_the_device_record",
+      "test_doc_route.DocumentationRouteTests.test_risk_gate_needs_a_control_on_every_hazard",
+      "test_doc_route.DocumentationRouteTests.test_evidence_documents_complete_stage_five",
+      "test_doc_route.DocumentationRouteTests.test_overall_is_the_share_of_checks_that_pass",
+      "test_doc_route.DocumentationRouteTests.test_device_page_shows_the_route_with_links_to_fix_open_checks"],
+     []),
 ]
 
 

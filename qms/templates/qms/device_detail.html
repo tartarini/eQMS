@@ -2,12 +2,60 @@
 {% load qms_help %}
 {% block title %}{{ device.name }} – SAMD_QMS{% endblock %}
 {% block content %}
+<style>
+  .route-bar { height:6px; background:#ecebe6; border-radius:3px; overflow:hidden; margin:10px 0 6px; }
+  .route-bar i { display:block; height:100%; background:var(--accent); }
+  .route-stages { list-style:none; padding:0; margin:8px 0 0; }
+  .route-stage { border-top:1px solid var(--line); }
+  .route-stage summary { display:flex; gap:10px; align-items:flex-start; padding:9px 0; cursor:pointer; list-style:none; }
+  .route-stage summary::-webkit-details-marker { display:none; }
+  .route-num { flex:none; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:#ecebe6; color:var(--muted); }
+  .route-stage.progress .route-num { background:#f9eeda; color:var(--warn); }
+  .route-stage.done .route-num { background:#e5f4e4; color:var(--ok); }
+  .route-title { flex:1; font-weight:600; } .route-summary { display:block; font-weight:400; }
+  .route-items { list-style:none; padding:0 0 4px 34px; margin:0; font-size:14px; }
+  .route-items li { display:flex; gap:8px; padding:2px 0; } .route-items li.ok { color:var(--muted); }
+  .route-mark { flex:none; width:14px; } .route-items li.ok .route-mark { color:var(--ok); }
+  .route-stage p { margin:2px 0 10px 34px; } .route-gate-open { color:var(--bad); }
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+</style>
 <p class="muted small">Medical device · {{ device.code }}</p>
 <h1>{{ device.name }}</h1>
 <p class="small muted">{{ device.classification_summary }} · Software safety {{ device.get_software_safety_class_display|default:"class not set" }} · Version {{ device.current_version|default:"—" }} · {{ device.get_regulatory_status_display }}{% if device.markets %} · {{ device.markets }}{% endif %}</p>
 
 <div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(300px,1fr)">
   <div>
+    <div class="panel route" id="documentation-route">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">Documentation route</h2>
+        <span class="small muted">{{ route_overall }}% of checks pass{% if route_current %} · now on stage {{ route_current.number }}{% else %} · all stages done{% endif %}</span>
+      </div>
+      <div class="route-bar" role="progressbar" aria-label="Documentation route overall" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ route_overall }}"><i style="width:{{ route_overall }}%"></i></div>
+      <p class="small muted">The six stages of documenting this device, worked out from its record, team, documents, risk register, SOUP and builds. Work through them in order; a gate is a check the next stage relies on. This doesn't decide whether a technical file can be approved: the Technical file panel does.</p>
+      <ol class="route-stages">
+        {% for s in route %}
+        <li class="route-stage {{ s.status }}">
+          <details{% if route_current and s.number == route_current.number %} open{% endif %}>
+            <summary>
+              <span class="route-num">{{ s.number }}</span>
+              <span class="route-title">{{ s.title }}<span class="small muted route-summary">{{ s.summary }}</span></span>
+              <span class="badge {% if s.status == 'done' %}done{% elif s.status == 'progress' %}warn{% endif %}">{{ s.done }}/{{ s.total }}</span>
+            </summary>
+            <ul class="route-items">
+              {% for i in s.items %}
+              <li class="{% if i.done %}ok{% else %}open{% endif %}">
+                <span class="route-mark" aria-hidden="true">{% if i.done %}✓{% else %}○{% endif %}</span>
+                <span>{% if i.url and not i.done %}<a href="{{ i.url }}">{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}{% if i.gate %} <span class="badge {% if i.done %}done{% else %}bad{% endif %}">gate</span>{% endif %}{% if i.detail %} <span class="small muted">· {{ i.detail }}</span>{% endif %}<span class="visually-hidden">{% if i.done %} (done){% else %} (to do){% endif %}</span></span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% if s.gate %}<p class="small {% if s.gate_passed %}muted{% else %}route-gate-open{% endif %}">Gate: {{ s.gate }}{% if s.gate_passed %} · passed{% else %} · not yet passed{% endif %}</p>{% endif %}
+          </details>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Regulatory particulars</h2>
@@ -27,7 +75,7 @@
       </table>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="team">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <h2 style="margin:0">Team</h2>
         {% if can_manage_team %}<a class="btn" href="{% url 'qms:invitation_create' %}?device={{ device.code }}">Invite people</a>{% endif %}

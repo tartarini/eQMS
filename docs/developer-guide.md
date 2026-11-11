@@ -84,6 +84,7 @@ qms/
   roles.py              who holds which role on which device (every role check uses it)
   invitations.py        invitation rules: create, resend, revoke, accept
   techfile.py           technical file: gather, completeness checks, outline, HTML/DOCX, ZIP
+  doc_route.py          the device page's documentation route: six stages of checks, read-only
   help.py               help topics, page → help section map, help text for every form field
   help/                 the help topics (Markdown), served at /help/
   views_help.py         help pages (open without sign-in; they hold no QMS data)
@@ -114,6 +115,7 @@ qms/
   test_help.py          every page and form field has help; help pages and icons (11 tests)
   test_roles.py         roles per device, Device admin, team pages, the 0004 migration (16 tests)
   test_invitations.py   inviting, the emailed link, expiry, resend, revoke, accepting (16 tests)
+  test_doc_route.py     the documentation route's stages, gates and device-page panel (6 tests)
   management/commands/run_oq.py   operational qualification run and traced evidence
 ```
 
@@ -687,6 +689,15 @@ the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
   `select_for_update` so it can't be used twice, and runs `sync_training()`.
 - `resend()` issues a new token and expiry (the old link stops working); `revoke()` closes it.
   Either is allowed for the inviter or anyone who manages every device in it.
+
+**Documentation route.** `qms/doc_route.py` works out the six-stage panel at the top of the
+device page (set-up; intended purpose and classification; requirements and design; risk; verification
+and evidence; release and post-market). `stages(device, data, checks)` takes `techfile.gather`
+and `techfile.completeness_checks`, so the page computes them once. It stores nothing and changes
+nothing: each check reads existing fields, documents by `tech_file_section`, hazards and controls,
+SOUP, records and builds. Gate checks are flagged `gate=True`. To add a check, add an `_item` to
+its stage with the URL name where it is fixed, then update the help topic (`devices.md`, "Follow
+the documentation route") and `test_doc_route`. Traced to URS-103.
 
 ## Technical file generation
 

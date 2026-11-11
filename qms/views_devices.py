@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from . import services, techfile
+from . import doc_route, services, techfile
 from . import workflow as wf
 from .access import (SESSION_DEVICE_KEY, accessible_devices, current_device, form_page,
                      qms_member, require_access, run, team_member)
@@ -117,7 +117,10 @@ def device_detail(request, code):
     sections = [(code_, label, data["sections"].get(code_, []))
                 for code_, label in techfile.TECH_FILE_SECTIONS if code_]
     builds = device.technical_files.select_related("generated_by")
+    route = doc_route.stages(device, data, checks)
     return render(request, "qms/device_detail.html", {
+        "route": route, "route_overall": doc_route.overall(route),
+        "route_current": doc_route.current_stage(route),
         "device": device, "data": data, "counts": counts, "sections": sections,
         "errors": [c for c in checks if c["level"] == "error"],
         "warnings": [c for c in checks if c["level"] == "warning"],
