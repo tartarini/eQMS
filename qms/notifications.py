@@ -63,6 +63,15 @@ def record_created(record):
              users_in_roles([wf.QA], record.device))
 
 
+def gate_open(gate):
+    """Tell the approver of a stage gate that it is now their turn."""
+    send(f"{gate.device.code} Stage {gate.stage} ready for approval",
+         f"Stage {gate.stage}: {gate.name} ({gate.route.capitalize()} route) is open for "
+         f"approval by {gate.approver_role} on {gate.device.name}. The earlier stages are "
+         "approved.\n\n" + _url(reverse("qms:device_tasks", args=[gate.device.code])),
+         users_in_roles([gate.approver_role], gate.device))
+
+
 def record_assigned(record):
     if record.owner:
         send(f"{record.device.code} {record.ref} assigned to you",
@@ -140,6 +149,45 @@ def user_awaiting_access(user):
          admins)
 
 
+def review_reminders() -> int:
+    """Email the owner and device QA once per stage before each document review is due, and
+    once when it is due or overdue. Returns the number of emails queued."""
+    from datetime import date
+
+    from .models import Document, ReviewReminder
+
+    today = date.today()
+    sent = 0
+    for doc in Document.objects.filter(obsolete=False).select_related("device", "owner"):
+        due = doc.next_review_date
+        if not due:
+            continue
+        days_left = (due - today).days
+        stages = [n for n in settings.QMS_REVIEW_REMINDER_DAYS if days_left <= n]
+        if not stages:
+            continue
+        stage = min(stages)
+        _, new = ReviewReminder.objects.get_or_create(document=doc, review_date=due, stage=stage)
+        if not new:
+            continue
+        if days_left < 0:
+            when = f"was due on {due:%d %b %Y} and is overdue"
+        elif days_left == 0:
+            when = "is due today"
+        else:
+            when = f"is due on {due:%d %b %Y} (in {days_left} days)"
+        body = (f"{doc.number} {doc.title} {when}.\n\nThe owner and QA need to review it, "
+                "then either confirm it still applies or start a new version.\n\n"
+                + _url(reverse("qms:document_detail", args=[doc.number])))
+        recipients = list(users_in_roles([wf.QA], doc.device))
+        if doc.owner:
+            recipients.append(doc.owner)
+        send(f"Document review {'overdue' if days_left < 0 else 'due'}: {doc.number}",
+             body, recipients)
+        sent += 1
+    return sent
+
+
 def daily_reminders():
     """Overdue and due-soon items, one email per person. Returns the number of emails queued."""
     from datetime import date, timedelta
@@ -170,11 +218,6 @@ def daily_reminders():
         add(a.user, f"Training: {a.version} – {when} {a.due_date:%d %b %Y}")
 
     qa = list(users_in_roles([wf.QA]))
-    for d in Document.objects.filter(obsolete=False):
-        if d.next_review_date and d.next_review_date <= soon:
-            line = f"Document review: {d} – {d.next_review_date:%d %b %Y}"
-            for u in list(users_in_roles([wf.QA], d.device)) + ([d.owner] if d.owner else []):
-                add(u, line)
     for s in Supplier.objects.exclude(status="disqualified"):
         if s.evaluation_overdue:
             for u in qa:

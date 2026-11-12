@@ -1,4 +1,5 @@
 {% extends "qms/base.html" %}
+{% load qms_help %}
 {% block title %}My tasks · {{ device.code }}{% endblock %}
 {% block content %}
 <style>
@@ -49,8 +50,12 @@
       {% if lane.can_approve %}
       <form method="post" action="{% url 'qms:gate_approve' gate.pk %}" style="margin-top:8px">
         {% csrf_token %}
-        <button class="btn" type="submit">Approve this gate</button>
+        <span class="label-row"><label for="gate-pw-{{ gate.pk }}" class="small">Password or signing PIN</label>{% help_for "sign" "password" %}</span>
+        <input id="gate-pw-{{ gate.pk }}" type="password" name="password" autocomplete="current-password" required>
+        <button class="btn" type="submit" style="margin-top:6px">Sign and approve this gate</button>
       </form>
+      {% elif gate.status == "open" %}
+      <p class="small muted" style="margin:8px 0 0">Waiting for the earlier stages to be approved.</p>
       {% endif %}
     </article>
   </section>

@@ -1,16 +1,20 @@
+from datetime import date
+
 from django.contrib import messages
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from . import services
+from . import doc_exchange, services
 from . import workflow as wf
 
 from .access import current_device, form_page, qms_member, require_access, run, scope
-from .forms import DocumentForm, SignForm, TrainingRequirementForm, VersionForm
+from .forms import (DocumentForm, DocumentImportForm, SignForm, TrainingRequirementForm,
+                    VersionForm)
 from .models import (AuditEvent, Document, DocumentVersion, Signature, TrainingAssignment,
                      TrainingRequirement)
+from .services import TransitionError
 
 
 @qms_member
@@ -221,3 +225,32 @@ def training_complete(request, pk):
 def training_matrix(request):
     docs, rows = services.training_matrix(viewer=request.user)
     return render(request, "qms/training_matrix.html", {"docs": docs, "rows": rows})
+
+
+@qms_member
+def document_export(request):
+    """Every effective document you can see, as a zip of folders (see qms.doc_exchange)."""
+    data = doc_exchange.export_zip(request.user)
+    response = HttpResponse(data, content_type="application/zip")
+    response["Content-Disposition"] = (
+        f'attachment; filename="qms-documents-{date.today():%Y%m%d}.zip"')
+    return response
+
+
+@qms_member
+def document_import(request):
+    """Import markdown documents, or draft revisions of existing ones."""
+    results = None
+    if request.method == "POST":
+        uploads = [(f.name, f.read()) for f in request.FILES.getlist("files")]
+        if not uploads:
+            messages.error(request, "Choose at least one markdown file or zip archive.")
+        else:
+            try:
+                results = doc_exchange.import_markdown(request.user, uploads)
+            except TransitionError as exc:
+                for err in exc.errors:
+                    messages.error(request, err)
+    return render(request, "qms/document_import.html", {
+        "form": DocumentImportForm(), "results": results})
+

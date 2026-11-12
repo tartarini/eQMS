@@ -409,6 +409,7 @@ def device_tasks(request, code):
     ]
     return render(request, "qms/device_tasks.html",
                   {"device": device, "columns": columns, "gate_lanes": lanes,
+                   "sign_form": SignForm(),
                    "route_label": device.get_development_route_display()})
 
 
@@ -417,6 +418,8 @@ def device_tasks(request, code):
 def gate_approve(request, pk):
     gate = get_object_or_404(StageGate, pk=pk)
     require_access(request, gate.device)
-    run(request, tasks.approve_gate, gate, request.user,
-        success=f"Stage {gate.stage} approved: {gate.name}.")
+    form = SignForm(request.POST)
+    secret = form.cleaned_data["password"] if form.is_valid() else ""
+    run(request, tasks.approve_gate, gate, request.user, secret,
+        success=f"Stage {gate.stage} approved and signed: {gate.name}.")
     return redirect("qms:device_tasks", code=gate.device.code)

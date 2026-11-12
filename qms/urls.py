@@ -33,6 +33,8 @@ urlpatterns = [
     # Document control and training
     path("documents/", views_docs.document_list, name="document_list"),
     path("documents/new/", views_docs.document_create, name="document_create"),
+    path("documents/export/", views_docs.document_export, name="document_export"),
+    path("documents/import/", views_docs.document_import, name="document_import"),
     path("documents/<str:number>/", views_docs.document_detail, name="document_detail"),
     path("documents/<str:number>/edit/", views_docs.document_edit, name="document_edit"),
     path("documents/<str:number>/new-version/", views_docs.version_create, name="version_create"),

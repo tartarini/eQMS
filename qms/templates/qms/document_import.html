@@ -1,0 +1,22 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}Import documents · SAMD_QMS{% endblock %}
+{% block content %}
+<h1>Import markdown documents</h1>
+<p class="muted small" style="max-width:760px">Import markdown files, or a zip of them, as controlled documents. A file with a new number creates a document with a draft first version. A file with the number of an existing document adds a draft revision. Nothing becomes effective until it has been reviewed and approved as usual.</p>
+<div class="panel">
+  <form method="post" enctype="multipart/form-data" action="{% url 'qms:document_import' %}">{% csrf_token %}
+    <div><span class="label-row"><label for="{{ form.files.id_for_label }}">{{ form.files.label }}</label>{% help_for "documentimport" "files" %}</span>{{ form.files }}</div>
+    <button class="btn" style="margin-top:10px">Import</button>
+  </form>
+</div>
+{% if results %}
+<div class="panel">
+  <h2 style="margin-top:0">Result</h2>
+  <table>
+    <tr><th>File</th><th>Outcome</th></tr>
+    {% for name, outcome in results %}<tr><td>{{ name }}</td><td>{{ outcome }}</td></tr>{% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

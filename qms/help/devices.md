@@ -144,8 +144,10 @@ do on that device, based on the roles you hold there.
 - **Done recently:** electronic signatures you made on this device in the last 30 days.
 
 Each approver gate for the device's documentation route (Greenfield or Retrofit) has its own
-column. Its approver role is shown on the card, and **Approve this gate** appears only if you hold
-that role on the device. Nothing else on the board can be dragged or moved by hand: cards change
+column. Gates open in stage order: a stage can be approved only after the stage before it. The
+approver role is shown on the card. When it is your turn and you hold that role, enter your
+password or signing PIN and choose **Sign and approve this gate**; the approval is an electronic
+signature in the audit trail. The next approver is emailed when a gate opens. Nothing else on the board can be dragged or moved by hand: cards change
 when the underlying record, document or gate changes.
 
 ## People

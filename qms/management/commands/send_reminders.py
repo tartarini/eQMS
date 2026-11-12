@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from qms.notifications import daily_reminders
+from qms.notifications import daily_reminders, review_reminders
 from qms.services import sync_training
 
 
@@ -11,5 +11,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         assigned = sync_training()
         sent = daily_reminders()
+        reviews = review_reminders()
         self.stdout.write(self.style.SUCCESS(
-            f"{len(assigned)} training assignment(s) created; {sent} reminder email(s) queued."))
+            f"{len(assigned)} training assignment(s) created; {sent} reminder email(s) queued; "
+            f"{reviews} document review email(s) queued."))

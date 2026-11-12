@@ -190,7 +190,7 @@ approved Change Request in SAMD_QMS.
 | --- | --- | --- |
 | `caddy` | HTTPS on 443, HTTP→HTTPS redirect, HSTS, security headers | Certificates renew automatically; `/media/` is never served |
 | `app` | gunicorn, 3 workers × 2 threads | Read-only filesystem, no Linux capabilities, unprivileged user 10001; health check on `/healthz` |
-| `scheduler` | Daily jobs (UTC): 02:30 backup, 03:00 audit verification, 05:30 PMS activities, 05:45 reminders | Each failure emails `QMS_ALERT_EMAILS` |
+| `scheduler` | Daily jobs (UTC): 02:30 backup, 03:00 audit verification, 05:30 PMS activities, 05:45 reminders, 05:55 document git sync (only if `QMS_DOCS_GIT_REPO` is set) | Each failure emails `QMS_ALERT_EMAILS` |
 | `db` | PostgreSQL 16 | On an internal network with no internet route and no published port |
 
 Data lives in Docker volumes `samd_qms_pgdata`, `samd_qms_media` and `samd_qms_caddy_data`, and

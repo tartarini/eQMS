@@ -93,14 +93,17 @@ qms/
   validation.py         user requirements (URS) with risk and traced tests / manual protocols
   access.py             qms_member decorator, run() service wrapper, form_page()
   forms.py              all forms
-  notifications.py      email events and the daily digest
+  tasks.py              per-person task board, approver gates (StageGate): order, signed approval
+  role_lens.py          "Acting as": work as one held role; the role functions panel
+  doc_exchange.py       document export (folders, zip, git sync) and markdown import
+  notifications.py      email events, review reminders and the daily digest
   signals.py            security events and m2m audit logging
   sso.py                allauth adapters (sign-up and username rules)
   sso_settings.py       provider config from environment (imported by settings; no Django imports)
   current_user.py       request user in a ContextVar, for attribution in model code
   admin.py              admin registrations (evidence is read-only, nothing deletable)
   management/commands/  seed_qms, load_demo_data, generate_pms_activities, send_reminders,
-                        verify_audit
+                        verify_audit, export_documents
   templates/            qms/*, registration/login.html, allauth/layouts/base.html and
                         socialaccount/connections.html (overrides), django/forms/p.html
                         (adds the help icon to every form)
@@ -113,6 +116,10 @@ qms/
   test_teams.py         device-team isolation, multi-team members, All-device access (13 tests)
   test_ops.py           health check, scheduler and alerts (8 tests)
   test_help.py          every page and form field has help; help pages and icons (11 tests)
+  test_tasks.py         task board, approver gates: order, signed approval, notifications (13 tests)
+  test_people.py        the People page: who can see and change which team (9 tests)
+  test_role_lens.py     "Acting as": narrowing, refusal of unheld roles, functions panel (8 tests)
+  test_doc_exchange.py  export, import, git sync, review reminders (18 tests)
   test_roles.py         roles per device, Device admin, team pages, the 0004 migration (16 tests)
   test_invitations.py   inviting, the emailed link, expiry, resend, revoke, accepting (16 tests)
   test_doc_route.py     the documentation route's stages, gates and device-page panel (6 tests)
@@ -177,6 +184,8 @@ erDiagram
 | `Document` | `SOP-001`, `WI-`, `POL-`, `PLAN-`, `SPEC-`, `FORM-`, `RPT-` | Numbered per type. `obsolete` is set only by `obsolete_document`. |
 | `DocumentVersion` | `SOP-001 v1.0` | `draft → in_review → approved → effective → superseded / obsolete`. File SHA-256 is stored on upload; content is frozen after submission. |
 | `TrainingRequirement` | — | Document × role (`auth.Group`). Deactivated, never deleted. |
+| `StageGate` | — | One approver gate per device, route and stage (Greenfield or Retrofit). Opens in stage order; approval is signed (*Approved stage gate*). |
+| `ReviewReminder` | — | Review reminder already sent, per document, review date and stage (60, 30, 7, 0 days, or overdue). Each stage is emailed once. |
 | `TrainingAssignment` | — | User × version, with due date and completion. Locked once completed. |
 | `Hazard` | `HAZ-001` | Belongs to one device. Initial and residual severity/probability (1–5). `open → accepted / retired`. |
 | `RiskControl` | `HAZ-001/RC-<id>` | Type, implementing CR, evidence, verified flag. Editable only while the hazard is open. |
@@ -326,7 +335,7 @@ Ansible), the signer's account must have a `SocialAccount` with one of those pro
 (subdomains count). It applies to superusers too. Empty settings (development, staging, tests)
 mean no restriction. URS-24, `qms/test_signer_identity.py`.
 
-Signature meanings in use: *Approval*, *Reportability decision*, *Regulatory submission*,
+Signature meanings in use: *Approval*, *Approved stage gate*, *Reportability decision*, *Regulatory submission*,
 *Review*, *Document approval*, *Periodic review: no change needed*, *Document withdrawal*,
 *Read and understood*, *Risk acceptance*, *Hazard retirement*, *Supplier evaluation*.
 
@@ -350,6 +359,10 @@ through the SSH tunnel: Caddy returns 404 for `/admin/` on the public site, and
 `qms.admin_access.AdminHostMiddleware` does the same for any host not in `QMS_ADMIN_HOSTS`
 (production: `localhost:8443`), which also hides the header's Admin link (finding F7;
 [deployment guide](deployment.md#administration-admin-through-an-ssh-tunnel)).
+
+### Acting as one role
+
+A person who holds several roles can choose one in the header's **Acting as** select. While they do, every role check (`has_role`, `device_roles`, `all_roles`) uses only that role, and the dashboard lists the functions open to it (`role_lens.role_functions`, built from the workflow transitions and the approver gates). The choice is kept in the session (`qms_active_role`) and is applied by `ActiveRoleMiddleware` onto the request user as `active_role`. It can only narrow: `unlensed_all_roles` decides which roles the person really holds, and a role not held is refused and dropped. Users of other objects (for example `record.owner`) are not narrowed.
 
 ### Single sign-on
 
@@ -398,7 +411,9 @@ than raised. Disable all email with `QMS_NOTIFICATIONS_ENABLED = False`.
 | Version effective | `document_effective` | `make_effective` |
 | Training assigned | `training_assigned` | `assign_training_for_version` |
 | SSO user awaiting a role | `user_awaiting_access` | `signals.on_signed_up` |
-| Daily digest | `daily_reminders` | `send_reminders` command |
+| Stage gate opens (approver emailed) | `gate_open` | `tasks.approve_gate` (next stage), `tasks.ensure_gates` (first stage) |
+| Document review due or overdue, one per stage | `review_reminders` | `send_reminders` command |
+| Daily digest (records, training, suppliers, SOUP) | `daily_reminders` | `send_reminders` command |
 
 In tests, wrap actions in `self.captureOnCommitCallbacks(execute=True)` to deliver to
 `mail.outbox`.
@@ -411,6 +426,10 @@ login-protected views (`attachment_download`, `version_download`) that recompute
 refuse a file that doesn't match. Upload validation (`forms.validate_upload`) enforces
 `QMS_ATTACHMENT_EXTENSIONS` and `QMS_ATTACHMENT_MAX_MB`. Never configure your web server to serve
 the media directory publicly.
+
+### Document export and import
+
+`doc_exchange.py` writes the effective version of each document the user can see as folders under the device code (or `QMS`) and the type: `<number>.md` (front matter and, for markdown, the text) plus the controlled file, with `INDEX.md` and `MANIFEST.json` (SHA-256 per file). The zip is served by `document_export`. `import_markdown` reads `.md` files and zips of them: a new `number` creates a document with a draft first version, an existing one gets a draft revision; team membership is checked per file and the rule is enforced by `create_version`. `sync_git(repo, push)` syncs a local clone (`sync_folder` writes only changed files and removes files of documents no longer effective, using the previous manifest), commits if anything changed, and pushes if asked. The scheduler runs it through `export_documents --git` when `QMS_DOCS_GIT_REPO` is set.
 
 ## Settings reference
 
@@ -432,6 +451,9 @@ the media directory publicly.
 | `QMS_ATTACHMENT_EXTENSIONS` | pdf, docx, xlsx, csv, txt, md, png, jpg, jpeg, json, zip, log, html | Upload allowlist |
 | `QMS_NOTIFICATIONS_ENABLED` | `True` | Master switch for email |
 | `QMS_REMINDER_LOOKAHEAD_DAYS` | `7` | "Due soon" window in the daily digest |
+| `QMS_REVIEW_REMINDER_DAYS` | `[60, 30, 7, 0]` | Document review emails, this many days before the review date (and once when overdue) |
+| `QMS_DOCS_GIT_REPO` | env, empty | Local clone of the documents repository kept in sync nightly; empty = no sync |
+| `QMS_DOCS_GIT_PUSH` | env, `False` | Push the sync commit to the clone's remote (`1`, `true` or `yes`) |
 | `QMS_BASE_URL` | env, `http://127.0.0.1:8000` | Absolute links in emails |
 | `QMS_SSO_ALLOWED_DOMAINS` | env, empty | Domains allowed to self-create via SSO |
 | `QMS_PIN_REAUTH_MINUTES` | `15` | Window after login for SSO users to set a PIN |
@@ -439,7 +461,7 @@ the media directory publicly.
 Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`,
 `DJANGO_MEDIA_ROOT`, `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, `DJANGO_EMAIL_USER`,
 `DJANGO_EMAIL_PASSWORD`, `DJANGO_EMAIL_TLS`, `DJANGO_FROM_EMAIL`, `QMS_BASE_URL`,
-`QMS_SSO_ALLOWED_DOMAINS`, and `SSO_*` (see [Single sign-on](#single-sign-on)).
+`QMS_SSO_ALLOWED_DOMAINS`, `QMS_DOCS_GIT_REPO`, `QMS_DOCS_GIT_PUSH`, and `SSO_*` (see [Single sign-on](#single-sign-on)).
 
 ## Management commands
 
@@ -448,13 +470,14 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 | `seed_qms [--demo]` | Install | Creates roles and gives any device lacking it the standard PMS schedule; `--demo` adds demo users |
 | `load_demo_data` | Trials only | `seed_qms --demo` plus two example devices with documents, hazards, suppliers and records |
 | `generate_pms_activities [--horizon-days N]` | Daily | Creates PMS Activity records due within the horizon; idempotent |
-| `send_reminders` | Daily | `sync_training()` then the daily email digest |
+| `send_reminders` | Daily | `sync_training()`, document review emails, then the daily email digest |
+| `export_documents --git PATH [--push]` or `--zip PATH` | Daily when `QMS_DOCS_GIT_REPO` is set | Syncs the git clone (commits only on change) or writes a zip of the effective documents |
 | `verify_audit` | Daily | Verifies the hash chain; exits non-zero on failure |
 
 ## Testing
 
 ```bash
-python manage.py test qms                 # 172 tests, ~2 min on SQLite
+python manage.py test qms                 # 261 tests, ~3 min on SQLite
 python manage.py run_oq --executed-by "Name" --release 1.0.0 --output oq_evidence/
 python manage.py test qms.test_modules.SSOTests
 python manage.py test qms.test_ui         # browser interface tests only (or: scripts/local.sh ui)

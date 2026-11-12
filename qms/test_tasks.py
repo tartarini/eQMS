@@ -81,16 +81,49 @@ class StageGateTests(TestCase):
 
     def test_only_the_approver_role_can_approve_a_gate(self):
         from .services import TransitionError
-        gate = tasks.ensure_gates(self.device)[1]  # stage 4 needs Clinical Safety Officer
+        stage2 = tasks.ensure_gates(self.device)[0]  # stage 2 needs QA
         with self.assertRaises(TransitionError):
-            tasks.approve_gate(gate, self.qa)
-        tasks.approve_gate(gate, self.cso)
-        gate.refresh_from_db()
-        self.assertEqual(gate.status, "approved")
-        self.assertEqual(gate.approved_by, self.cso)
+            tasks.approve_gate(stage2, self.cso, PW)
+        with self.assertRaises(TransitionError):
+            tasks.approve_gate(stage2, self.qa, "wrong-password")
+        tasks.approve_gate(stage2, self.qa, PW)
+        stage2.refresh_from_db()
+        self.assertEqual(stage2.status, "approved")
+        self.assertEqual(stage2.approved_by, self.qa)
+
+    def test_gates_open_in_stage_order(self):
+        from .services import TransitionError
+        gates = tasks.ensure_gates(self.device)
+        with self.assertRaises(TransitionError):  # stage 4 waits for stage 2
+            tasks.approve_gate(gates[1], self.cso, PW)
+        tasks.approve_gate(gates[0], self.qa, PW)
+        tasks.approve_gate(gates[1], self.cso, PW)
+        gates[1].refresh_from_db()
+        self.assertEqual(gates[1].status, "approved")
+
+    def test_approval_is_signed(self):
+        from .models import Signature
+        gate = tasks.ensure_gates(self.device)[0]
+        tasks.approve_gate(gate, self.qa, PW)
+        sig = Signature.objects.get(object_type="Stage Gate")
+        self.assertEqual(sig.signer, self.qa)
+        self.assertEqual(sig.transition, "approve_gate")
+
+    def test_approval_tells_the_next_approver(self):
+        from django.core import mail
+        gates = tasks.ensure_gates(self.device)
+        mail.outbox = []
+        with self.captureOnCommitCallbacks(execute=True):
+            tasks.approve_gate(gates[0], self.qa, PW)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.cso.email, mail.outbox[0].to)
+        self.assertIn("Stage 4", mail.outbox[0].subject)
 
     def test_open_gate_is_to_do_for_its_approver_only(self):
-        tasks.ensure_gates(self.device)
+        gates = tasks.ensure_gates(self.device)
+        self.assertFalse(any("Stage 4" in t.title
+                             for t in tasks.board(self.cso, self.device)["todo"]))
+        tasks.approve_gate(gates[0], self.qa, PW)
         self.assertTrue(any("Stage 4" in t.title for t in tasks.board(self.cso, self.device)["todo"]))
         self.assertFalse(any("Stage 4" in t.title
                              for t in tasks.board(self.engineer, self.device)["todo"]))

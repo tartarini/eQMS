@@ -4,6 +4,8 @@
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
   <h1>Controlled documents</h1>
   <div><a class="btn" href="{% url 'qms:document_create' %}">New document</a>
+    <a class="btn secondary" href="{% url 'qms:document_import' %}">Import markdown</a>
+    <a class="btn secondary" href="{% url 'qms:document_export' %}">Export folder (zip)</a>
     <a class="btn secondary" href="{% url 'qms:training_matrix' %}">Training matrix</a></div>
 </div>
 <p class="small"><a href="?show=current">Current</a> · <a href="?show=all">Include obsolete</a></p>
