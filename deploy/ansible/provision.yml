@@ -33,6 +33,12 @@
 
   tasks:
     # --- base system ---------------------------------------------------------------
+    - name: Import the EPEL signing key (Red Hat)
+      ansible.builtin.rpm_key:
+        key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+        state: present
+      when: ansible_os_family == 'RedHat'
+
     - name: Install EPEL (fail2ban and rclone on Red Hat)
       ansible.builtin.dnf:
         name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
@@ -42,7 +48,7 @@
 
     - name: Install base packages (Ubuntu and Debian)
       ansible.builtin.apt:
-        name: [ca-certificates, curl, gnupg, ufw, fail2ban, unattended-upgrades, rsync, chrony]
+        name: [ca-certificates, curl, gnupg, ufw, fail2ban, unattended-upgrades, rsync, chrony, openssh-server, cron]
         state: present
         update_cache: true
         cache_valid_time: 3600
@@ -50,7 +56,9 @@
 
     - name: Install base packages (Red Hat)
       ansible.builtin.dnf:
-        name: [ca-certificates, curl, firewalld, fail2ban, dnf-automatic, rsync, chrony]
+        # curl itself is not listed: RHEL ships curl-minimal, which provides the curl command
+        # and conflicts with the full curl package.
+        name: [ca-certificates, firewalld, fail2ban, dnf-automatic, rsync, chrony, openssh-server, cronie]
         state: present
       when: ansible_os_family == 'RedHat'
 
@@ -178,6 +186,16 @@
         mode: "0770"
 
     # --- SSH and firewall --------------------------------------------------------------
+    - name: Create any missing SSH host keys (sshd will not validate without them)
+      ansible.builtin.command: ssh-keygen -A
+      changed_when: false
+
+    - name: Create the SSH drop-in directory
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config.d
+        state: directory
+        mode: "0755"
+
     - name: Harden SSH
       ansible.builtin.template:
         src: templates/sshd-hardening.conf.j2
@@ -306,6 +324,12 @@
         group: "{{ deploy_user }}"
         mode: "0750"
       when: backup_offsite_method != ''
+
+    - name: Start the scheduler that runs the backups and the off-site copy
+      ansible.builtin.service:
+        name: "{{ 'crond' if ansible_os_family == 'RedHat' else 'cron' }}"
+        state: started
+        enabled: true
 
     - name: Schedule the nightly off-site copy of backups (after the 02:30 backup)
       ansible.builtin.cron:
