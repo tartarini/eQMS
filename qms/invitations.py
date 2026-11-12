@@ -28,7 +28,7 @@ from django.utils import timezone
 from . import notifications
 from . import workflow as wf
 from .models import Device, DeviceMembership, Invitation
-from .roles import can_manage_team, managed_devices
+from .roles import can_manage_team, managed_devices, may_change_device_admin
 from .services import TransitionError, require
 
 
@@ -67,6 +67,8 @@ def create_invitation(inviter, email: str, grants: dict, days: int = None, messa
         require(errors, device.active, f"{device.name} is retired.")
         require(errors, can_manage_team(inviter, device),
                 f"You can't invite people to {device.name}: only its Device admins and QA can.")
+        require(errors, may_change_device_admin(inviter, set(), roles),
+                "Only a QMS admin can invite someone as a Device admin.")
     require(errors, 1 <= days <= settings.QMS_INVITATION_MAX_DAYS,
             f"Choose an expiry between 1 and {settings.QMS_INVITATION_MAX_DAYS} days.")
     pending = [i for i in Invitation.objects.filter(email=email, status="pending")

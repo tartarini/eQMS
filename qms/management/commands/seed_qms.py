@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, demo=False, **options):
         record_perms = Permission.objects.filter(content_type__app_label="qms")
-        for name in wf.ROLES + (wf.ALL_DEVICES,):
+        for name in wf.ROLES + (wf.ALL_DEVICES, wf.QMS_ADMIN):
             group, created = Group.objects.get_or_create(name=name)
             if name == wf.QA:
                 group.permissions.set(record_perms)

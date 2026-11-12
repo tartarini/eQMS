@@ -18,9 +18,10 @@ def is_member(user) -> bool:
 
 
 def has_any_role(user) -> bool:
-    """Holds any role, including Device admin."""
-    from .roles import all_roles
-    return user.is_authenticated and bool(all_roles(user))
+    """Holds any role, including Device admin, or is a QMS admin (who manages the application
+    without holding a working role)."""
+    from .roles import all_roles, is_qms_admin
+    return user.is_authenticated and (bool(all_roles(user)) or is_qms_admin(user))
 
 
 def qms_member(view):
@@ -74,7 +75,8 @@ SESSION_DEVICE_KEY = "qms_device_id"
 
 
 def sees_all_devices(user) -> bool:
-    return user.is_superuser or user.groups.filter(name=wf.ALL_DEVICES).exists()
+    from .roles import is_qms_admin
+    return is_qms_admin(user) or user.groups.filter(name=wf.ALL_DEVICES).exists()
 
 
 def accessible_devices(user):

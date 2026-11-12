@@ -104,10 +104,24 @@ def users_with_roles(roles, device=None) -> list:
     return [u for u in users if has_role(u, roles, device)]
 
 
+def is_qms_admin(user) -> bool:
+    """The QMS admin group (set in Admin), or a superuser."""
+    if not (user and user.is_authenticated and user.is_active):
+        return False
+    return user.is_superuser or user.groups.filter(name=wf.QMS_ADMIN).exists()
+
+
 def can_manage_team(user, device) -> bool:
-    """Device admins and QA on the device (or organisation-wide) invite people and manage
+    """Device admins and QA on the device, and QMS admins everywhere, invite people and manage
     its team."""
-    return has_role(user, wf.TEAM_MANAGERS, device)
+    return is_qms_admin(user) or has_role(user, wf.TEAM_MANAGERS, device)
+
+
+def may_change_device_admin(user, before, after) -> bool:
+    """Only a QMS admin may give or take away the Device admin role. ``before`` and ``after``
+    are the role sets being changed."""
+    changed = set(before) ^ set(after)
+    return wf.DEVICE_ADMIN not in changed or is_qms_admin(user)
 
 
 def managed_devices(user):

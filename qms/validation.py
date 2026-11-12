@@ -522,6 +522,20 @@ REQUIREMENTS = [
       "test_doc_exchange.GitSyncTests.test_withdrawn_document_is_removed_from_the_repository",
       "test_doc_exchange.GitSyncTests.test_refuses_a_folder_that_is_not_a_clone"],
      []),
+    ("URS-116", "Devices", "A QMS admin manages the application overall: they see every device and can manage every device team without being on it, and only they can appoint or remove a Device admin. A QMS admin holds no working role and signs nothing. Device admins keep managing the other roles on their own teams.", "H",
+     [
+      "test_qms_admin.QmsAdminTests.test_qms_admin_sees_and_manages_every_device_without_a_membership",
+      "test_qms_admin.QmsAdminTests.test_ordinary_user_is_not_a_qms_admin",
+      "test_qms_admin.QmsAdminTests.test_device_admin_cannot_add_a_device_admin",
+      "test_qms_admin.QmsAdminTests.test_device_admin_cannot_remove_device_admin_from_another_admin",
+      "test_qms_admin.QmsAdminTests.test_device_admin_cannot_remove_a_device_admin_from_the_team",
+      "test_qms_admin.QmsAdminTests.test_device_admin_can_still_change_ordinary_roles",
+      "test_qms_admin.QmsAdminTests.test_qms_admin_appoints_a_device_admin_and_it_is_audited",
+      "test_qms_admin.QmsAdminTests.test_qms_admin_removes_a_device_admin",
+      "test_qms_admin.QmsAdminTests.test_device_admin_cannot_invite_as_device_admin",
+      "test_qms_admin.QmsAdminTests.test_device_admin_can_still_invite_an_engineer",
+      "test_qms_admin.QmsAdminTests.test_qms_admin_can_invite_as_device_admin"],
+     []),
 ]
 
 

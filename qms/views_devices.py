@@ -16,7 +16,7 @@ from .access import (SESSION_DEVICE_KEY, accessible_devices, current_device, for
                      qms_member, require_access, run, team_member)
 from .forms import DeviceForm, OrganisationForm, SignForm, TeamMemberForm, TeamRolesForm
 from .invitations import device_invitations
-from .roles import can_manage_team, device_roles, org_roles
+from .roles import can_manage_team, device_roles, may_change_device_admin, org_roles
 from .models import (AuditEvent, Device, DeviceMembership, Organisation, Signature, StageGate,
                      TechnicalFileBuild)
 
@@ -177,6 +177,9 @@ def _team_rows(viewer, device):
     return rows
 
 
+DEVICE_ADMIN_ONLY = "Only a QMS admin can add, change or remove a Device admin."
+
+
 def _managers_left(device, without=None, new_roles=None):
     """How many team members could still manage the team after removing ``without`` (or
     giving it ``new_roles``). Organisation-wide roles count too."""
@@ -212,6 +215,9 @@ def team_add(request, code):
         messages.error(request, "Only Device admins and QA on this device can change its team.")
         return redirect("qms:device_detail", code=code)
     form = TeamMemberForm(request.POST, device=device)
+    if form.is_valid() and not may_change_device_admin(request.user, set(), form.cleaned_data["roles"]):
+        messages.error(request, DEVICE_ADMIN_ONLY)
+        return _back(request, reverse("qms:device_detail", args=[code]))
     if form.is_valid():
         user = form.cleaned_data["user"]
         m = (DeviceMembership.objects.filter(device=device, user=user).first()
@@ -240,6 +246,8 @@ def team_roles(request, pk):
         messages.error(request, "You can't change your own roles. Ask another Device admin or QA.")
     elif not form.is_valid():
         messages.error(request, "Choose valid roles.")
+    elif not may_change_device_admin(request.user, m.role_list(), form.cleaned_data["roles"]):
+        messages.error(request, DEVICE_ADMIN_ONLY)
     elif _managers_left(m.device, without=m, new_roles=form.cleaned_data["roles"]) == 0:
         messages.error(request, "A device needs at least one Device admin or QA on its team.")
     else:
@@ -264,6 +272,8 @@ def team_remove(request, pk):
     require_access(request, m.device)
     if not can_manage_team(request.user, m.device):
         messages.error(request, "Only Device admins and QA on this device can change its team.")
+    elif not may_change_device_admin(request.user, m.role_list(), []):
+        messages.error(request, DEVICE_ADMIN_ONLY)
     elif m.device.memberships.filter(active=True).count() == 1:
         messages.error(request, "A device needs at least one team member.")
     elif _managers_left(m.device, without=m) == 0:
