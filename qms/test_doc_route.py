@@ -1,8 +1,14 @@
 """Tests for the documentation route panel on the device page."""
+from io import StringIO
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.test import TestCase
 from django.urls import reverse
 
-from . import doc_route, techfile
-from .models import Device, Hazard, RiskControl
+from . import doc_route, services, techfile
+from . import workflow as wf
+from .models import Device, DeviceMembership, Document, Hazard, RiskControl
 from .test_devices import PW, Base
 
 
@@ -177,3 +183,70 @@ class RouteFollowsDeviceTests(Base):
         self.assertTrue(mail.outbox)
         self.assertIn("gate checks not passing", mail.outbox[0].subject)
         self.assertIn("- Classification rationale recorded", mail.outbox[0].body)
+
+
+class GapAssessmentAndDemoTests(Base):
+    """Step A reads the Gap assessment document type, and the demo shows a Retrofit device and a
+    signed gate."""
+
+    def gap_document(self, title, doc_type):
+        doc = Document.objects.create(title=title, doc_type=doc_type, device=self.dev)
+        v = services.create_version(doc, self.eng, version="1.0", change_summary="x",
+                                    file=SimpleUploadedFile(f"{title}.pdf", b"%PDF gap"))
+        services.submit_version(v, self.eng)
+        services.approve_version(v, self.qa, PW)
+        services.make_effective(v, self.qa)
+        return v
+
+    def test_gap_assessment_type_satisfies_step_a(self):
+        self.dev.development_route = "retrofit"
+        self.dev.save()
+        self.gap_document("Assessment of the release", "GAP")
+        step_a = route_for(self.dev)[0]
+        self.assertTrue(step_a["gate_passed"])
+        self.assertEqual(step_a["items"][0]["detail"], "GAP-001")
+
+    def test_title_only_gap_assessment_still_counts(self):
+        self.dev.development_route = "retrofit"
+        self.dev.save()
+        self.gap_document("SkinCheck gap assessment", "RPT")
+        self.assertTrue(route_for(self.dev)[0]["gate_passed"])
+
+    def test_gap_assessment_of_another_device_does_not_count(self):
+        self.dev.development_route = "retrofit"
+        self.dev.save()
+        other = Device.objects.create(name="Other", code="OTH", development_route="retrofit")
+        for user, role in ((self.eng, wf.ENGINEER), (self.qa, wf.QA)):
+            m = DeviceMembership(device=other, user=user)
+            m.set_roles([role])
+            m.save(_actor=self.qa)
+        doc = Document.objects.create(title="Other gap", doc_type="GAP", device=other)
+        v = services.create_version(doc, self.eng, version="1.0", change_summary="x",
+                                    file=SimpleUploadedFile("o.pdf", b"%PDF other"))
+        services.submit_version(v, self.eng)
+        services.approve_version(v, self.qa, PW)
+        services.make_effective(v, self.qa)
+        self.assertFalse(route_for(self.dev)[0]["gate_passed"])
+
+    def test_signed_gate_shows_who_signed_and_when(self):
+        from . import tasks
+        tasks.approve_gate(tasks.ensure_gates(self.dev)[0], self.qa, PW)
+        self.client.login(username="qa", password=PW)
+        resp = self.client.get(reverse("qms:device_detail", args=[self.dev.code]))
+        self.assertContains(resp, 'class="badge done">approved</span> by qa on ')
+
+
+class DemoDataRouteTests(TestCase):
+    """The demo loads a Retrofit device with its gap assessment, and one signed Greenfield gate."""
+
+    def test_demo_has_a_retrofit_device_and_a_signed_gate(self):
+        from . import tasks
+        call_command("load_demo_data", stdout=StringIO())
+        trgl = Device.objects.get(code="TRGL")
+        self.assertEqual(trgl.development_route, "retrofit")
+        route = route_for(trgl)
+        self.assertEqual([s["number"] for s in route], list("ABCDEFG"))
+        self.assertTrue(route[0]["gate_passed"])
+        skn = Device.objects.get(code="SKN")
+        self.assertEqual(route_for(skn)[1]["signoff"]["state"], "approved")
+        self.assertEqual(tasks.ensure_gates(skn)[0].status, "approved")

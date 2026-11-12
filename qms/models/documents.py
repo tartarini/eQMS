@@ -17,6 +17,7 @@ DOC_TYPES = [
     ("SPEC", "Specification"),
     ("FORM", "Form / template"),
     ("RPT", "Report"),
+    ("GAP", "Gap assessment"),
 ]
 
 

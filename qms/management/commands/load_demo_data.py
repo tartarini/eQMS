@@ -1,10 +1,10 @@
-"""Example content for two devices, for trying the QMS. Never run in production."""
+"""Example content for three devices, for trying the QMS. Never run in production."""
 from django.contrib.auth.models import Group, User
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
-from qms import services
+from qms import services, tasks
 from qms import workflow as wf
 from qms.models import (DISTRIBUTOR_ROLE, MANUFACTURER_ROLE, Organisation, join_operator_roles,
                         Device, DeviceMembership, Document, Hazard, Record, RiskControl, SoupItem, Supplier,
@@ -14,7 +14,8 @@ PW = "demo-pass-123"
 
 
 class Command(BaseCommand):
-    help = "Load two example devices with documents, hazards, suppliers and records."
+    help = ("Load three example devices (two Greenfield, one Retrofit) with documents, hazards, "
+            "suppliers and records.")
 
     def handle(self, *args, **options):
         if Device.objects.exists() or Document.objects.exists():
@@ -57,7 +58,15 @@ class Command(BaseCommand):
             description="Prototype app estimating breathing rate from phone audio.",
             software_items="Mobile app\nSignal processing\nInfrastructure")
         resp.save(_actor=qa)
-        for d in (skn, resp):
+        # A Retrofit device: its documentation is reconstructed, so step A (gap assessment) applies.
+        trgl = Device(
+            name="TriageLink", code="TRGL", owner=eng, current_version="1.8.2",
+            regulatory_status="on_market", markets="UK (UKCA)", development_route="retrofit",
+            description="Web form that sorts referrals into urgent, routine and advice-only "
+                        "pathways for a regional triage service.",
+            software_items="Referral form\nRules engine\nInfrastructure")
+        trgl.save(_actor=qa)
+        for d in (skn, resp, trgl):
             services.setup_device_pms(d)
         cso = User.objects.get(username="cso_person")
         # Roles are per device. engineer_person: Engineer on SkinCheck, but Engineer, QA and Device
@@ -65,7 +74,9 @@ class Command(BaseCommand):
         # qa is head of quality with All-device access.
         teams = [(skn, [(eng, [wf.ENGINEER]), (qa, [wf.DEVICE_ADMIN]), (qa2, [wf.QA]),
                         (cso, [wf.CLINICAL_SAFETY])]),
-                 (resp, [(eng, [wf.ENGINEER, wf.QA, wf.DEVICE_ADMIN]), (qa, [])])]
+                 (resp, [(eng, [wf.ENGINEER, wf.QA, wf.DEVICE_ADMIN]), (qa, [])]),
+                 (trgl, [(eng, [wf.ENGINEER]), (qa, [wf.DEVICE_ADMIN]), (qa2, [wf.QA]),
+                         (cso, [wf.CLINICAL_SAFETY])])]
         for device, members in teams:
             for u, roles in members:
                 m = DeviceMembership(device=device, user=u)
@@ -99,6 +110,7 @@ class Command(BaseCommand):
         doc("Post-market surveillance plan", "PLAN", "pms", skn, author=qa, approver=qa2)
         doc("GSPR checklist", "FORM", "gspr", skn, effective=False)
         doc("RespiTrack software development plan", "PLAN", "design", resp)
+        doc("TriageLink gap assessment", "GAP", "", trgl, approver=qa2)
 
         cr = Record(record_type=wf.CHANGE_REQUEST, device=skn, created_by=eng,
                     title="Refer images near the decision threshold for specialist review")
@@ -151,8 +163,11 @@ class Command(BaseCommand):
         Record(record_type=wf.PROBLEM_REPORT, device=resp, created_by=eng,
                title="App crashes when microphone permission denied", severity="minor").save()
         services.generate_pms_activities()
+        # Stage 2 of SkinCheck's Greenfield route is signed, so the route shows an approved gate
+        # with who signed it and when. Stage 2's checks pass on the demo record.
+        tasks.approve_gate(tasks.ensure_gates(skn)[0], qa, PW)
         self.stdout.write(self.style.SUCCESS(
-            f"Demo data loaded for {skn} and {resp}. Sign in with password {PW} as engineer_person "
+            f"Demo data loaded for {skn}, {resp} and {trgl}. Sign in with password {PW} as engineer_person "
             "(Engineer on SkinCheck; Engineer, QA and Device admin on RespiTrack), qa_person (head of "
             "quality: QA everywhere, All-device access), qa2_person (QA) or cso_person (Clinical Safety "
             "Officer), both on SkinCheck only."))

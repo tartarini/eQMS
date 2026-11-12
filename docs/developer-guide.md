@@ -468,7 +468,7 @@ Environment variables: `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOST
 | Command | When | What |
 | --- | --- | --- |
 | `seed_qms [--demo]` | Install | Creates roles and gives any device lacking it the standard PMS schedule; `--demo` adds demo users |
-| `load_demo_data` | Trials only | `seed_qms --demo` plus two example devices with documents, hazards, suppliers and records |
+| `load_demo_data` | Trials only | `seed_qms --demo` plus three example devices (two Greenfield, one Retrofit) with documents, hazards, suppliers and records |
 | `generate_pms_activities [--horizon-days N]` | Daily | Creates PMS Activity records due within the horizon; idempotent |
 | `send_reminders` | Daily | `sync_training()`, document review emails, then the daily email digest |
 | `export_documents --git PATH [--push]` or `--zip PATH` | Daily when `QMS_DOCS_GIT_REPO` is set | Syncs the git clone (commits only on change) or writes a zip of the effective documents |

@@ -33,7 +33,7 @@ Requirements: Docker with the Compose plugin, and `make`.
 
 ```bash
 make dev            # build and start; app at http://localhost:8000, emails at http://localhost:8025
-make demo           # load the two demo devices and users (password demo-pass-123)
+make demo           # load the three demo devices and users (password demo-pass-123)
 make test           # run the test suite against the dev PostgreSQL (browser tests skipped: no browser in the image)
 make oq NAME="You"  # OQ evidence on your machine against the dev PostgreSQL, browser tests included
 make shell          # Django shell

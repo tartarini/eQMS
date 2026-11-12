@@ -275,7 +275,8 @@ FIELD_HELP = {
     "document": ("documents", "Document fields", {
         "title": ("Title", "The document's name as it appears on the document itself."),
         "doc_type": ("Type", "The kind of document. It sets the number prefix (for example "
-                     "SOP-001) and cannot be changed later."),
+                     "SOP-001) and cannot be changed later. Gap assessment (GAP) is the document "
+                     "that step A of a Retrofit device's route checks for."),
         "device": ("Device", "Leave blank for QMS-wide documents, such as SOPs and policies, "
                    "that apply to every device. Choose a device for documents about one device; "
                    "only its team will see them."),

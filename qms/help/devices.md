@@ -200,7 +200,7 @@ Greenfield:
 
 Retrofit:
 
-- **A. Gap assessment**: an effective document for this device with "gap assessment" in its title. Record the gap assessment as a document with that in its title so the check finds it.
+- **A. Gap assessment**: an effective document for this device of type **Gap assessment** (GAP-001 and so on). Create it under Documents with that type and attach it to the device, and the check finds it. A document with "gap assessment" in its title still counts, but new ones should use the type.
 - **B. Freeze and baseline the release**: the current software version recorded as the baseline, at least one change request recorded (change control in use), and the set-up checks from greenfield stage 1.
 - **C. Reconstruct intended purpose and classification**: the same checks as greenfield stage 2.
 - **D. Reconstruct requirements, design and SOUP**: the same checks as greenfield stage 3.
