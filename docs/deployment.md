@@ -42,7 +42,10 @@ make jobs           # also run the scheduler
 make dev-reset      # wipe the dev database, files and backups
 ```
 
-The source folder is mounted into the container, so code changes reload immediately. The
+The source folder is mounted into the container, so code changes reload immediately. After pulling
+new code, run `make dev` again: it rebuilds the image, and migrations run when the app starts. To
+refresh the demo data, run `make dev-reset`, `make dev`, then `make demo`
+(see [Update an existing dev instance](developing-and-releasing.md#update-an-existing-dev-instance-after-code-changes)). The
 container migrates the database on start (`QMS_MIGRATE_ON_START=1`). Every email the app sends
 appears in Mailpit. To try single sign-on locally, register a test app with the provider (ORCID
 has a sandbox), add its `SSO_*` values to `deploy/env/dev.env`, and use
