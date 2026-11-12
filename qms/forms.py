@@ -500,3 +500,15 @@ class AccessApproveForm(forms.Form):
 class AccessDeclineForm(forms.Form):
     reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), max_length=2000,
                              label="Reason (sent to the person)")
+
+
+class _MultiFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
+class DocumentImportForm(forms.Form):
+    files = forms.FileField(
+        required=False, label="Markdown files or a zip of them",
+        widget=_MultiFileInput(attrs={"accept": ".md,.zip"}),
+        help_text="Markdown (.md) files, or a zip archive of them.")
+

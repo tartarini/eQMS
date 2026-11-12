@@ -1,7 +1,7 @@
 from .core import (AUDITED_FIELDS, Attachment, AuditedModel, AuditEvent, ImmutableError,  # noqa
                    PMSSchedule, Record, RecordLink, Signature, SigningPin, add_months,
                    sha256_of, verify_audit_chain, verify_signing_credential)
-from .documents import (DOC_TYPES, Document, DocumentVersion, TrainingAssignment,  # noqa
+from .documents import (DOC_TYPES, Document, DocumentVersion, ReviewReminder, TrainingAssignment,  # noqa
                         TrainingRequirement)
 from .risk import (LEVEL_LABELS, PROBABILITY_SCALE, SEVERITY_SCALE, Hazard,  # noqa
                    RiskControl, risk_level)

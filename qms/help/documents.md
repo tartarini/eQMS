@@ -24,3 +24,24 @@ Only one revision can be in progress per document. If the file on the server cha
 ## Periodic review and withdrawal
 
 Each document has a review period (24 months by default). As the review date approaches it appears on the dashboard and in reminder emails. If nothing needs changing, QA records a signed **Periodic review: no change needed**, which resets the date; otherwise create a new version. To retire a document, QA uses **Withdraw document** with a signed reason.
+
+## Import and export
+
+**Export folder (zip)** downloads every effective document you can see as a folder per document, under its device and type. Each folder holds a markdown file with the document's details and text (or a pointer to its file) and the controlled file itself. The download also includes an index of all documents and a manifest of file checksums.
+
+**Import markdown** brings markdown files back in. Each file starts with a front-matter block between two `---` lines:
+
+```
+---
+title: Calibration of test rigs
+type: SOP
+device: SKN
+description: How the test rigs are calibrated.
+---
+Text of the document in markdown.
+```
+
+A file without a `number` creates a new document with a draft first version. A file with the `number` of an existing document (as exported) adds a draft revision. Imports are checked against your device teams, and each new document or revision is recorded in the audit trail like any other.
+
+A server administrator can also link a git repository that is kept in sync with the QMS: each night the scheduler updates the clone, commits the changes (only when something changed), and pushes them if configured (`QMS_DOCS_GIT_REPO`, `QMS_DOCS_GIT_PUSH`). A document that is no longer effective is removed from the repository; its versions stay in the QMS.
+

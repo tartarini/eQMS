@@ -102,6 +102,8 @@ PAGE_HELP = {
     "device_edit": ("devices", "add-a-device"),
     "set_device": ("devices", "choose-a-device"),
     "people": ("devices", "people"),
+    "document_export": ("documents", "import-and-export"),
+    "document_import": ("documents", "import-and-export"),
     "set_role": ("devices", "acting-as-one-role"),
     "team_add": ("devices", "device-teams"),
     "team_remove": ("devices", "device-teams"),
@@ -126,6 +128,13 @@ PAGE_HELP = {
 # Field help, grouped. Each group: topic it belongs to, title of its reference table, and
 # {field: (label, help)}. Help may use {placeholders} from help_vars().
 FIELD_HELP = {
+    "documentimport": ("documents", "Document import fields", {
+        "files": ("Markdown files", "Choose one or more markdown (.md) files, or a zip archive of them. "
+                  "Each file starts with a front-matter block between two --- lines, for example "
+                  "title, type (SOP, WI, POL and so on), device (the device code) and description. "
+                  "Give a number to add a draft revision to an existing document; leave it out to "
+                  "create a new document with a draft first version."),
+    }),
     "record": ("records", "Quality record fields", {
         "device": ("Device", "The medical device this record is about. You can only choose "
                    "devices whose team you are on. It decides who can see the record, who is "
@@ -555,6 +564,7 @@ FORM_GROUPS = {
     "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
     "AccessRequestForm": "accessrequest",
     "AccessApproveForm": "accessapprove", "AccessDeclineForm": "accessdecline",
+    "DocumentImportForm": "documentimport",
 }
 
 

@@ -216,3 +216,19 @@ class TrainingAssignment(AuditedModel):
         if self.due_date < date.today():
             return "overdue"
         return "due"
+
+
+class ReviewReminder(models.Model):
+    """A review reminder already sent for one review date at one stage (days before it is
+    due, or 0 when due or overdue), so each stage is emailed once."""
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="review_reminders")
+    review_date = models.DateField()
+    stage = models.PositiveSmallIntegerField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("document", "review_date", "stage")]
+
+    def __str__(self):
+        return f"{self.document.number} review {self.review_date} stage {self.stage}"
+

@@ -11,11 +11,14 @@ holds on it, so it cannot drift from the workflow. Columns:
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
+from . import notifications
 from . import workflow as wf
+from . import services
 from .models import (GATES_BY_ROUTE, DocumentVersion, Record, Signature, StageGate,
                      TechnicalFileBuild, TrainingAssignment)
 from .roles import device_roles
@@ -33,31 +36,59 @@ class Task:
 
 
 def ensure_gates(device) -> list:
-    """The device's approver gates for its documentation route, created on first use."""
+    """The device's approver gates for its documentation route, created on first use. The
+    first gate's approver is told when the gates are first created."""
+    created = []
     for stage, name, role in GATES_BY_ROUTE[device.development_route]:
-        StageGate.objects.get_or_create(
+        _, new = StageGate.objects.get_or_create(
             device=device, route=device.development_route, stage=stage,
             defaults={"name": name, "approver_role": role})
-    return list(StageGate.objects.filter(device=device, route=device.development_route))
+        if new:
+            created.append(stage)
+    gates = list(StageGate.objects.filter(device=device, route=device.development_route))
+    if created and gates and gates[0].stage in created:
+        notifications.gate_open(gates[0])
+    return gates
 
 
-def approve_gate(gate, user):
-    """Approve an open gate. Only someone holding the gate's approver role on the device may."""
+def next_open_gate(gates):
+    """Gates open in stage order: only the first gate not yet approved can be approved."""
+    return next((g for g in gates if g.status == "open"), None)
+
+
+def approve_gate(gate, user, secret: str):
+    """Approve the next open gate, with an electronic signature. Only someone holding the
+    gate's approver role on the device may, and only after the earlier stages are approved."""
+    errors = []
+    services._check_secret(errors, user, secret)
     if gate.approver_role not in device_roles(user, gate.device):
-        raise TransitionError([f"Requires role: {gate.approver_role} on {gate.device.name}."])
+        errors.append(f"Requires role: {gate.approver_role} on {gate.device.name}.")
     if gate.status == "approved":
-        raise TransitionError(["This gate is already approved."])
-    gate.status = "approved"
-    gate.approved_by = user
-    gate.approved_at = timezone.now()
-    gate.save(_actor=user)
+        errors.append("This gate is already approved.")
+    else:
+        upcoming = next_open_gate(ensure_gates(gate.device))
+        if upcoming is not None and upcoming.pk != gate.pk:
+            errors.append(f"Stage {upcoming.stage} ({upcoming.name}) must be approved first.")
+    if errors:
+        raise TransitionError(errors)
+    with transaction.atomic():
+        gate.status = "approved"
+        gate.approved_by = user
+        gate.approved_at = timezone.now()
+        gate.save(_actor=user, _comment="Stage gate approved")
+        services.sign(gate, user, secret, f"Approved stage gate: Stage {gate.stage}",
+                      transition="approve_gate", from_status="open", to_status="approved")
+        following = next_open_gate(ensure_gates(gate.device))
+        if following is not None:
+            notifications.gate_open(following)
     return gate
 
 
 def gate_lanes(user, device, gates) -> list:
     """One lane per gate: its status, and whether this person can approve it now."""
     mine = device_roles(user, device)
-    return [{"gate": g, "can_approve": g.status == "open" and g.approver_role in mine}
+    upcoming = next_open_gate(gates)
+    return [{"gate": g, "can_approve": g is upcoming and g.approver_role in mine}
             for g in gates]
 
 
@@ -95,12 +126,12 @@ def board(user, device) -> dict:
                 seen_waiting = True
 
     # Approver gates on this device's route that this person's role can approve now.
-    for gate in ensure_gates(device):
-        if gate.status == "open" and gate.approver_role in mine:
-            columns["todo"].append(Task(
-                "Approver gate", f"Stage {gate.stage}: {gate.name}",
-                f"Approve ({gate.approver_role})",
-                reverse("qms:device_tasks", args=[device.code])))
+    upcoming = next_open_gate(ensure_gates(device))
+    if upcoming is not None and upcoming.approver_role in mine:
+        columns["todo"].append(Task(
+            "Approver gate", f"Stage {upcoming.stage}: {upcoming.name}",
+            f"Approve ({upcoming.approver_role})",
+            reverse("qms:device_tasks", args=[device.code])))
 
     # Document versions on this device, and QMS-wide documents.
     versions = DocumentVersion.objects.filter(

@@ -220,12 +220,19 @@ QMS_ALERT_EMAILS = [e for e in os.environ.get("QMS_ALERT_EMAILS", "").split(",")
 
 # Daily jobs run by `manage.py run_scheduler` (the scheduler container), as (HH:MM UTC, name,
 # command). Times are UTC.
+# Local clone of a git repository that the scheduler keeps in step with the controlled
+# documents (commits changes; pushes if QMS_DOCS_GIT_PUSH is set). Empty: no sync.
+QMS_DOCS_GIT_REPO = os.environ.get("QMS_DOCS_GIT_REPO", "").strip()
+QMS_DOCS_GIT_PUSH = os.environ.get("QMS_DOCS_GIT_PUSH", "").lower() in ("1", "true", "yes")
+
 QMS_SCHEDULED_JOBS = [
     ("02:30", "backup", ["/app/deploy/scripts/backup.sh"]),
     ("03:00", "verify_audit", ["python", "manage.py", "verify_audit"]),
     ("05:30", "generate_pms_activities", ["python", "manage.py", "generate_pms_activities"]),
     ("05:45", "send_reminders", ["python", "manage.py", "send_reminders"]),
-]
+] + ([("05:55", "export_documents", ["python", "manage.py", "export_documents",
+                                    "--git", QMS_DOCS_GIT_REPO]
+           + (["--push"] if QMS_DOCS_GIT_PUSH else []))] if QMS_DOCS_GIT_REPO else [])
 
 LOGGING = {
     "version": 1,
@@ -238,6 +245,7 @@ LOGGING = {
 QMS_BASE_URL = os.environ.get("QMS_BASE_URL", "http://127.0.0.1:8000")
 QMS_NOTIFICATIONS_ENABLED = True
 QMS_REMINDER_LOOKAHEAD_DAYS = 7
+QMS_REVIEW_REMINDER_DAYS = [60, 30, 7, 0]   # one email each, this many days before a review is due
 
 # --- Documents, training, risk, suppliers -------------------------------------
 QMS_TRAINING_DUE_DAYS = 14
