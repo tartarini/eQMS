@@ -111,6 +111,82 @@ A diamond before a stage is that stage's **approver gate**, signed on **My tasks
 
 Greenfield has gates before stages 2, 4, 5 and 6. Retrofit has a gate on every step, A to G.
 
+### Route at a glance
+
+These are the two routes as the diagram draws them. A diamond marks a stage with an approver gate. The examples show a device with nothing done yet.
+
+<div class="route-example">
+<svg viewBox="0 0 720 170" role="img" aria-label="Greenfield route: stages 1 to 6" style="width:100%;max-width:720px;height:auto;font-family:inherit">
+<title>Greenfield route: stages 1 to 6</title>
+<line x1="60" y1="92" x2="660" y2="92" stroke="#9a9a94" stroke-width="2"/>
+<circle cx="60" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="60" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">1</text>
+<text x="60" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Set-up</text>
+<circle cx="180" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="180" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">2</text>
+<rect x="173" y="39" width="14" height="14" transform="rotate(45 180 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="180" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Purpose and</text>
+<text x="180" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">classification</text>
+<circle cx="300" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="300" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">3</text>
+<text x="300" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Requirements</text>
+<text x="300" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">and design</text>
+<circle cx="420" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="420" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">4</text>
+<rect x="413" y="39" width="14" height="14" transform="rotate(45 420 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="420" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Risk</text>
+<circle cx="540" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="540" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">5</text>
+<rect x="533" y="39" width="14" height="14" transform="rotate(45 540 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="540" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Verification</text>
+<text x="540" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">and evidence</text>
+<circle cx="660" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="660" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">6</text>
+<rect x="653" y="39" width="14" height="14" transform="rotate(45 660 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="660" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Release and</text>
+<text x="660" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">PMS</text>
+</svg>
+<p class="small muted">Greenfield: six stages. Gates on stages 2, 4, 5 and 6.</p>
+<svg viewBox="0 0 720 170" role="img" aria-label="Retrofit route: steps A to G" style="width:100%;max-width:720px;height:auto;font-family:inherit">
+<title>Retrofit route: steps A to G</title>
+<line x1="60" y1="92" x2="660" y2="92" stroke="#9a9a94" stroke-width="2"/>
+<circle cx="60" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="60" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">A</text>
+<rect x="53" y="39" width="14" height="14" transform="rotate(45 60 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="60" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Gap</text>
+<text x="60" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">assessment</text>
+<circle cx="160" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="160" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">B</text>
+<rect x="153" y="39" width="14" height="14" transform="rotate(45 160 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="160" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Baseline</text>
+<circle cx="260" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="260" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">C</text>
+<rect x="253" y="39" width="14" height="14" transform="rotate(45 260 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="260" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Purpose and</text>
+<text x="260" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">class</text>
+<circle cx="360" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="360" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">D</text>
+<rect x="353" y="39" width="14" height="14" transform="rotate(45 360 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="360" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Requirements</text>
+<text x="360" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">and SOUP</text>
+<circle cx="460" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="460" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">E</text>
+<rect x="453" y="39" width="14" height="14" transform="rotate(45 460 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="460" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Risk</text>
+<circle cx="560" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="560" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">F</text>
+<rect x="553" y="39" width="14" height="14" transform="rotate(45 560 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="560" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Test</text>
+<text x="560" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">evidence</text>
+<circle cx="660" cy="92" r="17" fill="#ecebe6" stroke="#9a9a94" stroke-width="2"/>
+<text x="660" y="97" text-anchor="middle" font-size="14" font-weight="700" fill="#5a5a55">G</text>
+<rect x="653" y="39" width="14" height="14" transform="rotate(45 660 46)" fill="#fff" stroke="#b3261e" stroke-width="2"/>
+<text x="660" y="132" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Close</text>
+<text x="660" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">gaps</text>
+</svg>
+<p class="small muted">Retrofit: seven steps. A gate on every step.</p>
+</div>
+
 ### The stages and their checks
 
 Greenfield:
