@@ -561,6 +561,18 @@ REQUIREMENTS = [
       "test_doc_route.GapAssessmentAndDemoTests.test_gap_assessment_of_another_device_does_not_count",
       "test_doc_route.DemoDataRouteTests.test_demo_has_a_retrofit_device_and_a_signed_gate"],
      []),
+    ("URS-119", "Devices", "Each task on the My tasks board shows the route step it belongs to: a "
+     "gate is its own stage, a document follows its technical file section, a record follows its "
+     "type, and training follows its document. The board shows the route's stages in colour, lists "
+     "To do and Waiting on others in stage order, and marks work that isn't on the route as not tied "
+     "to a stage.", "M",
+     ["test_tasks.TaskStageTests.test_a_problem_report_belongs_to_release_and_pms",
+      "test_tasks.TaskStageTests.test_a_document_belongs_to_the_step_of_its_technical_file_section",
+      "test_tasks.TaskStageTests.test_a_gate_belongs_to_its_own_stage",
+      "test_tasks.TaskStageTests.test_retrofit_uses_steps_and_the_gap_assessment_is_step_a",
+      "test_tasks.TaskStageTests.test_work_not_on_the_route_has_no_stage",
+      "test_tasks.TaskStageTests.test_page_groups_by_stage_and_shows_the_route_legend"],
+     []),
 ]
 
 

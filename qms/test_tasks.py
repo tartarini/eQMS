@@ -141,3 +141,67 @@ class StageGateTests(TestCase):
         by_stage = {l["gate"].stage: l["can_approve"] for l in lanes}
         self.assertTrue(by_stage["2"])
         self.assertFalse(by_stage["4"])
+
+
+class TaskStageTests(TestCase):
+    """Each task says which route step it belongs to, and the board shows it."""
+
+    def setUp(self):
+        self.device = Device.objects.create(name="SkinCheck", code="SKN")
+        self.engineer = person("eng", self.device, "Engineer")
+        self.qa = person("qa", self.device, "QA")
+
+    def draft(self, title, doc_type, section="", device=None):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from . import services
+        from .models import Document
+        doc = Document.objects.create(title=title, doc_type=doc_type, tech_file_section=section,
+                                      device=device or self.device, owner=self.engineer)
+        return services.create_version(doc, self.engineer, version="1.0", change_summary="x",
+                                       file=SimpleUploadedFile(f"{title}.pdf", b"%PDF draft"))
+
+    def task_titled(self, board, column, text):
+        return next(t for t in board[column] if text in t.title)
+
+    def test_a_problem_report_belongs_to_release_and_pms(self):
+        record = Record.objects.create(device=self.device, record_type=wf.PROBLEM_REPORT,
+                                       title="Threshold bug", owner=self.engineer)
+        Record.objects.filter(pk=record.pk).update(status="released")
+        task = self.task_titled(tasks.board(self.qa, self.device), "todo", "Threshold bug")
+        self.assertEqual(task.stage, "Stage 6 · Release and PMS")
+        self.assertEqual(task.position, 6)
+
+    def test_a_document_belongs_to_the_step_of_its_technical_file_section(self):
+        self.draft("Risk management plan", "PLAN", section="risk")
+        task = self.task_titled(tasks.board(self.engineer, self.device), "todo", "Risk management plan")
+        self.assertEqual(task.stage, "Stage 4 · Risk")
+        self.assertEqual(task.position, 4)
+
+    def test_a_gate_belongs_to_its_own_stage(self):
+        task = self.task_titled(tasks.board(self.qa, self.device), "todo", "Classification")
+        self.assertEqual(task.kind, "Approver gate")
+        self.assertEqual(task.stage, "Stage 2 · Purpose and class")
+
+    def test_retrofit_uses_steps_and_the_gap_assessment_is_step_a(self):
+        self.device.development_route = "retrofit"
+        self.device.save()
+        self.draft("Gap assessment of 1.8", "GAP")
+        board = tasks.board(self.engineer, self.device)
+        task = self.task_titled(board, "todo", "Gap assessment of 1.8")
+        self.assertEqual(task.stage, "Step A · Gap assessment")
+        self.assertEqual(task.position, 1)
+
+    def test_work_not_on_the_route_has_no_stage(self):
+        self.draft("Site training procedure", "SOP")
+        task = self.task_titled(tasks.board(self.engineer, self.device), "todo",
+                                "Site training procedure")
+        self.assertEqual(task.stage, "")
+        self.assertEqual(task.position, 0)
+
+    def test_page_groups_by_stage_and_shows_the_route_legend(self):
+        self.draft("Risk management plan", "PLAN", section="risk")
+        self.client.force_login(self.engineer)
+        response = self.client.get(reverse("qms:device_tasks", args=[self.device.code]))
+        self.assertContains(response, 'class="stage-legend"')
+        self.assertContains(response, "Stage 4 · Risk")
+        self.assertContains(response, "stage-4")

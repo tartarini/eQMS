@@ -416,17 +416,26 @@ def device_tasks(request, code):
     data = techfile.gather(device)
     route = doc_route.by_number(doc_route.stages(
         device, data, techfile.completeness_checks(device, data)))
+    route_code = device.development_route
     for lane in lanes:
         lane["stage"] = route.get(lane["gate"].stage)
+        lane["step_label"], lane["position"] = doc_route.placement(route_code, lane["gate"].stage)
+    # Work is grouped by the route step it belongs to, in route order; work that isn't on the
+    # route comes last. The done column keeps its most-recent-first order.
+    def in_route_order(items):
+        return sorted(items, key=lambda t: t.position or 99)
     columns = [
-        ("todo", "To do", board["todo"], "Nothing needs your action on this device."),
-        ("waiting", "Waiting on others", board["waiting"],
+        ("todo", "To do", in_route_order(board["todo"]),
+         "Nothing needs your action on this device."),
+        ("waiting", "Waiting on others", in_route_order(board["waiting"]),
          "Nothing you started is waiting on others."),
         ("done", "Done recently", board["done"], "No signatures in the last 30 days."),
     ]
+    legend = [{"position": pos, "label": doc_route.placement(route_code, key)[0]}
+              for pos, (key, _name) in enumerate(doc_route.ROUTE_STEPS.get(route_code, []), 1)]
     return render(request, "qms/device_tasks.html",
                   {"device": device, "columns": columns, "gate_lanes": lanes,
-                   "sign_form": SignForm(),
+                   "sign_form": SignForm(), "stage_legend": legend,
                    "route_label": device.get_development_route_display()})
 
 

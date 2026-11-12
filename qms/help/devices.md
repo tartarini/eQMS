@@ -251,6 +251,8 @@ do on that device, based on the roles you hold there.
 - **Waiting on others:** work you started or own that needs another role to act next.
 - **Done recently:** electronic signatures you made on this device in the last 30 days.
 
+Each card also shows the route stage it belongs to, in a coloured label: a gate is its own stage; a document is the stage of its technical file section (for example risk documents belong to stage 4, Risk, and a gap assessment to step A on a Retrofit device); a record is the stage its type belongs to (a problem report or change request to stage 6, Release and PMS). The colours follow the stage row above the columns, and To do and Waiting on others are listed in stage order. Work that isn't part of the route, such as a QMS-wide SOP, is marked **Not tied to a stage**.
+
 Each approver gate for the device's documentation route (Greenfield or Retrofit) has its own
 column. Gates open in stage order: a stage can be approved only after the stage before it. The
 approver role is shown on the card. When it is your turn and you hold that role, enter your

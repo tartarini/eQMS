@@ -33,6 +33,25 @@ class Task:
     title: str
     detail: str
     url: str
+    stage: str = ""      # the route step it belongs to, e.g. "Stage 3 · Requirements and design"
+    position: int = 0    # its place along the route (1 to 7), for colouring; 0 when not on it
+
+
+def _at(device, **where) -> dict:
+    """The route step a piece of work belongs to on the device's route, as Task fields."""
+    label, position = doc_route.placement(
+        device.development_route, doc_route.step_for(device.development_route, **where))
+    return {"stage": label, "position": position}
+
+
+def _gate_at(device, gate) -> dict:
+    label, position = doc_route.placement(device.development_route, gate.stage)
+    return {"stage": label, "position": position}
+
+
+def _doc_at(device, version) -> dict:
+    doc = version.document
+    return _at(device, section=doc.tech_file_section, doc_type=doc.doc_type)
 
 
 def ensure_gates(device) -> list:
@@ -123,12 +142,14 @@ def board(user, device) -> dict:
                 if not seen_todo:
                     columns["todo"].append(Task(
                         record.type_label, f"{record.ref}: {record.title}",
-                        f"Next step: {t.label}", url))
+                        f"Next step: {t.label}", url,
+                        **_at(device, record_type=record.record_type)))
                     seen_todo = True
             elif record.owner_id == user.pk and not seen_waiting:
                 columns["waiting"].append(Task(
                     record.type_label, f"{record.ref}: {record.title}",
-                    f"Waiting for {_roles_text(t.roles)}: {t.label}", url))
+                    f"Waiting for {_roles_text(t.roles)}: {t.label}", url,
+                    **_at(device, record_type=record.record_type)))
                 seen_waiting = True
 
     # Approver gates on this device's route that this person's role can approve now.
@@ -137,7 +158,8 @@ def board(user, device) -> dict:
         columns["todo"].append(Task(
             "Approver gate", f"Stage {upcoming.stage}: {upcoming.name}",
             f"Approve ({upcoming.approver_role})",
-            reverse("qms:device_tasks", args=[device.code])))
+            reverse("qms:device_tasks", args=[device.code]),
+            **_gate_at(device, upcoming)))
 
     # Document versions on this device, and QMS-wide documents.
     versions = DocumentVersion.objects.filter(
@@ -149,18 +171,23 @@ def board(user, device) -> dict:
         title = f"{v.document.number} v{v.version}: {v.document.title}"
         is_author = v.author_id == user.pk
         if v.status == "draft" and is_author:
-            columns["todo"].append(Task("Document", title, "Finish and submit for review", url))
+            columns["todo"].append(Task("Document", title, "Finish and submit for review", url,
+                                        **_doc_at(device, v)))
         elif v.status == "in_review":
             if wf.QA in mine and not is_author:
-                columns["todo"].append(Task("Document", title, "Approve (QA)", url))
+                columns["todo"].append(Task("Document", title, "Approve (QA)", url,
+                                            **_doc_at(device, v)))
             elif is_author:
-                columns["waiting"].append(Task("Document", title, "Waiting for QA approval", url))
+                columns["waiting"].append(Task("Document", title, "Waiting for QA approval", url,
+                                               **_doc_at(device, v)))
         elif v.status == "approved":
             if wf.QA in mine:
-                columns["todo"].append(Task("Document", title, "Make effective (QA)", url))
+                columns["todo"].append(Task("Document", title, "Make effective (QA)", url,
+                                            **_doc_at(device, v)))
             elif is_author:
                 columns["waiting"].append(Task("Document", title,
-                                               "Waiting for QA to make it effective", url))
+                                               "Waiting for QA to make it effective", url,
+                                               **_doc_at(device, v)))
 
     # Technical file builds waiting for the QA signature.
     if wf.QA in mine:
@@ -168,7 +195,8 @@ def board(user, device) -> dict:
             columns["todo"].append(Task(
                 "Technical file", f"{build.label}",
                 "Approve the technical file build (QA signature)",
-                reverse("qms:device_detail", args=[device.code])))
+                reverse("qms:device_detail", args=[device.code]),
+                **_at(device, build=True)))
 
     # Training assigned to this person for effective documents on this device.
     assignments = TrainingAssignment.objects.filter(
@@ -179,7 +207,8 @@ def board(user, device) -> dict:
         columns["todo"].append(Task(
             "Training", f"{a.version.document.number} v{a.version.version}: "
                         f"{a.version.document.title}",
-            "Read the document and complete training", reverse("qms:my_training")))
+            "Read the document and complete training", reverse("qms:my_training"),
+            **_doc_at(device, a.version)))
 
     # Recent signatures this person made on this device.
     since = timezone.now() - timedelta(days=RECENT_DAYS)
@@ -190,6 +219,7 @@ def board(user, device) -> dict:
         columns["done"].append(Task(
             s.record.type_label, f"{s.record.ref}: {s.record.title}",
             f"Signed '{s.meaning}' on {s.signed_at:%d %b %Y}",
-            reverse("qms:record_detail", args=[s.record.ref])))
+            reverse("qms:record_detail", args=[s.record.ref]),
+            **_at(device, record_type=s.record.record_type)))
 
     return columns
