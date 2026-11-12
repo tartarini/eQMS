@@ -145,7 +145,7 @@ jobs:
         run: pip install ansible-core shellcheck-py
 
       - name: Shell scripts
-        run: shellcheck deploy/scripts/*.sh scripts/*.sh
+        run: shellcheck deploy/scripts/*.sh deploy/apache/*.sh scripts/*.sh
 
       - name: Compose files
         run: |

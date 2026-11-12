@@ -60,12 +60,18 @@
         fail_msg: "Deploy a specific, validated release tag (qms_version), not '{{ qms_version }}'."
 
   tasks:
-    - name: Install the Compose file and Caddy configuration
+    - name: Install the Compose file
       ansible.builtin.copy:
-        src: "../{{ item }}"
-        dest: "{{ qms_dir }}/{{ item }}"
+        src: ../compose.prod.yaml
+        dest: "{{ qms_dir }}/compose.prod.yaml"
         mode: "0640"
-      loop: [compose.prod.yaml, Caddyfile]
+
+    - name: Install the Apache configuration (image build context)
+      ansible.builtin.copy:
+        src: ../apache/
+        dest: "{{ qms_dir }}/apache/"
+        mode: "0640"
+        directory_mode: "0750"
 
     - name: Write Compose variables (.env)
       ansible.builtin.template:

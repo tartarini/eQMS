@@ -94,9 +94,11 @@ Playwright: `pip install -r requirements-dev.txt && python -m playwright install
 
 ## Deployment
 
-Production runs on a single Linux server with Docker Compose (Caddy for HTTPS, gunicorn,
+Production runs on a single Linux server with Docker Compose (Apache for HTTPS, gunicorn,
 a scheduler for daily jobs and backups, PostgreSQL 16), provisioned and deployed with Ansible;
 CI builds, tests and publishes the image. See **[docs/deployment.md](docs/deployment.md)**.
+
+New to the project? [Developing and releasing](docs/developing-and-releasing.md) covers the local loop and how a change reaches staging and production; [Deploying on a Linux VM](docs/deploy-linux-vm.md) covers a new Ubuntu or Red Hat-family server with Let's Encrypt.
 
 ```bash
 make provision ENV=production

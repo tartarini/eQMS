@@ -1,5 +1,5 @@
-# Production stack for a single Linux server: Caddy (HTTPS), app (gunicorn), scheduler
-# (daily jobs and backups) and PostgreSQL. Installed to /opt/samd_qms by Ansible, which also
+# Production stack for a single Linux server: Apache (HTTPS), app (gunicorn), scheduler
+# (daily jobs and backups), certbot (Let's Encrypt certificates) and PostgreSQL. Installed to /opt/samd_qms by Ansible, which also
 # writes .env (values substituted below) and app.env (application settings and secrets).
 #
 #   docker compose -f compose.prod.yaml up -d
@@ -21,7 +21,7 @@ x-app: &app
     QMS_MIGRATE_ON_START: "0"
   volumes:
     - media:/data/media
-    - ${BACKUP_HOST_DIR:-/var/backups/samd_qms}:/backups
+    - ${BACKUP_HOST_DIR:-/var/backups/samd_qms}:/backups:z   # :z: SELinux (Red Hat family)
   read_only: true
   tmpfs:
     - /tmp
@@ -78,20 +78,23 @@ services:
     healthcheck:
       disable: true
 
-  caddy:
-    image: caddy:2-alpine
+  web:
+    # Apache 2.4 terminates HTTPS and proxies to the app. Configuration: deploy/apache/.
+    build: ./apache
+    entrypoint: ["/bin/sh", "/usr/local/bin/qms-entrypoint.sh"]
     environment:
       QMS_DOMAIN: ${QMS_DOMAIN}
-      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
       - "127.0.0.1:8443:8443"   # admin site, for SSH tunnels only (finding F7)
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./apache/httpd.conf:/usr/local/apache2/conf/httpd.conf:ro,z
+      - ./apache/qms.conf.template:/etc/apache2-templates/qms.conf.template:ro,z
+      - ./apache/entrypoint.sh:/usr/local/bin/qms-entrypoint.sh:ro,z
+      - letsencrypt:/etc/letsencrypt:ro
+      - acme_webroot:/var/www/certbot:ro
+      - tls:/usr/local/apache2/tls
     depends_on:
       app:
         condition: service_healthy
@@ -106,13 +109,42 @@ services:
         max-size: "20m"
         max-file: "10"
 
+  certbot:
+    # Issues the Let's Encrypt certificate for QMS_DOMAIN, then renews it twice a day. Apache
+    # picks up a renewed certificate itself (see deploy/apache/entrypoint.sh).
+    image: certbot/certbot:v2.11.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until [ -s /etc/letsencrypt/live/$$QMS_DOMAIN/fullchain.pem ]; do
+        certbot certonly --webroot -w /var/www/certbot -d $$QMS_DOMAIN
+        -m $$ACME_EMAIL --agree-tos --non-interactive || sleep 3600; done;
+        while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 43200; done
+    environment:
+      QMS_DOMAIN: ${QMS_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - acme_webroot:/var/www/certbot
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - web
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "10"
+
 networks:
   backend:
     internal: true     # database traffic only; no internet access
-  web:                 # Caddy <-> app, and the app's outbound email and SSO calls
+  web:                 # Apache, certbot <-> app, and the app's outbound email and SSO calls
 
 volumes:
   pgdata:
   media:
-  caddy_data:          # TLS certificates; back up with the server
-  caddy_config:
+  letsencrypt:         # TLS certificates from Let's Encrypt; back up with the server
+  acme_webroot:        # challenge files for certificate issuance and renewal
+  tls:                 # self-signed certificates (administration site, first start)

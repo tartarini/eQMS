@@ -11,6 +11,6 @@ max_requests = 1000          # recycle workers to bound memory growth
 max_requests_jitter = 100
 accesslog = "-"
 errorlog = "-"
-# Only the Caddy proxy on the private Docker network can reach the app.
+# Only the Apache proxy on the private Docker network can reach the app.
 forwarded_allow_ips = "*"
 worker_tmp_dir = "/dev/shm"

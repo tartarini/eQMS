@@ -1,0 +1,77 @@
+# Rendered by entrypoint.sh: @QMS_DOMAIN@ is the public domain; @PUBLIC_CERT@ and
+# @PUBLIC_KEY@ are the Let's Encrypt certificate, or a temporary self-signed one until it exists.
+
+# Public site: plain HTTP only for the Let's Encrypt challenge and the redirect to HTTPS.
+<VirtualHost *:80>
+    ServerName @QMS_DOMAIN@
+    Alias /.well-known/acme-challenge/ /var/www/certbot/.well-known/acme-challenge/
+    <Directory /var/www/certbot/.well-known/acme-challenge/>
+        Require all granted
+    </Directory>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</VirtualHost>
+
+# Public site.
+<VirtualHost *:443>
+    ServerName @QMS_DOMAIN@
+
+    SSLEngine on
+    SSLCertificateFile @PUBLIC_CERT@
+    SSLCertificateKeyFile @PUBLIC_KEY@
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLHonorCipherOrder off
+    SSLSessionTickets off
+    SSLUseStapling off
+
+    # The app sends HSTS, nosniff, Referrer-Policy and X-Frame-Options itself (settings.py);
+    # Apache adds the one it does not, and hides the Server header the app's server sends.
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header onsuccess unset Server
+
+    # Tells the app the request arrived over HTTPS (settings.SECURE_PROXY_SSL_HEADER).
+    RequestHeader set X-Forwarded-Proto "https"
+
+    # Uploaded files are only ever served through login-protected app views, and the
+    # administration pages are reached only through the SSH tunnel (the site below).
+    RewriteEngine On
+    RewriteRule ^/(media|admin)(/|$) - [R=404,L]
+
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyTimeout 180
+    ProxyPass / http://app:8000/ retry=0
+    ProxyPassReverse / http://app:8000/
+
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
+</VirtualHost>
+
+# Administration site for SSH tunnels: https://localhost:8443/admin/ on the operator's machine.
+# The certificate is self-signed, so the browser warns once; that is expected.
+<VirtualHost *:8443>
+    ServerName localhost
+
+    SSLEngine on
+    SSLCertificateFile /usr/local/apache2/tls/admin.crt
+    SSLCertificateKeyFile /usr/local/apache2/tls/admin.key
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    SSLHonorCipherOrder off
+    SSLSessionTickets off
+
+    # No HSTS here: it would pin every localhost port to HTTPS in the operator's browser, so
+    # the app's HSTS header is removed on this site. Django sends the other security headers.
+    Header onsuccess unset Strict-Transport-Security
+    Header onsuccess unset Server
+
+    RequestHeader set X-Forwarded-Proto "https"
+
+    RewriteEngine On
+    RewriteRule ^/media(/|$) - [R=404,L]
+
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyTimeout 180
+    ProxyPass / http://app:8000/ retry=0
+    ProxyPassReverse / http://app:8000/
+</VirtualHost>

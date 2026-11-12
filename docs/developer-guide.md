@@ -355,7 +355,7 @@ without a role gets `access_pending.html` with HTTP 403.
 
 The admin site is for staff users only. `seed_qms` gives the QA group all `qms` model permissions;
 make QA leads `is_staff` so they can manage users and roles. On production it answers only
-through the SSH tunnel: Caddy returns 404 for `/admin/` on the public site, and
+through the SSH tunnel: Apache returns 404 for `/admin/` on the public site, and
 `qms.admin_access.AdminHostMiddleware` does the same for any host not in `QMS_ADMIN_HOSTS`
 (production: `localhost:8443`), which also hides the header's Admin link (finding F7;
 [deployment guide](deployment.md#administration-admin-through-an-ssh-tunnel)).
@@ -816,8 +816,8 @@ Infrastructure is code; the full procedure is in [deployment.md](deployment.md).
 | `Dockerfile` | Two-stage build on `python:3.13-slim`; static files collected at build; runs as uid 10001; `HEALTHCHECK` on `/healthz` |
 | `deploy/scripts/entrypoint.sh` | Waits for PostgreSQL; migrates and seeds only when `QMS_MIGRATE_ON_START=1` (development) |
 | `compose.yaml` | Development: app (live reload), PostgreSQL, Mailpit; optional scheduler profile |
-| `deploy/compose.prod.yaml` | Production: Caddy, app, scheduler, PostgreSQL on an internal network; read-only, capability-free app containers |
-| `deploy/Caddyfile` | Automatic HTTPS, security headers, blocks `/media/` |
+| `deploy/compose.prod.yaml` | Production: Apache, certbot, app, scheduler, PostgreSQL on an internal network; read-only, capability-free app containers |
+| `deploy/apache/` | Apache configuration and start-up script: HTTPS, security headers, blocks `/media/` and the public `/admin/`, proxies to the app |
 | `deploy/gunicorn.conf.py` | Workers, threads, timeouts (180 s for technical files) |
 | `deploy/scripts/backup.sh`, `restore.sh` | Checksummed backups with the latest audit hash; restore with verification and empty-target guard |
 | `deploy/ansible/` | `provision.yml` (server), `deploy.yml` (release), `restore-test.yml` (IQ-08) |
@@ -833,7 +833,7 @@ App-side support:
 - `manage.py run_scheduler` runs `QMS_SCHEDULED_JOBS` (UTC) as subprocesses and calls
   `send_alert` on failure; `--once <job>` runs one now.
 - With `DJANGO_DEBUG=0`: HTTPS redirect, HSTS, secure cookies, `X-Frame-Options: DENY`, and
-  `SECURE_PROXY_SSL_HEADER` for the Caddy proxy.
+  `SECURE_PROXY_SSL_HEADER` for the Apache proxy.
 - Logs go to stdout (`docker compose logs`).
 
 ## Validation

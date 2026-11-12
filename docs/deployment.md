@@ -6,7 +6,7 @@ Everything needed to build, run, provision, deploy and back it up is code in thi
 | Environment | How it runs | Defined in |
 | --- | --- | --- |
 | Development (your laptop) | Docker Compose: app with live reload, PostgreSQL 16, Mailpit mail catcher | `compose.yaml`, `deploy/env/dev.env` |
-| Staging and production (one Linux server each) | Docker Compose: Caddy (automatic HTTPS), app (gunicorn), scheduler, PostgreSQL 16 | `deploy/compose.prod.yaml`, `deploy/Caddyfile` |
+| Staging and production (one Linux server each) | Docker Compose: Apache (HTTPS), certbot (Let's Encrypt), app (gunicorn), scheduler, PostgreSQL 16 | `deploy/compose.prod.yaml`, `deploy/apache/` |
 | Server set-up and releases | Ansible over SSH | `deploy/ansible/` |
 | Build, test, OQ evidence, image | GitHub Actions → GitHub Container Registry | `.github/workflows/ci.yml` |
 
@@ -18,7 +18,7 @@ flowchart LR
     Ops["Operator<br/>make deploy ENV=production VERSION=1.0.0"] -->|Ansible over SSH| Server
     GHCR -->|docker compose pull| Server
     subgraph Server["Production server (Ubuntu 24.04)"]
-      Caddy["Caddy :443<br/>Let's Encrypt"] --> App["app<br/>gunicorn"]
+      Apache["Apache :443<br/>Let's Encrypt via certbot"] --> App["app<br/>gunicorn"]
       Scheduler["scheduler<br/>daily jobs + backup"] --> DB
       App --> DB[("PostgreSQL 16<br/>internal network")]
       App --> Media[("media volume")]
@@ -93,12 +93,17 @@ person, so to try that flow configure a test app (Google, or the ORCID sandbox f
 
 ## Production server
 
+For a step-by-step guide to a new VM on Ubuntu or a Red Hat-family system, with Let's Encrypt
+certificates, see [Deploying on a Linux VM](deploy-linux-vm.md). For the day-to-day loop of
+developing locally and releasing to staging and production, see
+[Developing and releasing](developing-and-releasing.md).
+
 ### What you need
 
 - A server running Ubuntu 24.04 LTS (or 22.04, or Debian 12): 2 vCPU, 4 GB RAM and 40 GB disk
   is ample to start, in a UK data centre or as your data protection impact assessment requires.
 - A DNS name pointing at it (e.g. `qms.example.org`), with ports 80 and 443 open to the
-  internet so Caddy can obtain the TLS certificate.
+  internet so certbot can obtain the TLS certificate.
 - An SMTP relay account for notifications.
 - An off-site backup location (required for production): another VM or server reachable over
   SSH, or a Google shared drive (see [Off-site backups](#off-site-backups)).
@@ -142,7 +147,7 @@ command that can change data.
 ```bash
 scripts/remote.sh status                     # containers, /healthz, disk, last deployments
 scripts/remote.sh health                     # /healthz as seen from your machine
-scripts/remote.sh logs app                   # follow logs (app, scheduler, caddy, db)
+scripts/remote.sh logs app                   # follow logs (app, scheduler, web, certbot, db)
 scripts/remote.sh ssh                        # shell in /opt/samd_qms
 scripts/remote.sh verify-audit               # check the audit hash chain
 scripts/remote.sh backup before-sso-change   # backup now, with a label
@@ -188,13 +193,23 @@ approved Change Request in SAMD_QMS.
 
 | Service | Role | Notes |
 | --- | --- | --- |
-| `caddy` | HTTPS on 443, HTTP→HTTPS redirect, HSTS, security headers | Certificates renew automatically; `/media/` is never served |
+| `web` (Apache) | HTTPS on 443, HTTP→HTTPS redirect, HSTS, security headers | Serves the app and the admin site on 8443; `/media/` and the public `/admin/` are never served |
+| `certbot` | Issues the Let's Encrypt certificate and renews it twice a day | Apache reloads by itself when a renewed certificate appears |
 | `app` | gunicorn, 3 workers × 2 threads | Read-only filesystem, no Linux capabilities, unprivileged user 10001; health check on `/healthz` |
 | `scheduler` | Daily jobs (UTC): 02:30 backup, 03:00 audit verification, 05:30 PMS activities, 05:45 reminders, 05:55 document git sync (only if `QMS_DOCS_GIT_REPO` is set) | Each failure emails `QMS_ALERT_EMAILS` |
 | `db` | PostgreSQL 16 | On an internal network with no internet route and no published port |
 
-Data lives in Docker volumes `samd_qms_pgdata`, `samd_qms_media` and `samd_qms_caddy_data`, and
+Data lives in Docker volumes `samd_qms_pgdata`, `samd_qms_media`, `samd_qms_letsencrypt` and `samd_qms_tls`, and
 backups in `/var/backups/samd_qms`.
+
+### Off-site backups
+
+Production refuses to deploy without an off-site copy of its backups. Set backup_offsite_method
+in group_vars to rsync (another VM or server reachable over SSH) or gdrive (a Google shared drive,
+encrypted before upload with rclone crypt, through a service account that is a content manager of
+the drive). Provisioning schedules the nightly copy after the local backup. To copy now, run
+scripts/remote.sh offsite-backup. Keep a copy of the encryption passwords and the vault passphrase
+outside the server: without them the off-site copies cannot be decrypted.
 
 ### Backups and restore
 
@@ -293,7 +308,7 @@ then deploy the previous version.
 ### Administration (`/admin/`) through an SSH tunnel
 
 Django admin can change accounts, groups and settings outside the QMS workflows, so it is not
-served on the public site: `https://<domain>/admin/` returns 404 (finding F7). Caddy serves the
+served on the public site: `https://<domain>/admin/` returns 404 (finding F7). Apache serves the
 whole app, admin included, as a second site `https://localhost:8443` that Compose publishes on
 the server's loopback interface only, and sshd allows the deploy user to forward to that port
 and nothing else.
@@ -303,7 +318,7 @@ scripts/remote.sh -e production tunnel     # keep it open; Ctrl-C to close
 # then browse to https://localhost:8443/admin/
 ```
 
-The certificate comes from Caddy's internal CA, so the browser warns once for `localhost`. Sign
+The certificate is self-signed (made on the first start of the web container), so the browser warns once for `localhost`. Sign
 in with an administrator's password (single sign-on users have none; give administrators a
 password with `scripts/remote.sh -e production createsuperuser` or `manage changepassword`).
 Admin logins appear in the audit trail like any other.
@@ -324,7 +339,7 @@ provider has no client id.
 - Point an uptime monitor at `https://<domain>/healthz` (returns 200 with the version, 503 if the
   database or storage fails). It reveals no data.
 - Alerts arrive by email when a scheduled job fails. Check them daily.
-- Logs: `docker compose -f compose.prod.yaml logs -f app` (or `caddy`, `scheduler`, `db`).
+- Logs: `docker compose -f compose.prod.yaml logs -f app` (or `web`, `certbot`, `scheduler`, `db`).
 
 ## Settings reference
 
@@ -342,7 +357,7 @@ provider has no client id.
 | --- | --- |
 | IQ-01 Environment and versions | `provision.yml`; image labels and `/healthz` version; `DEPLOYMENTS.log` |
 | IQ-02 Settings, `check --deploy` | `deploy.yml` templates; CI "Production settings check" |
-| IQ-03 HTTPS, cookies, session time-out | Caddy + Django security settings (active when `DJANGO_DEBUG=0`); verify in a browser; `https://<domain>/admin/` returns 404 and admin works only through `scripts/remote.sh tunnel` |
+| IQ-03 HTTPS, cookies, session time-out | Apache + Django security settings (active when `DJANGO_DEBUG=0`); verify in a browser; `https://<domain>/admin/` returns 404 and admin works only through `scripts/remote.sh tunnel` |
 | IQ-04 Email | Send a test with `docker compose ... exec app python manage.py send_alert "IQ-04 test"` |
 | IQ-05 Single sign-on | SSO client ids/secrets in Ansible vars and vault; on production, `app.env` has `QMS_SIGNER_SSO_PROVIDERS` and `QMS_SIGNER_EMAIL_DOMAINS`, and a password-only account is refused at a signature |
 | IQ-06 Audit trail | `deploy.yml` runs migrations and `verify_audit` |
