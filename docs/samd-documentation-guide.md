@@ -253,11 +253,14 @@ remediation plan and the first item an auditor will ask for.
   show the known residual issues.
 - **TechnicalFileBuild:** run it at each release candidate. Fix the completeness errors first.
 - **PMS:** set the schedule per device, and link complaints and incidents to the relevant hazards.
-- **Documentation route:** each device's page shows the six stages of this guide as checks worked
-  out from the QMS's own data, with gates marked and a link to fix each open check. Stage 1 is
+- **Documentation route:** set each device's route (Greenfield or Retrofit) on its record. The
+  device's page then shows a diagram of that route, with its checks worked out from the QMS's own
+  data and a diamond for each approver gate, coloured by its sign-off. Greenfield stage 1 is
   phase 0, stage 2 phase 1, stage 3 phase 2, stage 4 phase 3, stage 5 phases 4 and 5, and stage 6
-  phase 6. It shows that the pieces exist, not that they are adequate, and it doesn't score
-  documents for a retrofit gap assessment.
+  phase 6; retrofit steps A to G follow section 4. Record the gap assessment as a document with
+  "gap assessment" in its title so step A finds it. Gates are signed on My tasks, where each gate
+  card warns if its checks don't pass. The checks show that the pieces exist, not that they are
+  adequate, and they don't block signing.
 
 ---
 

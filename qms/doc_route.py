@@ -1,17 +1,28 @@
 """Documentation route: how far a device's documentation has got, stage by stage.
 
-The six stages of documenting a software medical device from the start (the "greenfield"
-route): set-up, intended purpose and classification, requirements and design, risk management,
-verification and evidence, then release and post-market. Each stage is a list of checks worked
-out from what the QMS already holds (the device record, its team, documents, hazards, SOUP,
-records and technical file builds). Some checks are gates: the stage shouldn't be treated as
-finished, and the next one relied on, until they pass.
+A device follows one of two routes, set on its record (``Device.development_route``):
 
-Read-only: nothing is stored, so progress can't drift from the records it describes, and the
-page never changes a status. It complements, and doesn't replace, ``techfile.completeness_checks``
-(which decides whether a technical file build can be approved).
+- **Greenfield**, documentation from the start of development: six stages, 1 to 6 (set-up,
+  intended purpose and classification, requirements and design, risk, verification and
+  evidence, release and post-market).
+- **Retrofit**, an existing device whose documentation is reconstructed: seven steps, A to G
+  (gap assessment, baseline, then reconstructing purpose, design, risk and evidence, then
+  closing the gaps).
+
+Each stage is a list of checks worked out from what the QMS already holds (the device record,
+its team, documents, hazards, SOUP, records and technical file builds). Checks marked as gate
+checks are the ones a stage's approver gate relies on. Where the route has an approver gate
+for a stage (``models.devices.GATES_BY_ROUTE``), the stage also carries that gate's signed
+status, so the page shows the checks and the sign-off together.
+
+Read-only: nothing is stored or created here, so progress can't drift from the records it
+describes. The checks only inform: they don't block approving a gate, and they don't replace
+``techfile.completeness_checks`` (which decides whether a technical file build can be approved).
 """
 from django.urls import reverse
+
+from . import workflow as wf
+from .models import GATES_BY_ROUTE, DocumentVersion, Record, StageGate
 
 
 def _item(label, done, url_name="", gate=False, detail=""):
@@ -19,120 +30,229 @@ def _item(label, done, url_name="", gate=False, detail=""):
             "detail": detail}
 
 
-def stages(device, data: dict, checks: list) -> list:
-    """The six stages for ``device``. ``data`` and ``checks`` are ``techfile.gather`` and
-    ``techfile.completeness_checks`` for the same device, so the page works them out once.
-
-    Each stage: {"number", "title", "summary", "items", "done", "total", "percent", "status",
-    "gate"}; ``gate`` is the label of the stage's gate check, or "".
-    """
+def _facts(device, data, checks):
+    """What the checks are worked out from, computed once for both routes."""
     sections = data["sections"]
     hazards = data["hazards"]
     controls = [c for h in hazards for c in h.controls.all()]
     team_size = device.memberships.filter(active=True).count()
     errors = [c for c in checks if c["level"] == "error"]
-    safety_problems = [r for r in data["open_anomalies"] if r.patient_safety_impact == "yes"]
     approved_builds = [b for b in data["builds"] if b.status == "approved"]
-    on_market = device.regulatory_status == "on_market"
+    gap_assessment = DocumentVersion.objects.filter(
+        status="effective", document__obsolete=False, document__device=device,
+        document__title__icontains="gap assessment").select_related("document").first()
+    change_requests = Record.objects.filter(device=device,
+                                            record_type=wf.CHANGE_REQUEST).count()
+    return {
+        "sections": sections, "hazards": hazards, "controls": controls,
+        "team_size": team_size, "errors": errors, "approved_builds": approved_builds,
+        "safety_problems": [r for r in data["open_anomalies"]
+                            if r.patient_safety_impact == "yes"],
+        "on_market": device.regulatory_status == "on_market", "soup": data["soup"],
+        "pms": data["pms_open"] or data["pms_done"], "gap_assessment": gap_assessment,
+        "change_requests": change_requests,
+    }
 
-    raw = [
-        (1, "Organisation and device set-up",
-         "Economic operator roles, device record, team, expected lifetime.", [
-             _item("Our economic operator role is set", device.operator_role_list(),
-                   "device_edit"),
-             _item("Legal manufacturer recorded", device.manufacturer.strip(), "device_edit"),
-             _item("Device description recorded", device.description.strip(), "device_edit"),
-             _item("Expected lifetime set", device.expected_lifetime_years, "device_edit"),
-             _item("Device team has members", team_size, "device_detail",
-                   detail=f"{team_size} member{'s' if team_size != 1 else ''}"),
-         ]),
-        (2, "Intended purpose and classification",
-         "Intended use, classification in each market, software safety class.", [
-             _item("Intended purpose", device.intended_purpose.strip(), "device_edit"),
-             _item("Intended users", device.intended_users.strip(), "device_edit"),
-             _item("Intended patient population", device.patient_population.strip(),
-                   "device_edit"),
-             _item("Classified in every market it's placed on",
-                   device.classifications() and not device.classification_gaps(),
-                   "device_edit", gate=True,
-                   detail=device.classification_summary()),
-             _item("Classification rationale recorded", device.classification_rule.strip(),
-                   "device_edit", gate=True),
-             _item("IEC 62304 software safety class set", device.software_safety_class,
-                   "device_edit"),
-         ]),
-        (3, "Requirements, design and software items",
-         "Requirements with IDs and tests, design, architecture.", [
-             _item("Software items (architecture) listed", device.software_item_list(),
-                   "device_edit"),
-             _item("Effective design document in the technical file", sections.get("design"),
-                   "document_list"),
-             _item("Effective GSPR checklist", sections.get("gspr"), "document_list"),
-             _item("SOUP items linked", data["soup"], "supplier_list",
-                   detail=f"{len(data['soup'])} item(s)"),
-             _item("Current software version recorded", device.current_version.strip(),
-                   "device_edit"),
-         ]),
-        (4, "Hazards, controls and residual risk",
-         "Hazards from intended use and misuse. Starts at concept.", [
-             _item("Risk register has hazards", hazards, "hazard_list",
-                   detail=f"{len(hazards)} active"),
-             _item("Every hazard has a risk control",
-                   hazards and all(h.controls.all() for h in hazards), "hazard_list",
-                   gate=True),
-             _item("Every risk control verified",
-                   controls and all(c.verified for c in controls), "hazard_list",
-                   detail=f"{sum(c.verified for c in controls)} of {len(controls)}"),
-             _item("Every residual risk accepted",
-                   hazards and all(h.status == "accepted" for h in hazards), "hazard_list"),
-             _item("Effective risk management file", sections.get("risk"), "document_list"),
-         ]),
-        (5, "Verify, validate and show performance",
-         "Tests traced to requirements, usability, clinical evidence.", [
-             _item("Effective verification and validation evidence",
-                   sections.get("verification"), "document_list", gate=True),
-             _item("Effective clinical evaluation and usability evidence",
-                   sections.get("clinical"), "document_list", gate=True),
-             _item("No open problem with patient-safety impact", not safety_problems,
-                   "record_list",
-                   detail=", ".join(r.ref for r in safety_problems[:5])),
-         ]),
-        (6, "Release, technical file and surveillance",
-         "Freeze release, build technical file, PMS schedule, change control.", [
-             _item("Labelling and IFU effective", sections.get("labelling"), "document_list"),
-             _item("Post-market surveillance scheduled", data["pms_open"] or data["pms_done"],
-                   "record_list"),
-             _item("Effective PMS plan", sections.get("pms"), "document_list"),
-             _item("Declaration of conformity effective" if on_market
-                   else "Declaration of conformity (needed before placing on the market)",
-                   sections.get("declaration"), "document_list"),
-             _item("Technical file has no completeness errors", not errors, gate=True,
-                   detail=f"{len(errors)} error(s)" if errors else ""),
-             _item("A technical file build is approved", approved_builds,
-                   detail=approved_builds[0].label if approved_builds else ""),
-         ]),
+
+def _setup_items(device, f):
+    return [
+        _item("Our economic operator role is set", device.operator_role_list(), "device_edit"),
+        _item("Legal manufacturer recorded", device.manufacturer.strip(), "device_edit"),
+        _item("Device description recorded", device.description.strip(), "device_edit"),
+        _item("Expected lifetime set", device.expected_lifetime_years, "device_edit"),
+        _item("Device team has members", f["team_size"], "device_detail",
+              detail=f"{f['team_size']} member{'s' if f['team_size'] != 1 else ''}"),
     ]
 
+
+def _purpose_items(device):
+    return [
+        _item("Intended purpose", device.intended_purpose.strip(), "device_edit"),
+        _item("Intended users", device.intended_users.strip(), "device_edit"),
+        _item("Intended patient population", device.patient_population.strip(), "device_edit"),
+        _item("Classified in every market it's placed on",
+              device.classifications() and not device.classification_gaps(), "device_edit",
+              gate=True, detail=device.classification_summary()),
+        _item("Classification rationale recorded", device.classification_rule.strip(),
+              "device_edit", gate=True),
+        _item("IEC 62304 software safety class set", device.software_safety_class,
+              "device_edit"),
+    ]
+
+
+def _design_items(device, f, gate=False):
+    return [
+        _item("Software items (architecture) listed", device.software_item_list(),
+              "device_edit", gate=gate),
+        _item("Effective design document in the technical file", f["sections"].get("design"),
+              "document_list", gate=gate),
+        _item("Effective GSPR checklist", f["sections"].get("gspr"), "document_list"),
+        _item("SOUP items linked", f["soup"], "supplier_list", gate=gate,
+              detail=f"{len(f['soup'])} item(s)"),
+        _item("Current software version recorded", device.current_version.strip(),
+              "device_edit"),
+    ]
+
+
+def _risk_items(f, verified_is_gate=False):
+    hazards, controls = f["hazards"], f["controls"]
+    return [
+        _item("Risk register has hazards", hazards, "hazard_list",
+              detail=f"{len(hazards)} active"),
+        _item("Every hazard has a risk control",
+              hazards and all(h.controls.all() for h in hazards), "hazard_list", gate=True),
+        _item("Every risk control verified", controls and all(c.verified for c in controls),
+              "hazard_list", gate=verified_is_gate,
+              detail=f"{sum(c.verified for c in controls)} of {len(controls)}"),
+        _item("Every residual risk accepted",
+              hazards and all(h.status == "accepted" for h in hazards), "hazard_list"),
+        _item("Effective risk management file", f["sections"].get("risk"), "document_list"),
+    ]
+
+
+def _verification_item(f, gate=True):
+    return _item("Effective verification and validation evidence",
+                 f["sections"].get("verification"), "document_list", gate=gate)
+
+
+def _clinical_item(f, gate=True):
+    return _item("Effective clinical evaluation and usability evidence",
+                 f["sections"].get("clinical"), "document_list", gate=gate)
+
+
+def _safety_problem_item(f):
+    return _item("No open problem with patient-safety impact", not f["safety_problems"],
+                 "record_list", detail=", ".join(r.ref for r in f["safety_problems"][:5]))
+
+
+def _release_items(f):
+    errors, builds = f["errors"], f["approved_builds"]
+    return [
+        _item("Labelling and IFU effective", f["sections"].get("labelling"), "document_list"),
+        _item("Post-market surveillance scheduled", f["pms"], "record_list"),
+        _item("Effective PMS plan", f["sections"].get("pms"), "document_list"),
+        _item("Declaration of conformity effective" if f["on_market"]
+              else "Declaration of conformity (needed before placing on the market)",
+              f["sections"].get("declaration"), "document_list"),
+        _item("Technical file has no completeness errors", not errors, gate=True,
+              detail=f"{len(errors)} error(s)" if errors else ""),
+        _item("A technical file build is approved", builds,
+              detail=builds[0].label if builds else ""),
+    ]
+
+
+def _greenfield(device, f):
+    return [
+        ("1", "Organisation and device set-up", "Set-up",
+         "Economic operator roles, device record, team, expected lifetime.",
+         _setup_items(device, f)),
+        ("2", "Intended purpose and classification", "Purpose and class",
+         "Intended use, classification in each market, software safety class.",
+         _purpose_items(device)),
+        ("3", "Requirements, design and software items", "Requirements and design",
+         "Requirements with IDs and tests, design, architecture.", _design_items(device, f)),
+        ("4", "Hazards, controls and residual risk", "Risk",
+         "Hazards from intended use and misuse. Starts at concept.", _risk_items(f)),
+        ("5", "Verify, validate and show performance", "Verification and evidence",
+         "Tests traced to requirements, usability, clinical evidence.",
+         [_verification_item(f), _clinical_item(f), _safety_problem_item(f)]),
+        ("6", "Release, technical file and surveillance", "Release and PMS",
+         "Freeze release, build technical file, PMS schedule, change control.",
+         _release_items(f)),
+    ]
+
+
+def _retrofit(device, f):
+    gap = f["gap_assessment"]
+    return [
+        ("A", "Gap assessment", "Gap assessment",
+         "Score every expected document: current, out of date, knowledge only, or missing.",
+         [_item("Effective gap assessment document for this device", gap, "document_list",
+                gate=True, detail=gap.document.number if gap else
+                "a device document with “gap assessment” in its title")]),
+        ("B", "Freeze and baseline the release", "Baseline",
+         "Record the release in use, and put every change from now on under change control.",
+         [_item("Current software version recorded as the baseline",
+                device.current_version.strip(), "device_edit", gate=True,
+                detail=device.current_version.strip()),
+          _item("Change control in use: a change request is recorded", f["change_requests"],
+                "record_list", gate=True, detail=f"{f['change_requests']} recorded")]
+         + _setup_items(device, f)),
+        ("C", "Reconstruct intended purpose and classification", "Purpose and class",
+         "From labelling, marketing material and design history; signed by current management.",
+         _purpose_items(device)),
+        ("D", "Reconstruct requirements, design and SOUP", "Requirements and SOUP",
+         "From the code, tests, API documentation and dependency manifests.",
+         _design_items(device, f, gate=True)),
+        ("E", "Reconstruct the risk file and check controls", "Risk",
+         "Hazards from purpose, incidents and code paths; each control checked against code.",
+         _risk_items(f, verified_is_gate=True)),
+        ("F", "Test evidence against the baseline", "Test evidence",
+         "Run the tests against the baseline, trace them, record known limitations.",
+         [_verification_item(f), _safety_problem_item(f)]),
+        ("G", "Close the gaps and assess regulatory position", "Close gaps",
+         "Close gaps by priority, then decide what the device needs to stay on the market.",
+         [_clinical_item(f, gate=False)] + _release_items(f)),
+    ]
+
+
+def _url(device, name):
+    if name == "device_detail":
+        return reverse("qms:device_detail", args=[device.code]) + "#team"
+    if name:
+        return reverse(f"qms:{name}", args=[device.code] if name == "device_edit" else [])
+    return ""
+
+
+def stages(device, data: dict, checks: list) -> list:
+    """The stages of ``device``'s documentation route. ``data`` and ``checks`` are
+    ``techfile.gather`` and ``techfile.completeness_checks`` for the same device, so the page
+    works them out once.
+
+    Each stage: {"number" ("1"-"6" or "A"-"G"), "title", "short", "summary", "items", "done",
+    "total", "percent", "status" ("todo", "progress" or "done"), "gate" (the gate checks' labels
+    or ""), "gate_passed", "signoff"}. ``signoff`` is None for a stage with no approver gate,
+    else {"name", "approver_role", "status" ("open" or "approved"), "approved_by",
+    "approved_at", "state"}; ``state`` is "approved", "ready" (checks pass, awaiting sign-off),
+    "blocked" (checks not passing yet) or "stale" (approved, but the checks no longer pass).
+    """
+    f = _facts(device, data, checks)
+    route = device.development_route
+    raw = _retrofit(device, f) if route == "retrofit" else _greenfield(device, f)
+    defined = {stage: (name, role) for stage, name, role in GATES_BY_ROUTE.get(route, [])}
+    signed = {g.stage: g for g in StageGate.objects.filter(device=device, route=route)
+              .select_related("approved_by")}
+
     out = []
-    for number, title, summary, items in raw:
+    for number, title, short, summary, items in raw:
         for i in items:
-            name = i.pop("url_name")
-            if name == "device_detail":
-                i["url"] = reverse("qms:device_detail", args=[device.code]) + "#team"
-            elif name:
-                i["url"] = reverse(f"qms:{name}",
-                                   args=[device.code] if name == "device_edit" else [])
-            else:
-                i["url"] = ""
+            i["url"] = _url(device, i.pop("url_name"))
         done = sum(i["done"] for i in items)
         total = len(items)
-        gates = [i for i in items if i["gate"]]
+        gate_checks = [i for i in items if i["gate"]]
+        gate_passed = all(i["done"] for i in gate_checks)
+        signoff = None
+        if number in defined:
+            row = signed.get(number)
+            name, role = defined[number]
+            approved = row is not None and row.status == "approved"
+            signoff = {
+                "name": row.name if row else name,
+                "approver_role": row.approver_role if row else role,
+                "status": "approved" if approved else "open",
+                "approved_by": row.approved_by if approved else None,
+                "approved_at": row.approved_at if approved else None,
+                "state": ("stale" if approved and not gate_passed else
+                          "approved" if approved else
+                          "ready" if gate_passed else "blocked"),
+            }
         out.append({
-            "number": number, "title": title, "summary": summary, "items": items,
-            "done": done, "total": total, "percent": round(100 * done / total),
+            "number": number, "title": title, "short": short, "summary": summary,
+            "items": items, "done": done, "total": total,
+            "percent": round(100 * done / total),
             "status": "done" if done == total else ("progress" if done else "todo"),
-            "gate": " and ".join(g["label"].lower() for g in gates) if gates else "",
-            "gate_passed": all(g["done"] for g in gates),
+            "gate": " and ".join(g["label"].lower() for g in gate_checks),
+            "gate_passed": gate_passed, "signoff": signoff,
         })
     return out
 
@@ -147,3 +267,7 @@ def current_stage(stage_list: list):
     """The first stage that isn't finished, or None when all are."""
     return next((s for s in stage_list if s["status"] != "done"), None)
 
+
+def by_number(stage_list: list) -> dict:
+    """The stages keyed by number, for showing a gate's checks beside the gate."""
+    return {s["number"]: s for s in stage_list}

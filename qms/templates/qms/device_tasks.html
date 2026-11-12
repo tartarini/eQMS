@@ -6,6 +6,7 @@
   .kanban { display:grid; gap:14px; grid-template-columns:1fr; align-items:start; }
   @media (min-width:700px) { .kanban { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); } }
   .lane.gate.open { border-top-color:#b45309; }
+  .gate-checks.pass { color:var(--ok); } .gate-checks.fail { color:var(--warn); }
   .lane { background:var(--panel, #fff); border:1px solid var(--line, #d9dde4); border-top-width:4px; border-radius:10px; padding:12px; min-width:0; }
   .lane.todo { border-top-color:#2563eb; }
   .lane.waiting { border-top-color:#b45309; }
@@ -47,6 +48,13 @@
       <div class="kind">Approver gate · {{ route_label }}</div>
       <div class="title">{{ gate.name }}</div>
       <div class="detail">Approver: {{ gate.approver_role }}{% if gate.status == 'approved' %} · approved by {{ gate.approved_by|default:"" }} on {{ gate.approved_at|date:"d M Y" }}{% endif %}</div>
+      {% if lane.stage %}
+      <p class="small gate-checks {% if lane.stage.gate_passed %}pass{% else %}fail{% endif %}" style="margin:6px 0 0">
+        {% if lane.stage.gate_passed %}✓ Gate checks pass{% else %}⚠ Gate checks not passing: {% for i in lane.stage.items %}{% if i.gate and not i.done %}{{ i.label }}{% if not forloop.last %}; {% endif %}{% endif %}{% endfor %}{% endif %}
+        · <a href="{% url 'qms:device_detail' device.code %}#route-stage-{{ gate.stage }}">see the checks</a> {% help_for "route" "gate" %}
+      </p>
+      {% if lane.can_approve and not lane.stage.gate_passed %}<p class="small" style="margin:4px 0 0">You can still sign: the checks show whether the pieces exist, and the approver judges whether they are adequate.</p>{% endif %}
+      {% endif %}
       {% if lane.can_approve %}
       <form method="post" action="{% url 'qms:gate_approve' gate.pk %}" style="margin-top:8px">
         {% csrf_token %}

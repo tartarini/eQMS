@@ -536,6 +536,18 @@ REQUIREMENTS = [
       "test_qms_admin.QmsAdminTests.test_device_admin_can_still_invite_an_engineer",
       "test_qms_admin.QmsAdminTests.test_qms_admin_can_invite_as_device_admin"],
      []),
+    ("URS-109", "Devices", "The documentation route panel follows the route set on the device "
+     "record (Greenfield stages 1-6 or Retrofit steps A-G), draws it as a diagram, and shows each "
+     "approver gate's sign-off beside its checks: approved, awaiting sign-off, checks not passing, "
+     "or approved but checks no longer passing. Failing checks warn the approver on My tasks but "
+     "don't block signing.", "M",
+     ["test_doc_route.RouteFollowsDeviceTests.test_retrofit_device_shows_steps_a_to_g",
+      "test_doc_route.RouteFollowsDeviceTests.test_gap_assessment_is_an_effective_device_document_with_that_title",
+      "test_doc_route.RouteFollowsDeviceTests.test_greenfield_gates_sit_on_stages_2_4_5_and_6",
+      "test_doc_route.RouteFollowsDeviceTests.test_signoff_states_follow_checks_and_approval",
+      "test_doc_route.RouteFollowsDeviceTests.test_device_page_draws_the_route_diagram",
+      "test_doc_route.RouteFollowsDeviceTests.test_failing_checks_warn_on_my_tasks_but_do_not_block_signing"],
+     []),
 ]
 
 

@@ -143,6 +143,8 @@ def device_detail(request, code):
     return render(request, "qms/device_detail.html", {
         "route": route, "route_overall": doc_route.overall(route),
         "route_current": doc_route.current_stage(route),
+        "route_label": device.get_development_route_display(),
+        "route_unit": "step" if device.development_route == "retrofit" else "stage",
         "device": device, "data": data, "counts": counts, "sections": sections,
         "errors": [c for c in checks if c["level"] == "error"],
         "warnings": [c for c in checks if c["level"] == "warning"],
@@ -411,6 +413,11 @@ def device_tasks(request, code):
         raise PermissionDenied
     board = tasks.board(request.user, device)
     lanes = tasks.gate_lanes(request.user, device, tasks.ensure_gates(device))
+    data = techfile.gather(device)
+    route = doc_route.by_number(doc_route.stages(
+        device, data, techfile.completeness_checks(device, data)))
+    for lane in lanes:
+        lane["stage"] = route.get(lane["gate"].stage)
     columns = [
         ("todo", "To do", board["todo"], "Nothing needs your action on this device."),
         ("waiting", "Waiting on others", board["waiting"],

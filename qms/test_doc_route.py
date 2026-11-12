@@ -20,8 +20,8 @@ class DocumentationRouteTests(Base):
     def test_new_device_starts_at_stage_one_with_nothing_done_beyond_its_record(self):
         d = Device.objects.create(name="Blank", code="BLK")
         route = route_for(d)
-        self.assertEqual([s["number"] for s in route], [1, 2, 3, 4, 5, 6])
-        self.assertEqual(doc_route.current_stage(route)["number"], 1)
+        self.assertEqual([s["number"] for s in route], ["1", "2", "3", "4", "5", "6"])
+        self.assertEqual(doc_route.current_stage(route)["number"], "1")
         self.assertFalse(item(route, 2, "Classified")["done"])
         self.assertFalse(item(route, 4, "Risk register")["done"])
         self.assertEqual(route[3]["status"], "todo")
@@ -83,3 +83,64 @@ class DocumentationRouteTests(Base):
         # Inline help on the panel heading and on each gate line.
         self.assertContains(resp, 'aria-label="Help: Documentation route"')
         self.assertContains(resp, 'aria-label="Help: Gate"')
+
+
+class RouteFollowsDeviceTests(Base):
+    """The panel follows the device's route and shows each approver gate's sign-off."""
+
+    def test_retrofit_device_shows_steps_a_to_g(self):
+        self.dev.development_route = "retrofit"
+        self.dev.save()
+        route = route_for(self.dev)
+        self.assertEqual([s["number"] for s in route], list("ABCDEFG"))
+        self.assertEqual([s["number"] for s in route if s["signoff"]], list("ABCDEFG"))
+        self.assertEqual(route[4]["signoff"]["approver_role"], "Clinical Safety Officer")
+
+    def test_gap_assessment_is_an_effective_device_document_with_that_title(self):
+        self.dev.development_route = "retrofit"
+        self.dev.save()
+        self.assertFalse(route_for(self.dev)[0]["gate_passed"])
+        self.effective_doc("SkinCheck gap assessment", "")
+        step_a = route_for(self.dev)[0]
+        self.assertTrue(step_a["gate_passed"])
+        self.assertEqual(step_a["signoff"]["state"], "ready")
+
+    def test_greenfield_gates_sit_on_stages_2_4_5_and_6(self):
+        route = route_for(self.dev)
+        self.assertEqual([s["number"] for s in route if s["signoff"]], ["2", "4", "5", "6"])
+
+    def test_signoff_states_follow_checks_and_approval(self):
+        from . import tasks
+        route = route_for(self.dev)
+        self.assertEqual(route[1]["signoff"]["state"], "ready")  # stage 2 checks pass
+        self.assertEqual(route[4]["signoff"]["state"], "blocked")  # no evidence documents
+        gate = tasks.ensure_gates(self.dev)[0]
+        tasks.approve_gate(gate, self.qa, PW)
+        route = route_for(self.dev)
+        self.assertEqual(route[1]["signoff"]["state"], "approved")
+        self.assertEqual(route[1]["signoff"]["approved_by"], self.qa)
+        self.dev.classification_rule = ""
+        self.dev.save()
+        self.assertEqual(route_for(self.dev)[1]["signoff"]["state"], "stale")
+
+    def test_device_page_draws_the_route_diagram(self):
+        self.client.login(username="eng", password=PW)
+        resp = self.client.get(reverse("qms:device_detail", args=[self.dev.code]))
+        self.assertContains(resp, "Documentation route · Greenfield")
+        self.assertContains(resp, 'class="route-flow"')
+        self.assertContains(resp, 'href="#route-stage-4"')
+        self.assertContains(resp, 'class="route-gate ready"')
+        self.assertContains(resp, f'href="{reverse("qms:device_tasks", args=[self.dev.code])}"')
+
+    def test_failing_checks_warn_on_my_tasks_but_do_not_block_signing(self):
+        from . import tasks
+        self.dev.classification_rule = ""
+        self.dev.save()
+        self.client.login(username="qa", password=PW)
+        resp = self.client.get(reverse("qms:device_tasks", args=[self.dev.code]))
+        self.assertContains(resp, "Gate checks not passing: Classification rationale recorded")
+        self.assertContains(resp, "Sign and approve this gate")
+        gate = tasks.ensure_gates(self.dev)[0]
+        tasks.approve_gate(gate, self.qa, PW)
+        gate.refresh_from_db()
+        self.assertEqual(gate.status, "approved")
