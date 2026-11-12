@@ -538,7 +538,9 @@ terminal, add it to `TERMINAL_STATES`. Add a test for both the blocked and the a
 2. Rules and status changes as functions in `services.py`, using `require`, `_role_error`,
    `_check_secret`, `sign` and `_actor`.
 3. Views in a `views_<module>.py` decorated with `@qms_member`, calling services through `run()`.
-4. Templates extending `qms/base.html`, reusing `_audit.html` and `_signatures.html`.
+4. Templates extending `qms/base.html`, reusing `_audit.html` and `_signatures.html`. A detail
+   page with a side column uses `<div class="grid split">` (main column 2fr, side column at least
+   280px, stacked into one column below 860px), not an inline `grid-template-columns`.
 5. URLs, admin (`NoDeleteAdmin` or `ReadOnlyAdmin`), navigation link, dashboard widget if useful,
    reminder lines in `daily_reminders`, and tests.
 6. Help: a topic in `qms/help/` (and `help.TOPICS`), each new URL name in `help.PAGE_HELP`, and
@@ -697,7 +699,9 @@ and `techfile.completeness_checks`, so the page computes them once. It stores no
 nothing: each check reads existing fields, documents by `tech_file_section`, hazards and controls,
 SOUP, records and builds. Gate checks are flagged `gate=True`. To add a check, add an `_item` to
 its stage with the URL name where it is fixed, then update the help topic (`devices.md`, "Follow
-the documentation route") and `test_doc_route`. Traced to URS-103.
+the documentation route"), the `route` group in `FIELD_HELP` if the panel's meaning changes, and
+`test_doc_route`. The panel heading and each gate line carry `{% help_for "route" ... %}` icons.
+Traced to URS-103.
 
 ## Technical file generation
 

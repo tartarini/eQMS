@@ -27,7 +27,7 @@
   <div>
     <div class="panel route" id="documentation-route">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <h2 style="margin:0">Documentation route</h2>
+        <span class="label-row"><h2 style="margin:0">Documentation route</h2>{% help_for "route" "progress" %}</span>
         <span class="small muted">{{ route_overall }}% of checks pass{% if route_current %} · now on stage {{ route_current.number }}{% else %} · all stages done{% endif %}</span>
       </div>
       <div class="route-bar" role="progressbar" aria-label="Documentation route overall" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ route_overall }}"><i style="width:{{ route_overall }}%"></i></div>
@@ -49,7 +49,7 @@
               </li>
               {% endfor %}
             </ul>
-            {% if s.gate %}<p class="small {% if s.gate_passed %}muted{% else %}route-gate-open{% endif %}">Gate: {{ s.gate }}{% if s.gate_passed %} · passed{% else %} · not yet passed{% endif %}</p>{% endif %}
+            {% if s.gate %}<p class="small {% if s.gate_passed %}muted{% else %}route-gate-open{% endif %}"><span class="label-row" style="display:inline-flex;margin:0">Gate{% help_for "route" "gate" %}</span>: {{ s.gate }}{% if s.gate_passed %} · passed{% else %} · not yet passed{% endif %}</p>{% endif %}
           </details>
         </li>
         {% endfor %}

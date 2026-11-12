@@ -80,3 +80,6 @@ class DocumentationRouteTests(Base):
         # Two-column layout that stacks on narrow screens, not a fixed inline grid.
         self.assertContains(resp, '<div class="grid split">')
         self.assertNotContains(resp, "minmax(300px,1fr)")
+        # Inline help on the panel heading and on each gate line.
+        self.assertContains(resp, 'aria-label="Help: Documentation route"')
+        self.assertContains(resp, 'aria-label="Help: Gate"')
