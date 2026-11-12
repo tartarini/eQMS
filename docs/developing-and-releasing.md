@@ -25,6 +25,38 @@ make demo       # demo devices and users; sign in as engineer_person, qa_person,
 To work without Docker (for example from PyCharm), see *Without Docker* in
 [deployment.md](deployment.md#without-docker-virtualenv-eg-in-pycharm).
 
+### Update an existing dev instance after code changes
+
+When `main` has moved on (someone merged a pull request, or you switched branches), bring your
+dev instance up to date. Your data is kept unless you choose otherwise.
+
+```bash
+git switch main && git pull          # or: git switch your-branch
+make dev                             # rebuilds the image and starts the stack
+```
+
+- **Code** in the source folder is picked up on save, but a change to `requirements.txt` or the
+  Dockerfile needs the rebuild that `make dev` does.
+- **Database migrations** from new code run automatically when the app container starts. Check
+  them with `make manage CMD="showmigrations qms"`; unapplied migrations show as `[ ]` instead
+  of `[X]`.
+- **`make dev` follows the app log and does not return.** Press Ctrl+C to stop following; the
+  containers keep running. Use `make logs` to follow the log again.
+- **Demo data is not refreshed.** `make demo` refuses to run on a database that already has
+  devices or documents. To get the demo as it is in the current code, start again:
+
+  ```bash
+  make dev-reset                     # deletes the dev database, files and backups
+  make dev                           # in one terminal; leave it running
+  make demo                          # in a second terminal, once the app is up
+  ```
+
+- **Port in use.** `make dev` needs ports 8000 (app), 8025 (mail) and 5432 (PostgreSQL) to be
+  free. If it reports "port is already allocated", find the container holding the port with
+  `docker ps` and stop it (`docker stop <name>`), or stop the other project's stack.
+- **Check it works:** open http://localhost:8000, sign in as `engineer_person` (password
+  `demo-pass-123`), and check the page you changed.
+
 ---
 
 ## 2. The everyday loop
@@ -176,6 +208,8 @@ rather than editing a tagged release.
 | I want to... | Do this |
 | --- | --- |
 | Start developing | `make dev`, `make demo`, then a branch from `main` |
+| Update my dev instance after pulling code | `git pull`, then `make dev` (see *Update an existing dev instance* in section 1) |
+| Reload the demo data as the current code has it | `make dev-reset`, `make dev`, then `make demo` |
 | Check my change | `make test && make check` |
 | Get it reviewed and tested by CI | Pull request to `main` |
 | Rehearse a release | Tag `vX.Y.Z-rcN`, then `make deploy ENV=staging VERSION=X.Y.Z-rcN` |
