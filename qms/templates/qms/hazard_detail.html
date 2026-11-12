@@ -6,7 +6,7 @@
 <h1>{{ h.ref }} · {{ h.title }}</h1>
 <p class="small muted">Owner: {{ h.owner|default:"unassigned" }} · <span class="badge {% if h.status == 'accepted' %}done{% endif %}">{{ h.get_status_display }}</span></p>
 
-<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+<div class="grid split">
   <div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center">

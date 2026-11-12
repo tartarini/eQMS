@@ -77,3 +77,6 @@ class DocumentationRouteTests(Base):
         self.assertContains(resp, "Hazards, controls and residual risk")
         self.assertContains(resp, f'href="{reverse("qms:hazard_list")}"')
         self.assertEqual(len(resp.context["route"]), 6)
+        # Two-column layout that stacks on narrow screens, not a fixed inline grid.
+        self.assertContains(resp, '<div class="grid split">')
+        self.assertNotContains(resp, "minmax(300px,1fr)")

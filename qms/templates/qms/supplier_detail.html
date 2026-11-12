@@ -7,7 +7,7 @@
   · Last evaluated {{ s.last_evaluated|date:"d M Y"|default:"never" }}
   {% if s.next_evaluation %}· Next {% if s.evaluation_overdue %}<span class="badge bad">{{ s.next_evaluation|date:"d M Y" }}</span>{% else %}{{ s.next_evaluation|date:"d M Y" }}{% endif %}{% endif %}</p>
 
-<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+<div class="grid split">
   <div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center">
