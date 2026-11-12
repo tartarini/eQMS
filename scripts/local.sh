@@ -112,7 +112,7 @@ EOF
 Ready. Start the server with:   scripts/local.sh run
 Then open http://localhost:8000/login/
 EOF
-  (( clean )) || echo "Demo logins: engineer, qa, qa2, cso (password demo-pass-123)"
+  (( clean )) || echo "Demo logins: engineer_person, qa_person, qa2_person, cso_person (password demo-pass-123)"
   cat <<EOF
 
 PyCharm: Settings > Project > Python Interpreter > Add > Existing: $VENV/bin/python

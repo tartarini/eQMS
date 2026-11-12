@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--demo", action="store_true",
-                            help="Also create demo users engineer/qa/cso (password: demo-pass-123)")
+                            help="Also create demo users engineer_person/qa_person/cso_person (password: demo-pass-123)")
 
     def handle(self, *args, demo=False, **options):
         record_perms = Permission.objects.filter(content_type__app_label="qms")
@@ -30,8 +30,8 @@ class Command(BaseCommand):
 
         if demo:
             User = get_user_model()
-            for username, role, staff in [("engineer", wf.ENGINEER, False), ("qa", wf.QA, True),
-                                          ("cso", wf.CLINICAL_SAFETY, False)]:
+            for username, role, staff in [("engineer_person", wf.ENGINEER, False), ("qa_person", wf.QA, True),
+                                          ("cso_person", wf.CLINICAL_SAFETY, False)]:
                 user, created = User.objects.get_or_create(
                     username=username, defaults={"first_name": role, "is_staff": staff,
                                                  "email": f"{username}@example.org"})
