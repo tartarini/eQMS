@@ -23,7 +23,7 @@ Only one revision can be in progress per document. If the file on the server cha
 
 ## Periodic review and withdrawal
 
-Each document has a review period (24 months by default). As the review date approaches it appears on the dashboard and in reminder emails. If nothing needs changing, QA records a signed **Periodic review: no change needed**, which resets the date; otherwise create a new version. To retire a document, QA uses **Withdraw document** with a signed reason.
+Each document has a review period (24 months by default). As the review date approaches it appears on the dashboard. The owner and device QA are emailed once at 60, 30, 7 and 0 days before the review date, and once when it is overdue. If nothing needs changing, QA records a signed **Periodic review: no change needed**, which resets the date; otherwise create a new version. To retire a document, QA uses **Withdraw document** with a signed reason.
 
 ## Import and export
 
