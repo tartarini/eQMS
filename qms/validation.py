@@ -401,6 +401,58 @@ REQUIREMENTS = [
       "test_doc_route.DocumentationRouteTests.test_overall_is_the_share_of_checks_that_pass",
       "test_doc_route.DocumentationRouteTests.test_device_page_shows_the_route_with_links_to_fix_open_checks"],
      []),
+    ("URS-104", "Access", "The People page lists the people on the devices you can see, with their "
+     "roles on each, and organisation-wide role holders read-only. Edit controls appear only to "
+     "people who can manage that device's team, and never on their own row.", "H",
+     ["test_people.PeopleTests.test_lists_only_people_on_visible_devices",
+      "test_people.PeopleTests.test_people_without_manage_rights_see_no_edit_controls",
+      "test_people.PeopleTests.test_manager_sees_controls_but_not_for_own_row",
+      "test_people.PeopleTests.test_organisation_wide_roles_are_listed_read_only"],
+     []),
+    ("URS-105", "Access", "A team manager can add an existing account to a device team, change a "
+     "member's roles and responsibility, and remove a member (deactivated, not deleted), only on "
+     "devices whose team they manage. Each change is audited, and the page returns only to an "
+     "address on this site.", "H",
+     ["test_people.PeopleTests.test_manager_adds_existing_account_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_changes_roles_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_removes_person_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_cannot_change_roles_on_another_device",
+      "test_people.PeopleTests.test_return_address_must_be_on_this_site"],
+     []),
+    ("URS-106", "Access", "Someone holding several roles can choose one to act as for their "
+     "session (all roles by default). The choice only narrows: it limits their permissions on "
+     "the device and the functions shown, a role they don't hold can't be chosen, and one they no "
+     "longer hold is dropped. The switcher appears only to people with several roles, and "
+     "returns only to an address on this site.", "H",
+     ["test_role_lens.ActingAsTests.test_all_roles_by_default",
+      "test_role_lens.ActingAsTests.test_choosing_a_role_limits_the_functions_shown",
+      "test_role_lens.ActingAsTests.test_choice_limits_permissions_on_the_device",
+      "test_role_lens.ActingAsTests.test_cannot_choose_a_role_not_held",
+      "test_role_lens.ActingAsTests.test_a_held_role_no_longer_held_is_dropped",
+      "test_role_lens.ActingAsTests.test_switcher_only_shown_to_people_with_several_roles",
+      "test_role_lens.ActingAsTests.test_return_address_must_be_on_this_site",
+      "test_role_lens.ActingAsTests.test_functions_follow_the_workflow"],
+     []),
+    ("URS-107", "Usability", "Each device has a task board for each person with a role on it: "
+     "workflow steps they can take now (to do), steps of theirs waiting on another role, and "
+     "done. Closed records drop off. People with no role on the device get no board and can't "
+     "open its page.", "M",
+     ["test_tasks.TaskBoardTests.test_qa_sees_the_closing_step_to_do",
+      "test_tasks.TaskBoardTests.test_engineer_owner_sees_it_waiting_on_qa",
+      "test_tasks.TaskBoardTests.test_closed_records_drop_off_the_board",
+      "test_tasks.TaskBoardTests.test_nobody_without_a_role_on_the_device_gets_a_board",
+      "test_tasks.TaskBoardTests.test_page_shows_the_board_to_a_member",
+      "test_tasks.TaskBoardTests.test_page_refuses_someone_with_no_role_on_the_device"],
+     []),
+    ("URS-108", "Devices", "Each device has an approval gate for stages 2, 4, 5 and 6 of its "
+     "documentation route, created once. Only the gate's approver role can approve it, and the "
+     "approver is recorded. An open gate is a to-do only for people who can approve it, and the "
+     "gate list says whether the viewer can approve each one now.", "H",
+     ["test_tasks.StageGateTests.test_gates_are_created_for_the_device_route",
+      "test_tasks.StageGateTests.test_only_the_approver_role_can_approve_a_gate",
+      "test_tasks.StageGateTests.test_open_gate_is_to_do_for_its_approver_only",
+      "test_tasks.StageGateTests.test_gate_lanes_say_who_can_approve_now"],
+     []),
 ]
 
 

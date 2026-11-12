@@ -818,7 +818,7 @@ App-side support:
 The approved SAMD_QMS Validation Plan governs validation (IQ, OQ, PQ, release, change control).
 The code supports it in two ways:
 
-- **`qms/validation.py`** lists the user requirements (53 requirements, numbered URS-01 … URS-102
+- **`qms/validation.py`** lists the user requirements (59 requirements, numbered URS-01 … URS-108
   in groups, so the IDs are not contiguous) with their risk, the automated tests that verify each
   one, and the manual IQ/PQ protocols. Every test must be traced to a requirement. To add one,
   take the next unused ID, not the next integer.
