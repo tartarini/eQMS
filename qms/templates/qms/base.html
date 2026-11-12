@@ -25,7 +25,11 @@
   main { max-width:1150px; margin:0 auto; padding:20px 16px 60px; }
   h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:24px 0 8px; }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px; }
-  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+  /* Detail pages: main column plus a side column, stacked on narrow screens. */
+  .grid.split { grid-template-columns:minmax(0, 2fr) minmax(280px, 1fr); }
+  .grid > * { min-width:0; }
+  @media (max-width: 860px) { .grid.split { grid-template-columns:minmax(0, 1fr); } }
   table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
   th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; }
   a { color:var(--accent); }

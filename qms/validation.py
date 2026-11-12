@@ -391,7 +391,69 @@ REQUIREMENTS = [
      ["test_compliance_records.RetentionOfQmsWideDocumentTests.test_qms_wide_document_uses_the_longest_device_lifetime",
       "test_compliance_records.WebUITests.test_device_form_offers_expected_lifetime"],
      []),
-    ("URS-103", "Devices", "A device team's roles are visible to its members. Device admins and QA can change a person's roles, remove them from the team and add an existing account, each change is audited, and organisation-wide roles are shown read-only. A person cannot change their own roles, and a return address must be on this site.", "H",
+    ("URS-103", "Devices", "Each device's page shows its documentation route: six stages from "
+     "set-up to release and post-market, each with checks worked out from the QMS's own data, "
+     "the gate checks marked, and a link to where each open check is fixed.", "L",
+     ["test_doc_route.DocumentationRouteTests.test_new_device_starts_at_stage_one_with_nothing_done_beyond_its_record",
+      "test_doc_route.DocumentationRouteTests.test_checks_follow_the_device_record",
+      "test_doc_route.DocumentationRouteTests.test_risk_gate_needs_a_control_on_every_hazard",
+      "test_doc_route.DocumentationRouteTests.test_evidence_documents_complete_stage_five",
+      "test_doc_route.DocumentationRouteTests.test_overall_is_the_share_of_checks_that_pass",
+      "test_doc_route.DocumentationRouteTests.test_device_page_shows_the_route_with_links_to_fix_open_checks"],
+     []),
+    ("URS-104", "Access", "The People page lists the people on the devices you can see, with their "
+     "roles on each, and organisation-wide role holders read-only. Edit controls appear only to "
+     "people who can manage that device's team, and never on their own row.", "H",
+     ["test_people.PeopleTests.test_lists_only_people_on_visible_devices",
+      "test_people.PeopleTests.test_people_without_manage_rights_see_no_edit_controls",
+      "test_people.PeopleTests.test_manager_sees_controls_but_not_for_own_row",
+      "test_people.PeopleTests.test_organisation_wide_roles_are_listed_read_only"],
+     []),
+    ("URS-105", "Access", "A team manager can add an existing account to a device team, change a "
+     "member's roles and responsibility, and remove a member (deactivated, not deleted), only on "
+     "devices whose team they manage. Each change is audited, and the page returns only to an "
+     "address on this site.", "H",
+     ["test_people.PeopleTests.test_manager_adds_existing_account_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_changes_roles_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_removes_person_and_it_is_audited",
+      "test_people.PeopleTests.test_manager_cannot_change_roles_on_another_device",
+      "test_people.PeopleTests.test_return_address_must_be_on_this_site"],
+     []),
+    ("URS-106", "Access", "Someone holding several roles can choose one to act as for their "
+     "session (all roles by default). The choice only narrows: it limits their permissions on "
+     "the device and the functions shown, a role they don't hold can't be chosen, and one they no "
+     "longer hold is dropped. The switcher appears only to people with several roles, and "
+     "returns only to an address on this site.", "H",
+     ["test_role_lens.ActingAsTests.test_all_roles_by_default",
+      "test_role_lens.ActingAsTests.test_choosing_a_role_limits_the_functions_shown",
+      "test_role_lens.ActingAsTests.test_choice_limits_permissions_on_the_device",
+      "test_role_lens.ActingAsTests.test_cannot_choose_a_role_not_held",
+      "test_role_lens.ActingAsTests.test_a_held_role_no_longer_held_is_dropped",
+      "test_role_lens.ActingAsTests.test_switcher_only_shown_to_people_with_several_roles",
+      "test_role_lens.ActingAsTests.test_return_address_must_be_on_this_site",
+      "test_role_lens.ActingAsTests.test_functions_follow_the_workflow"],
+     []),
+    ("URS-107", "Usability", "Each device has a task board for each person with a role on it: "
+     "workflow steps they can take now (to do), steps of theirs waiting on another role, and "
+     "done. Closed records drop off. People with no role on the device get no board and can't "
+     "open its page.", "M",
+     ["test_tasks.TaskBoardTests.test_qa_sees_the_closing_step_to_do",
+      "test_tasks.TaskBoardTests.test_engineer_owner_sees_it_waiting_on_qa",
+      "test_tasks.TaskBoardTests.test_closed_records_drop_off_the_board",
+      "test_tasks.TaskBoardTests.test_nobody_without_a_role_on_the_device_gets_a_board",
+      "test_tasks.TaskBoardTests.test_page_shows_the_board_to_a_member",
+      "test_tasks.TaskBoardTests.test_page_refuses_someone_with_no_role_on_the_device"],
+     []),
+    ("URS-108", "Devices", "Each device has an approval gate for stages 2, 4, 5 and 6 of its "
+     "documentation route, created once. Only the gate's approver role can approve it, and the "
+     "approver is recorded. An open gate is a to-do only for people who can approve it, and the "
+     "gate list says whether the viewer can approve each one now.", "H",
+     ["test_tasks.StageGateTests.test_gates_are_created_for_the_device_route",
+      "test_tasks.StageGateTests.test_only_the_approver_role_can_approve_a_gate",
+      "test_tasks.StageGateTests.test_open_gate_is_to_do_for_its_approver_only",
+      "test_tasks.StageGateTests.test_gate_lanes_say_who_can_approve_now"],
+     []),
+    ("URS-109", "Devices", "A device team's roles are visible to its members. Device admins and QA can change a person's roles, remove them from the team and add an existing account, each change is audited, and organisation-wide roles are shown read-only. A person cannot change their own roles, and a return address must be on this site.", "H",
      [
       "test_people.PeopleTests.test_lists_only_people_on_visible_devices",
       "test_people.PeopleTests.test_people_without_manage_rights_see_no_edit_controls",
@@ -403,7 +465,7 @@ REQUIREMENTS = [
       "test_people.PeopleTests.test_return_address_must_be_on_this_site",
       "test_people.PeopleTests.test_organisation_wide_roles_are_listed_read_only"],
      []),
-    ("URS-104", "Devices", "A person who holds several roles can work as one of them. The choice only narrows what they can do, a role they do not hold cannot be chosen, and a stale choice is dropped.", "H",
+    ("URS-110", "Devices", "A person who holds several roles can work as one of them. The choice only narrows what they can do, a role they do not hold cannot be chosen, and a stale choice is dropped.", "H",
      [
       "test_role_lens.ActingAsTests.test_all_roles_by_default",
       "test_role_lens.ActingAsTests.test_choosing_a_role_limits_the_functions_shown",
@@ -414,7 +476,7 @@ REQUIREMENTS = [
       "test_role_lens.ActingAsTests.test_return_address_must_be_on_this_site",
       "test_role_lens.ActingAsTests.test_functions_follow_the_workflow"],
      []),
-    ("URS-105", "Tasks", "Each person's task board for a device shows only the work their roles there can take now, the work they are waiting on, and what they signed recently. A person with no role on the device gets no board.", "M",
+    ("URS-111", "Tasks", "Each person's task board for a device shows only the work their roles there can take now, the work they are waiting on, and what they signed recently. A person with no role on the device gets no board.", "M",
      [
       "test_tasks.TaskBoardTests.test_nobody_without_a_role_on_the_device_gets_a_board",
       "test_tasks.TaskBoardTests.test_page_refuses_someone_with_no_role_on_the_device",
@@ -423,7 +485,7 @@ REQUIREMENTS = [
       "test_tasks.TaskBoardTests.test_engineer_owner_sees_it_waiting_on_qa",
       "test_tasks.TaskBoardTests.test_closed_records_drop_off_the_board"],
      []),
-    ("URS-106", "Approvals", "Approver gates for a device's route open in stage order. Only the holder of the gate's approver role can approve it, approval is an electronic signature, and the next approver is notified when a gate opens.", "H",
+    ("URS-112", "Approvals", "Approver gates for a device's route open in stage order. Only the holder of the gate's approver role can approve it, approval is an electronic signature, and the next approver is notified when a gate opens.", "H",
      [
       "test_tasks.StageGateTests.test_gates_are_created_for_the_device_route",
       "test_tasks.StageGateTests.test_only_the_approver_role_can_approve_a_gate",
@@ -433,13 +495,13 @@ REQUIREMENTS = [
       "test_tasks.StageGateTests.test_open_gate_is_to_do_for_its_approver_only",
       "test_tasks.StageGateTests.test_gate_lanes_say_who_can_approve_now"],
      []),
-    ("URS-107", "Documents", "Each document's review is reminded to its owner and device QA once at each stage before the review date and once when overdue.", "M",
+    ("URS-113", "Documents", "Each document's review is reminded to its owner and device QA once at each stage before the review date and once when overdue.", "M",
      [
       "test_doc_exchange.ReviewReminderTests.test_one_email_per_stage_and_again_when_the_date_changes",
       "test_doc_exchange.ReviewReminderTests.test_no_email_far_from_the_review_date",
       "test_doc_exchange.ReviewReminderTests.test_overdue_document_is_reported_once"],
      []),
-    ("URS-108", "Documents", "Effective documents can be exported as folders and zip archives, and markdown files can be imported as draft documents or revisions. Only documents the person can see are exported, and an import needs team membership on the device.", "H",
+    ("URS-114", "Documents", "Effective documents can be exported as folders and zip archives, and markdown files can be imported as draft documents or revisions. Only documents the person can see are exported, and an import needs team membership on the device.", "H",
      [
       "test_doc_exchange.ExportTests.test_export_has_folder_per_document_with_file_and_markdown",
       "test_doc_exchange.ExportTests.test_draft_documents_are_not_exported",
@@ -453,7 +515,7 @@ REQUIREMENTS = [
       "test_doc_exchange.ImportTests.test_zip_of_markdown_imports_each_file",
       "test_doc_exchange.ImportTests.test_import_page_creates_documents"],
      []),
-    ("URS-109", "Documents", "A documents git clone is kept in step with the QMS: it commits only when something changed, removes effective documents that are withdrawn, and refuses a folder that is not a git clone.", "M",
+    ("URS-115", "Documents", "A documents git clone is kept in step with the QMS: it commits only when something changed, removes effective documents that are withdrawn, and refuses a folder that is not a git clone.", "M",
      [
       "test_doc_exchange.GitSyncTests.test_commits_changes_and_stays_quiet_when_nothing_changed",
       "test_doc_exchange.GitSyncTests.test_new_effective_version_is_committed",

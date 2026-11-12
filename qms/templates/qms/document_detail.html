@@ -8,7 +8,7 @@
   {% if doc.next_review_date %}· Next review {% if doc.review_overdue %}<span class="badge bad">{{ doc.next_review_date|date:"d M Y" }}</span>{% else %}{{ doc.next_review_date|date:"d M Y" }}{% endif %}{% endif %}
   {% if doc.obsolete %}· <span class="badge">obsolete</span>{% endif %}</p>
 
-<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+<div class="grid split">
   <div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">

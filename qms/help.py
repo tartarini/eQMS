@@ -236,6 +236,16 @@ FIELD_HELP = {
                                 "meet, or the requirements it must satisfy. Output records must "
                                 "contain or reference them."),
     }),
+    "route": ("devices", "Documentation route", {
+        "progress": ("Documentation route", "The six stages of documenting this device, worked "
+                     "out from what the QMS already holds: the device record, its team, "
+                     "effective documents, hazards and controls, SOUP, records and builds. "
+                     "Nothing is ticked by hand, so it updates as you work. Click an open check "
+                     "to go where it is fixed. It shows that the pieces exist, not that they are "
+                     "adequate, and it doesn't decide whether a technical file can be approved."),
+        "gate": ("Gate", "A check the next stage relies on, such as every hazard having a risk "
+                 "control. Finish a stage's gates before treating the stage as done."),
+    }),
     "sign": ("getting-started", "Signature fields", {
         "comment": ("Comment", "Why you are taking this step. Required when rejecting or sending "
                     "something back, and for accepting technical-file warnings."),
