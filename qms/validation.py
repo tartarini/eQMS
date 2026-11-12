@@ -549,7 +549,17 @@ REQUIREMENTS = [
       "test_doc_route.RouteFollowsDeviceTests.test_device_page_draws_the_route_diagram",
       "test_doc_route.RouteFollowsDeviceTests.test_failing_gate_checks_stop_signing_and_alert_the_approver",
       "test_doc_route.RouteFollowsDeviceTests.test_once_checks_pass_the_approver_can_sign",
-      "test_doc_route.RouteFollowsDeviceTests.test_gate_open_email_alerts_the_approver_to_failing_checks"],
+      "test_doc_route.RouteFollowsDeviceTests.test_gate_open_email_alerts_the_approver_to_failing_checks",
+      "test_doc_route.GapAssessmentAndDemoTests.test_signed_gate_shows_who_signed_and_when"],
+     []),
+    ("URS-118", "Devices", "A gap assessment is a device document of the Gap assessment type, which "
+     "step A of the Retrofit route reads. Documents titled \"gap assessment\" still count, and a "
+     "document for another device does not. The demo data includes a Retrofit device with its gap "
+     "assessment, and one signed Greenfield gate, so the route can be seen working.", "H",
+     ["test_doc_route.GapAssessmentAndDemoTests.test_gap_assessment_type_satisfies_step_a",
+      "test_doc_route.GapAssessmentAndDemoTests.test_title_only_gap_assessment_still_counts",
+      "test_doc_route.GapAssessmentAndDemoTests.test_gap_assessment_of_another_device_does_not_count",
+      "test_doc_route.DemoDataRouteTests.test_demo_has_a_retrofit_device_and_a_signed_gate"],
      []),
 ]
 

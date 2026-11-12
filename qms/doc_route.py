@@ -20,6 +20,7 @@ describes. A stage's gate checks must pass before its approver gate can be signe
 (``tasks.approve_gate`` asks ``gate_check_failures``). The checks don't replace
 ``techfile.completeness_checks``, which decides whether a technical file build can be approved.
 """
+from django.db.models import Q
 from django.urls import reverse
 
 from . import workflow as wf
@@ -39,9 +40,12 @@ def _facts(device, data, checks):
     team_size = device.memberships.filter(active=True).count()
     errors = [c for c in checks if c["level"] == "error"]
     approved_builds = [b for b in data["builds"] if b.status == "approved"]
+    # A gap assessment is a device document of the Gap assessment type. Documents titled "gap
+    # assessment" before that type existed still count, since their type can't be changed.
     gap_assessment = DocumentVersion.objects.filter(
+        Q(document__doc_type="GAP") | Q(document__title__icontains="gap assessment"),
         status="effective", document__obsolete=False, document__device=device,
-        document__title__icontains="gap assessment").select_related("document").first()
+    ).select_related("document").first()
     change_requests = Record.objects.filter(device=device,
                                             record_type=wf.CHANGE_REQUEST).count()
     return {
@@ -170,7 +174,7 @@ def _retrofit(device, f):
          "Score every expected document: current, out of date, knowledge only, or missing.",
          [_item("Effective gap assessment document for this device", gap, "document_list",
                 gate=True, detail=gap.document.number if gap else
-                "a device document with “gap assessment” in its title")]),
+                "an effective Gap assessment document for this device")]),
         ("B", "Freeze and baseline the release", "Baseline",
          "Record the release in use, and put every change from now on under change control.",
          [_item("Current software version recorded as the baseline",
