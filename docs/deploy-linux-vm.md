@@ -9,10 +9,15 @@ Two routes, depending on the operating system:
 | Operating system | How the server is prepared | How the release is deployed |
 | --- | --- | --- |
 | **Ubuntu 22.04 or 24.04**, or Debian 12 | Automatically, by `make provision` (Ansible) | `make deploy` (Ansible) |
-| **Red Hat family**: RHEL 9, Rocky Linux 9, AlmaLinux 9 | By hand, using the steps in [section 6](#6-red-hat-family-rhel-rocky-alma) | `make deploy` (Ansible), from your workstation |
+| **Red Hat Enterprise Linux 9 or 10** | Automatically, by `make provision` (Ansible) | `make deploy` (Ansible) |
+| Rocky Linux, AlmaLinux, other rebuilds | By hand, using the steps in [section 6](#6-red-hat-family-rhel-rocky-alma) | `make deploy` (Ansible), from your workstation |
 
-`make provision` refuses any other operating system, so Red Hat-family servers are prepared by
-hand. Everything after that is the same.
+`make provision` refuses any other operating system. Rocky and AlmaLinux are not covered by the
+playbook, so they are prepared by hand. Everything after that is the same.
+
+Docker Engine's support for RHEL 10 is not confirmed by Docker at the time of writing. Check the
+[Docker support matrix](https://docs.docker.com/engine/install/rhel/) before you use RHEL 10 in
+production.
 
 The rest of the stack is described in [deployment.md](deployment.md): Apache terminates HTTPS,
 gunicorn runs the app, PostgreSQL holds the data, and a scheduler runs the daily jobs and backups.
@@ -208,8 +213,10 @@ ssh qmsdeploy@qms.example.org 'cd /opt/samd_qms && docker compose -f compose.pro
 
 ## 6. Red Hat family (RHEL, Rocky, AlmaLinux)
 
-These steps are for RHEL 9, Rocky Linux 9 and AlmaLinux 9. Run them as a user with `sudo` on the
-server. They match what `provision.yml` does on Ubuntu.
+For RHEL 9 and 10, `make provision` does these steps for you. Read this section only if you're
+preparing Rocky Linux or AlmaLinux, or if you want to check what the playbook did. These steps are
+for RHEL 9, Rocky Linux 9 and AlmaLinux 9. Run them as a user with `sudo` on the server. They
+match what `provision.yml` does on Ubuntu.
 
 **Docker.** For RHEL use Docker's `rhel` repository; for Rocky and AlmaLinux use the `centos` one:
 
