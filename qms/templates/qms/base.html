@@ -105,13 +105,24 @@
     </select><noscript><button class="btn secondary" style="padding:3px 8px">Go</button></noscript>
   </form>
   {% endif %}
+  {% if role_options|length > 1 %}
+  <form method="post" action="{% url 'qms:set_role' %}" style="margin:0" title="Work as one of your roles">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <select name="role" onchange="this.form.submit()" aria-label="Acting as" style="width:auto;padding:4px 8px;background:#2d2d2a;color:#fff;border-color:#55554f">
+      <option value="">All my roles</option>
+      {% for r in role_options %}<option value="{{ r }}" {% if r == active_role %}selected{% endif %}>{{ r }}</option>{% endfor %}
+    </select><noscript><button class="btn secondary" style="padding:3px 8px">Go</button></noscript>
+  </form>
+  {% endif %}
   <a href="{% url 'qms:dashboard' %}">Dashboard</a>
   <a href="{% url 'qms:device_list' %}">Devices</a>
   <a href="{% url 'qms:record_list' %}">Records</a>
   <a href="{% url 'qms:document_list' %}">Documents</a>
   <a href="{% url 'qms:my_training' %}">Training</a>
+  {% if current_device %}<a href="{% url 'qms:device_tasks' current_device.code %}">My tasks</a>{% endif %}
   <a href="{% url 'qms:hazard_list' %}">Risk</a>
   <a href="{% url 'qms:supplier_list' %}">Suppliers</a>
+  <a href="{% url 'qms:people' %}">People</a>
   {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>
   <a href="{% url 'qms:access_request_list' %}">Account requests{% if open_access_requests %} <span class="badge warn">{{ open_access_requests }}</span>{% endif %}</a>{% endif %}
   {% if sees_all_devices %}<a href="{% url 'qms:audit_log' %}">Audit</a>{% endif %}

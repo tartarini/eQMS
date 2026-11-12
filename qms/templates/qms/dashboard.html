@@ -5,6 +5,16 @@
   {% if sees_all_devices %}Audit trail: {% if chain_ok %}<span class="badge done">intact</span>{% else %}<span class="badge bad">tampering detected at event {{ bad_id }}</span>{% endif %}
   · <a href="{% url 'qms:audit_export' %}">export full audit trail (CSV)</a>{% endif %}</p>
 
+{% if chosen_role %}
+<div class="panel" style="border-left:4px solid var(--accent)">
+  <h2 style="margin-top:0">Acting as {{ chosen_role }}</h2>
+  <p class="muted small" style="margin-top:0">These are the functions open to you in this role. Choose "All my roles" in the header to see everything you can do.</p>
+  {% for heading, items in role_functions %}
+  <h3 style="font-size:15px;margin:10px 0 4px">{{ heading }}</h3>
+  <ul style="margin:0 0 6px;padding-left:20px">{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+  {% empty %}<p class="muted">No functions are open to this role.</p>{% endfor %}
+</div>
+{% endif %}
 {% if not all_devices %}<div class="msg info">You're not on any device team yet, so you only see QMS-wide documents and your training. Ask QA to add you to a device team.</div>{% endif %}
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
   {% for code, label, n in by_type %}

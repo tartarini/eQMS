@@ -45,7 +45,11 @@ def _dashboard(request):
     soon = timezone.localdate() + timedelta(days=60)
     docs = scope(Document.objects.filter(obsolete=False), request, allow_shared=True)
     docs_due = [d for d in docs if d.next_review_date and d.next_review_date <= soon]
+    from .role_lens import role_functions
+    from .roles import active_role
+    chosen = active_role(request.user)
     return render(request, "qms/dashboard.html", {
+        "role_functions": role_functions(chosen) if chosen else [], "chosen_role": chosen,
         "by_type": by_type, "deadlines": with_deadline[:15],
         "safety": open_records.filter(patient_safety_impact="yes")[:15],
         "mine": open_records.filter(owner=request.user)[:15],

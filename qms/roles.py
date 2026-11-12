@@ -17,8 +17,23 @@ from django.contrib.auth import get_user_model
 from . import workflow as wf
 
 
+def active_role(user):
+    """The one role the person has chosen to act in (header "Acting as"), or None for all."""
+    return getattr(user, "active_role", None)
+
+
+def _lens(user, roles: set) -> set:
+    """Narrow ``roles`` to the chosen role. The lens only removes roles, never adds them."""
+    role = active_role(user)
+    return roles if role is None else roles & {role}
+
+
 def org_roles(user) -> set:
     """Organisation-wide roles (Admin groups), applying on every device the person can see."""
+    return _lens(user, _held_org_roles(user))
+
+
+def _held_org_roles(user) -> set:
     if not (user and user.is_authenticated and user.is_active):
         return set()
     if user.is_superuser:
@@ -41,17 +56,22 @@ def device_roles(user, device) -> set:
         return all_roles(user)
     if not can_access(user, device):
         return set()
-    held = org_roles(user)
+    held = _held_org_roles(user)
     for m in _memberships(user, device):
         held |= set(m.role_list())
-    return held
+    return _lens(user, held)
 
 
 def all_roles(user) -> set:
     """Every role the person holds, organisation-wide or on any device."""
+    return _lens(user, unlensed_all_roles(user))
+
+
+def unlensed_all_roles(user) -> set:
+    """Every role the person really holds, ignoring the "Acting as" choice."""
     if not (user and user.is_authenticated and user.is_active):
         return set()
-    held = org_roles(user)
+    held = _held_org_roles(user)
     for m in _memberships(user):
         held |= set(m.role_list())
     return held

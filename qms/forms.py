@@ -327,7 +327,8 @@ class DeviceForm(forms.ModelForm):
 
     class Meta:
         model = Device
-        fields = ["name", "code", "owner", "current_version", "regulatory_status", "markets",
+        fields = ["name", "code", "owner", "current_version", "regulatory_status", "development_route",
+                  "markets",
                   "operator_roles",
                   "description", "intended_purpose", "intended_users", "patient_population",
                   "contraindications", "eu_classification", "uk_classification",
@@ -340,6 +341,7 @@ class DeviceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.organisation = Organisation.current()
+        self._route_optional()
         held = self.organisation.role_list() if self.organisation else []
         if held:  # offer only the roles the organisation holds, plus any already set
             keep = set(held) | set(self.instance.operator_role_list())
@@ -363,6 +365,13 @@ class DeviceForm(forms.ModelForm):
                                                       or "").strip():
                 data["uk_responsible_person"] = org.name_and_address()
         return data
+
+    # Optional on the form: a device that does not say its route is Greenfield.
+    def _route_optional(self):
+        self.fields["development_route"].required = False
+
+    def clean_development_route(self):
+        return self.cleaned_data.get("development_route") or "greenfield"
 
 
 class OrganisationForm(forms.ModelForm):

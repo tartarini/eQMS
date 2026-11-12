@@ -121,3 +121,36 @@ People who request an account from the home page appear under **Account requests
 
 A request can't be approved until the person has confirmed their email address. Approved and declined requests can't be changed; every step is in the audit trail.
 
+## My tasks
+
+Each device has a task board for you, under **My tasks** in the menu. It shows what you have to
+do on that device, based on the roles you hold there.
+
+- **To do:** actions only your roles can take now: records waiting for your step, documents to
+  approve or make effective, technical file builds to approve, training to complete, and approver
+  gates you can approve.
+- **Waiting on others:** work you started or own that needs another role to act next.
+- **Done recently:** electronic signatures you made on this device in the last 30 days.
+
+Each approver gate for the device's documentation route (Greenfield or Retrofit) has its own
+column. Its approver role is shown on the card, and **Approve this gate** appears only if you hold
+that role on the device. Nothing else on the board can be dragged or moved by hand: cards change
+when the underlying record, document or gate changes.
+
+## People
+
+**People** lists everyone on the teams of the devices you can see, with their roles on each device. It also lists people who hold an organisation-wide role (set by an administrator in Admin); those are read-only here.
+
+Device admins and QA on a device can, for each person on that device's team:
+
+- **Change roles:** tick or untick roles and save. Untick every role to keep someone on the team with no role.
+- **Remove from team:** this revokes their access to the device. Their past records and signatures are kept.
+- **Add a person:** choose someone with an account who is not yet on the team, then their roles and responsibility.
+
+You can't change your own roles, and a device must keep at least one Device admin or QA on its team. Every change is recorded in the audit trail with who made it and when.
+
+## Acting as one role
+
+If you hold more than one role, the **Acting as** list in the top bar lets you work as one of them. Choose a role and the app works as that role only: what you can do, the functions listed on the dashboard, and the team pages all follow that role. Choose **All my roles** to go back to everything you hold.
+
+The choice can only narrow what you can do. You can't choose a role you don't hold, and the choice is kept for your browser session only.

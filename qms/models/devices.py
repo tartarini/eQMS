@@ -59,7 +59,7 @@ class Device(AuditedModel):
                "classification_rule", "software_safety_class", "basic_udi_di", "manufacturer",
                "uk_responsible_person", "approved_body", "regulatory_status", "markets",
                "standards_applied", "current_version", "software_items", "owner_id", "active",
-               "operator_roles", "expected_lifetime_years"]
+               "operator_roles", "expected_lifetime_years", "development_route"]
 
     name = models.CharField(max_length=120, unique=True)
     code = models.CharField(max_length=12, unique=True,
@@ -96,6 +96,12 @@ class Device(AuditedModel):
     approved_body = models.CharField("Approved / notified body", max_length=200, blank=True)
     regulatory_status = models.CharField(max_length=30, choices=REG_STATUSES,
                                          default="development")
+    development_route = models.CharField(
+        "Documentation route", max_length=12, choices=[("greenfield", "Greenfield"),
+                                                       ("retrofit", "Retrofit")],
+        default="greenfield",
+        help_text="Greenfield: documentation from the start of development. Retrofit: an existing "
+                  "device whose documentation is reconstructed. Sets which approver gates apply.")
     markets = models.CharField(max_length=200, blank=True, help_text="e.g. UK (UKCA), EU (CE)")
     standards_applied = models.TextField(
         blank=True, help_text="Harmonised / recognised standards applied, one per line.")
@@ -254,3 +260,48 @@ class TechnicalFileBuild(AuditedModel):
         from .core import sha256_of
         with self.package.open("rb") as f:
             return sha256_of(f) == self.sha256
+
+
+# Approver gates on the documentation route (see docs/samd-documentation-guide.md, sections 3-4).
+# (stage, gate, approver role). A gate is approved by someone holding the approver role on the device.
+GREENFIELD_GATES = [
+    ("2", "Classification reviewed", "QA"),
+    ("4", "Every hazard has a control", "Clinical Safety Officer"),
+    ("5", "Evidence matches intended purpose", "Clinical Safety Officer"),
+    ("6", "Technical file has no completeness errors", "QA"),
+]
+RETROFIT_GATES = [
+    ("A", "Gap assessment accepted", "QA"),
+    ("B", "Release baseline frozen", "QA"),
+    ("C", "Intended purpose and classification reconstructed", "QA"),
+    ("D", "Requirements, design and SOUP reconstructed", "QA"),
+    ("E", "Risk file reconstructed and controls checked", "Clinical Safety Officer"),
+    ("F", "Test evidence against baseline", "QA"),
+    ("G", "Gaps closed and regulatory position assessed", "QA"),
+]
+GATES_BY_ROUTE = {"greenfield": GREENFIELD_GATES, "retrofit": RETROFIT_GATES}
+
+
+class StageGate(AuditedModel):
+    """An approver gate on a device's documentation route, approved by one role on the device."""
+    AUDITED = ["device_id", "route", "stage", "name", "approver_role", "status", "approved_by_id",
+               "approved_at"]
+    STATUSES = [("open", "Open"), ("approved", "Approved")]
+
+    device = models.ForeignKey("Device", on_delete=models.PROTECT, related_name="stage_gates")
+    route = models.CharField(max_length=12)
+    stage = models.CharField(max_length=4)
+    name = models.CharField(max_length=200)
+    approver_role = models.CharField(max_length=40)
+    status = models.CharField(max_length=10, choices=STATUSES, default="open")
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.PROTECT, related_name="+")
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["route", "stage"]
+        constraints = [models.UniqueConstraint(fields=["device", "route", "stage"],
+                                               name="unique_gate_per_route")]
+
+    def __str__(self):
+        return f"Stage {self.stage}: {self.name}"

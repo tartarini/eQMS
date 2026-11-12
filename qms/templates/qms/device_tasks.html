@@ -1,0 +1,60 @@
+{% extends "qms/base.html" %}
+{% block title %}My tasks · {{ device.code }}{% endblock %}
+{% block content %}
+<style>
+  .kanban { display:grid; gap:14px; grid-template-columns:1fr; align-items:start; }
+  @media (min-width:700px) { .kanban { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); } }
+  .lane.gate.open { border-top-color:#b45309; }
+  .lane { background:var(--panel, #fff); border:1px solid var(--line, #d9dde4); border-top-width:4px; border-radius:10px; padding:12px; min-width:0; }
+  .lane.todo { border-top-color:#2563eb; }
+  .lane.waiting { border-top-color:#b45309; }
+  .lane.done { border-top-color:#15803d; }
+  .lane h2 { font-size:15px; margin:0 0 10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .card-task { border:1px solid var(--line, #d9dde4); border-radius:8px; padding:10px 12px; margin-bottom:10px; }
+  .card-task .kind { font-size:12px; font-weight:600; color:var(--muted, #5b6472); text-transform:uppercase; letter-spacing:.04em; }
+  .card-task .title { font-weight:600; margin:2px 0 4px; overflow-wrap:anywhere; }
+  .card-task .detail { font-size:13px; color:var(--muted, #5b6472); }
+  .card-task a { font-size:13px; }
+  .empty { font-size:13px; color:var(--muted, #5b6472); margin:0; }
+</style>
+
+<h1 style="font-size:22px;margin:0 0 4px">My tasks for {{ device.name }}</h1>
+<p class="muted" style="margin:0 0 16px">What you have to do on this device, based on your roles here. Cards move as records, documents and technical files move through the workflow. Each approver gate for the {{ route_label|lower }} route has its own column; the approver for each gate is shown on it.</p>
+
+<div class="kanban">
+  {% for css, label, items, empty_text in columns %}
+  <section class="lane {{ css }}" aria-labelledby="col-{{ css }}">
+    <h2 id="col-{{ css }}">{{ label }} <span class="badge">{{ items|length }}</span></h2>
+    {% for task in items %}
+    <article class="card-task">
+      <div class="kind">{{ task.kind }}</div>
+      <div class="title">{{ task.title }}</div>
+      <div class="detail">{{ task.detail }}</div>
+      <a href="{{ task.url }}">Open</a>
+    </article>
+    {% empty %}
+    <p class="empty">{{ empty_text }}</p>
+    {% endfor %}
+  </section>
+  {% endfor %}
+
+  {% for lane in gate_lanes %}
+  {% with gate=lane.gate %}
+  <section class="lane gate {% if gate.status == 'approved' %}done{% else %}open{% endif %}" aria-labelledby="gate-{{ gate.pk }}">
+    <h2 id="gate-{{ gate.pk }}">Stage {{ gate.stage }} <span class="badge {% if gate.status == 'approved' %}done{% else %}warn{% endif %}">{{ gate.get_status_display }}</span></h2>
+    <article class="card-task">
+      <div class="kind">Approver gate · {{ route_label }}</div>
+      <div class="title">{{ gate.name }}</div>
+      <div class="detail">Approver: {{ gate.approver_role }}{% if gate.status == 'approved' %} · approved by {{ gate.approved_by|default:"" }} on {{ gate.approved_at|date:"d M Y" }}{% endif %}</div>
+      {% if lane.can_approve %}
+      <form method="post" action="{% url 'qms:gate_approve' gate.pk %}" style="margin-top:8px">
+        {% csrf_token %}
+        <button class="btn" type="submit">Approve this gate</button>
+      </form>
+      {% endif %}
+    </article>
+  </section>
+  {% endwith %}
+  {% endfor %}
+</div>
+{% endblock %}

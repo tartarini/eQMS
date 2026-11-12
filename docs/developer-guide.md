@@ -814,9 +814,10 @@ App-side support:
 The approved SAMD_QMS Validation Plan governs validation (IQ, OQ, PQ, release, change control).
 The code supports it in two ways:
 
-- **`qms/validation.py`** lists the user requirements (URS-01 … URS-93) with their risk, the
-  automated tests that verify each one, and the manual IQ/PQ protocols. Every test must be traced
-  to a requirement.
+- **`qms/validation.py`** lists the user requirements (53 requirements, numbered URS-01 … URS-102
+  in groups, so the IDs are not contiguous) with their risk, the automated tests that verify each
+  one, and the manual IQ/PQ protocols. Every test must be traced to a requirement. To add one,
+  take the next unused ID, not the next integer.
 - **Release identification:** `QMS_VERSION` and `QMS_COMMIT` (build args, set by CI from the tag
   and `github.sha`; outside a container the commit comes from `git rev-parse HEAD`) are shown at
   the top of every page, in admin and on `/healthz`, so a screenshot or audit observation always
