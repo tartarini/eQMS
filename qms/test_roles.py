@@ -192,6 +192,11 @@ class TeamPageTests(Base):
         self.client.force_login(self.admin_a)
         self.client.post(reverse("qms:team_add", args=["DA"]), {"user": newbie.pk})
         self.assertFalse(DeviceMembership.objects.filter(user=newbie).exists())
+        # A Device admin may add an engineer, but only a QMS admin may appoint a Device admin.
+        self.client.post(reverse("qms:team_add", args=["DA"]),
+                         {"user": newbie.pk, "roles": [wf.ENGINEER, wf.DEVICE_ADMIN]})
+        self.assertEqual(device_roles(newbie, self.a), set())
+        self.client.force_login(person("qms_admin", wf.QMS_ADMIN))
         self.client.post(reverse("qms:team_add", args=["DA"]),
                          {"user": newbie.pk, "roles": [wf.ENGINEER, wf.DEVICE_ADMIN]})
         self.assertEqual(device_roles(newbie, self.a), {wf.ENGINEER, wf.DEVICE_ADMIN})

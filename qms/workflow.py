@@ -25,6 +25,10 @@ ROLES = ANY_ROLE + (DEVICE_ADMIN,)            # every role a person can hold on 
 TEAM_MANAGERS = (DEVICE_ADMIN, QA)            # may invite people and manage a device's team
 # Not a working role: grants access to every device's data (e.g. head of quality, auditors).
 ALL_DEVICES = "All-device access"
+# Organisation-wide administration of the application: sees every device, manages every device
+# team, and is the only one who may appoint or remove Device admins. Not a per-device role, so
+# it is not in ROLES, and it signs nothing.
+QMS_ADMIN = "QMS admin"
 
 # Record types
 PROBLEM_REPORT = "problem_report"

@@ -25,7 +25,7 @@ from django.utils import timezone
 from . import notifications
 from . import workflow as wf
 from .models import AccessRequest, DeviceMembership
-from .roles import can_manage_team, managed_devices, org_roles
+from .roles import can_manage_team, managed_devices, may_change_device_admin, org_roles
 from .services import TransitionError, require
 
 SESSION_KEY = "qms_access_request_started"
@@ -156,6 +156,8 @@ def approve(ar: AccessRequest, approver, device, roles, note: str = "") -> Acces
     require(errors, can_manage_team(approver, device),
             f"Only Device admins and QA on {device.name} can add people to its team.")
     require(errors, bool(roles), "Choose at least one role.")
+    require(errors, may_change_device_admin(approver, set(), roles),
+            "Only a QMS admin can approve someone as a Device admin.")
     require(errors, approver.pk != ar.user_id, "You can't approve your own request.")
     if errors:
         raise TransitionError(errors)

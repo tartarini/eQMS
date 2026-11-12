@@ -30,6 +30,7 @@ Each device has a team, shown on its page under **Team**. You can be on as many 
 - You see, and can act on, only the records, risks, device documents and technical files of your teams. QMS-wide documents and your training are visible to everyone.
 - Emails and training for a device go only to its team, by role on that device.
 - People with **All-device access** (for example the head of quality or an auditor) see every device and the full **Audit** page.
+- A **QMS admin** (set by an administrator in Admin) manages the application overall: they see every device and can manage every device's team, without being on it. A QMS admin holds no working role and signs nothing.
 - **Device admins and QA on a team** invite people, add existing users, change roles and remove members. Removing someone keeps their past records and signatures.
 - The person who creates a device joins its team as QA and Device admin. A device always keeps at least one member, and at least one Device admin or QA.
 - A record's linked hazards must belong to the same device, even if you're on several teams.
@@ -161,6 +162,8 @@ Device admins and QA on a device can, for each person on that device's team:
 - **Add a person:** choose someone with an account who is not yet on the team, then their roles and responsibility.
 
 You can't change your own roles, and a device must keep at least one Device admin or QA on its team. Every change is recorded in the audit trail with who made it and when.
+
+Only a **QMS admin** can add, change or remove the **Device admin** role. A Device admin can still manage the other roles and the people on the team, but cannot appoint another Device admin or remove one. The same applies to invitations and account requests.
 
 ## Acting as one role
 
