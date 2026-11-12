@@ -84,6 +84,7 @@ qms/
   roles.py              who holds which role on which device (every role check uses it)
   invitations.py        invitation rules: create, resend, revoke, accept
   techfile.py           technical file: gather, completeness checks, outline, HTML/DOCX, ZIP
+  doc_route.py          the device page's documentation route: six stages of checks, read-only
   help.py               help topics, page → help section map, help text for every form field
   help/                 the help topics (Markdown), served at /help/
   views_help.py         help pages (open without sign-in; they hold no QMS data)
@@ -114,6 +115,7 @@ qms/
   test_help.py          every page and form field has help; help pages and icons (11 tests)
   test_roles.py         roles per device, Device admin, team pages, the 0004 migration (16 tests)
   test_invitations.py   inviting, the emailed link, expiry, resend, revoke, accepting (16 tests)
+  test_doc_route.py     the documentation route's stages, gates and device-page panel (6 tests)
   management/commands/run_oq.py   operational qualification run and traced evidence
 ```
 
@@ -536,7 +538,9 @@ terminal, add it to `TERMINAL_STATES`. Add a test for both the blocked and the a
 2. Rules and status changes as functions in `services.py`, using `require`, `_role_error`,
    `_check_secret`, `sign` and `_actor`.
 3. Views in a `views_<module>.py` decorated with `@qms_member`, calling services through `run()`.
-4. Templates extending `qms/base.html`, reusing `_audit.html` and `_signatures.html`.
+4. Templates extending `qms/base.html`, reusing `_audit.html` and `_signatures.html`. A detail
+   page with a side column uses `<div class="grid split">` (main column 2fr, side column at least
+   280px, stacked into one column below 860px), not an inline `grid-template-columns`.
 5. URLs, admin (`NoDeleteAdmin` or `ReadOnlyAdmin`), navigation link, dashboard widget if useful,
    reminder lines in `daily_reminders`, and tests.
 6. Help: a topic in `qms/help/` (and `help.TOPICS`), each new URL name in `help.PAGE_HELP`, and
@@ -688,6 +692,17 @@ the `Invitation` (audited, `INV-0001`; immutable once accepted or revoked).
 - `resend()` issues a new token and expiry (the old link stops working); `revoke()` closes it.
   Either is allowed for the inviter or anyone who manages every device in it.
 
+**Documentation route.** `qms/doc_route.py` works out the six-stage panel at the top of the
+device page (set-up; intended purpose and classification; requirements and design; risk; verification
+and evidence; release and post-market). `stages(device, data, checks)` takes `techfile.gather`
+and `techfile.completeness_checks`, so the page computes them once. It stores nothing and changes
+nothing: each check reads existing fields, documents by `tech_file_section`, hazards and controls,
+SOUP, records and builds. Gate checks are flagged `gate=True`. To add a check, add an `_item` to
+its stage with the URL name where it is fixed, then update the help topic (`devices.md`, "Follow
+the documentation route"), the `route` group in `FIELD_HELP` if the panel's meaning changes, and
+`test_doc_route`. The panel heading and each gate line carry `{% help_for "route" ... %}` icons.
+Traced to URS-103.
+
 ## Technical file generation
 
 `qms/techfile.py` builds a device's technical documentation from live data. The pipeline:
@@ -803,7 +818,7 @@ App-side support:
 The approved SAMD_QMS Validation Plan governs validation (IQ, OQ, PQ, release, change control).
 The code supports it in two ways:
 
-- **`qms/validation.py`** lists the user requirements (53 requirements, numbered URS-01 … URS-102
+- **`qms/validation.py`** lists the user requirements (59 requirements, numbered URS-01 … URS-108
   in groups, so the IDs are not contiguous) with their risk, the automated tests that verify each
   one, and the manual IQ/PQ protocols. Every test must be traced to a requirement. To add one,
   take the next unused ID, not the next integer.

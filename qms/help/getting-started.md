@@ -82,6 +82,8 @@ After you sign in you see **Your devices**: the devices whose team you're on and
 
 The top bar has **Dashboard**, **Records**, **Documents**, **Training**, **Risk**, **Suppliers**, **Devices** and **Audit**. The device menu at the far left also switches device from any page, or choose **All devices**. QA and administrators also see **Admin**, which manages users and roles.
 
+On a phone or narrow window, pages that have a side column (a device, record, document, hazard or supplier) show it below the main content instead of beside it. Wide tables scroll sideways inside their panel.
+
 Help is always one click away:
 
 - **Help** at the top right of every page opens the part of this guide about that page, in a new tab.

@@ -88,6 +88,32 @@ When a Problem Report, Change Request, hazard or SOUP item asks for a software i
 
 When you create or edit a document, set **Device** (leave blank for QMS-wide procedures) and **Technical file section**, for example *2. Information supplied by the manufacturer* for the instructions for use. The effective version of each tagged document is included in that section of the device's technical file.
 
+## Follow the documentation route
+
+The **Documentation route** panel at the top of a device's page shows how far its documentation has got, in six stages to work through in order:
+
+1. **Organisation and device set-up**: our economic operator role, the legal manufacturer, the device description, the expected lifetime and the device team.
+2. **Intended purpose and classification**: intended purpose, users and patient population, the class in every market the device is placed on, the classification rationale and the IEC 62304 software safety class.
+3. **Requirements, design and software items**: the software items, an effective design document and GSPR checklist, linked SOUP and the current software version.
+4. **Hazards, controls and residual risk**: hazards in the risk register, a control on every hazard, every control verified, every residual risk accepted and an effective risk management file.
+5. **Verify, validate and show performance**: effective verification and validation evidence, effective clinical evaluation and usability evidence, and no open problem with patient-safety impact.
+6. **Release, technical file and surveillance**: labelling and IFU, the PMS schedule and plan, the declaration of conformity, a technical file with no completeness errors and an approved build.
+
+Each check is worked out from what the QMS already holds, so it updates as you work; nothing is ticked by hand. Checks marked **gate** are the ones the next stage relies on. Click an open check to go where it is fixed. The stage you are on opens by itself.
+
+The panel shows:
+
+- **Overall progress**: the share of all checks that pass, and the stage you are on, which is the first one not finished.
+- **Each stage's count** of checks passed, for example 4/5. Its number is grey when nothing has started, amber when in progress and green when done.
+- **Each check**, ticked or open. An open check is a link to the page where you fix it: the device's edit form, the team list on this page, Documents, Risk, Suppliers or Records. Some checks add a detail, such as how many risk controls are verified.
+- **Gates**, marked with a **gate** badge. Under the stage, the gate line says whether its gates have passed.
+
+Documents count only once they are effective and tagged with the right technical file section, as for the technical file build. A check that depends on a document stays open while the document is a draft or in review.
+
+The stages follow the greenfield phases in the SaMD documentation guide: stage 1 is phase 0, stage 2 phase 1, stage 3 phase 2, stage 4 phase 3, stage 5 phases 4 and 5, and stage 6 phase 6. For a device whose documentation lags behind its software, follow the guide's retrofit steps; the panel then shows which pieces still need to be reconstructed. The panel doesn't score existing documents for a gap assessment.
+
+The route shows that the pieces exist, not that they are adequate, and it doesn't decide whether a technical file can be approved: the **Technical file** panel does.
+
 ## Generate and approve a technical file
 
 1. Open the device from **Devices**. The **Technical file** panel shows a completeness check: **errors** must be fixed before approval; **warnings** can be accepted with a reason.

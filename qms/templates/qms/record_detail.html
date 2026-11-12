@@ -11,7 +11,7 @@
   {% if record.next_deadline %}· Due {% if record.is_overdue %}<span class="badge bad">{{ record.next_deadline|date:"d M Y" }}</span>{% else %}{{ record.next_deadline|date:"d M Y" }}{% endif %}{% endif %}
   {% if record.is_locked %}· <span class="badge done">locked</span>{% endif %}</p>
 
-<div class="grid" style="grid-template-columns: minmax(0,2fr) minmax(280px,1fr)">
+<div class="grid split">
   <div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center">
