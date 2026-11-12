@@ -16,7 +16,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
-from . import notifications
+from . import doc_route, notifications
 from . import workflow as wf
 from . import services
 from .models import (GATES_BY_ROUTE, DocumentVersion, Record, Signature, StageGate,
@@ -58,7 +58,8 @@ def next_open_gate(gates):
 
 def approve_gate(gate, user, secret: str):
     """Approve the next open gate, with an electronic signature. Only someone holding the
-    gate's approver role on the device may, and only after the earlier stages are approved."""
+    gate's approver role on the device may, only after the earlier stages are approved, and only
+    while the stage's gate checks on the documentation route pass."""
     errors = []
     services._check_secret(errors, user, secret)
     if gate.approver_role not in device_roles(user, gate.device):
@@ -69,6 +70,11 @@ def approve_gate(gate, user, secret: str):
         upcoming = next_open_gate(ensure_gates(gate.device))
         if upcoming is not None and upcoming.pk != gate.pk:
             errors.append(f"Stage {upcoming.stage} ({upcoming.name}) must be approved first.")
+    if gate.status != "approved":
+        failing = doc_route.gate_check_failures(gate.device, gate.stage)
+        if failing:
+            errors.append("Gate checks not passing: " + "; ".join(failing)
+                          + ". Fix them on the device page before signing.")
     if errors:
         raise TransitionError(errors)
     with transaction.atomic():
@@ -88,8 +94,8 @@ def gate_lanes(user, device, gates) -> list:
     """One lane per gate: its status, and whether this person can approve it now."""
     mine = device_roles(user, device)
     upcoming = next_open_gate(gates)
-    return [{"gate": g, "can_approve": g is upcoming and g.approver_role in mine}
-            for g in gates]
+    return [{"gate": g, "can_approve": g is upcoming and g.approver_role in mine,
+             "is_approver": g.approver_role in mine} for g in gates]
 
 
 def _roles_text(roles) -> str:

@@ -91,7 +91,29 @@ When you create or edit a document, set **Device** (leave blank for QMS-wide pro
 
 ## Follow the documentation route
 
-The **Documentation route** panel at the top of a device's page shows how far its documentation has got, in six stages to work through in order:
+The **Documentation route** panel at the top of a device's page shows how far its documentation has got. It follows the route set on the device record (**Documentation route** on the edit form):
+
+- **Greenfield**, documentation from the start of development: six stages, 1 to 6.
+- **Retrofit**, an existing device whose documentation is reconstructed: seven steps, A to G.
+
+Each check is worked out from what the QMS already holds, so it updates as you work; nothing is ticked by hand. Click an open check to go where it is fixed. The stage you are on opens by itself.
+
+### The diagram
+
+The top of the panel is a diagram of the route: one circle per stage, joined by a line, with the count of checks passed under each (for example 4/5). A circle is grey when nothing has started, amber when in progress and green when done; the stage you are on, the first one not finished, has a blue ring. Click a stage to open its checks below. On a phone or narrow window the diagram runs top to bottom.
+
+A diamond before a stage is that stage's **approver gate**, signed on **My tasks**:
+
+- **Green**: the gate is approved.
+- **Amber**: its gate checks pass and it is awaiting sign-off.
+- **Red outline**: its gate checks are not passing yet, so it can't be signed.
+- **Dashed amber outline**: the gate was approved, but its gate checks no longer pass, for example because a document was withdrawn. Look at what changed.
+
+Greenfield has gates before stages 2, 4, 5 and 6. Retrofit has a gate on every step, A to G.
+
+### The stages and their checks
+
+Greenfield:
 
 1. **Organisation and device set-up**: our economic operator role, the legal manufacturer, the device description, the expected lifetime and the device team.
 2. **Intended purpose and classification**: intended purpose, users and patient population, the class in every market the device is placed on, the classification rationale and the IEC 62304 software safety class.
@@ -100,20 +122,29 @@ The **Documentation route** panel at the top of a device's page shows how far it
 5. **Verify, validate and show performance**: effective verification and validation evidence, effective clinical evaluation and usability evidence, and no open problem with patient-safety impact.
 6. **Release, technical file and surveillance**: labelling and IFU, the PMS schedule and plan, the declaration of conformity, a technical file with no completeness errors and an approved build.
 
-Each check is worked out from what the QMS already holds, so it updates as you work; nothing is ticked by hand. Checks marked **gate** are the ones the next stage relies on. Click an open check to go where it is fixed. The stage you are on opens by itself.
+Retrofit:
 
-The panel shows:
+- **A. Gap assessment**: an effective document for this device with "gap assessment" in its title. Record the gap assessment as a document with that in its title so the check finds it.
+- **B. Freeze and baseline the release**: the current software version recorded as the baseline, at least one change request recorded (change control in use), and the set-up checks from greenfield stage 1.
+- **C. Reconstruct intended purpose and classification**: the same checks as greenfield stage 2.
+- **D. Reconstruct requirements, design and SOUP**: the same checks as greenfield stage 3.
+- **E. Reconstruct the risk file and check controls**: the same checks as greenfield stage 4; every control verified is also a gate check.
+- **F. Test evidence against the baseline**: effective verification and validation evidence, and no open problem with patient-safety impact.
+- **G. Close the gaps and assess regulatory position**: clinical evaluation and usability evidence, and the release checks from greenfield stage 6.
 
-- **Overall progress**: the share of all checks that pass, and the stage you are on, which is the first one not finished.
-- **Each stage's count** of checks passed, for example 4/5. Its number is grey when nothing has started, amber when in progress and green when done.
-- **Each check**, ticked or open. An open check is a link to the page where you fix it: the device's edit form, the team list on this page, Documents, Risk, Suppliers or Records. Some checks add a detail, such as how many risk controls are verified.
-- **Gates**, marked with a **gate** badge. Under the stage, the gate line says whether its gates have passed.
+Checks marked **gate check** are the ones the stage's approver gate relies on. Under each stage, the gate line names the gate and says whether it is approved (by whom and when), awaiting sign-off, or waiting for its checks.
 
 Documents count only once they are effective and tagged with the right technical file section, as for the technical file build. A check that depends on a document stays open while the document is a draft or in review.
 
-The stages follow the greenfield phases in the SaMD documentation guide: stage 1 is phase 0, stage 2 phase 1, stage 3 phase 2, stage 4 phase 3, stage 5 phases 4 and 5, and stage 6 phase 6. For a device whose documentation lags behind its software, follow the guide's retrofit steps; the panel then shows which pieces still need to be reconstructed. The panel doesn't score existing documents for a gap assessment.
+### Checks and sign-off
 
-The route shows that the pieces exist, not that they are adequate, and it doesn't decide whether a technical file can be approved: the **Technical file** panel does.
+A gate can't be signed until its gate checks pass. On **My tasks**, a gate card whose checks don't pass shows an alert, **Can't be signed yet**, listing each failing check with a link to fix it, and no signing form. The email the approver gets when a gate opens lists the same failing checks. Once the checks pass, the card shows **Gate checks pass** and the signing form. Passing checks show that the pieces exist; the approver still judges whether they are adequate before signing.
+
+A gate that is already approved stays approved if a check later stops passing: its diamond turns dashed and its card says the checks no longer pass, so you can look at what changed.
+
+The route doesn't decide whether a technical file can be approved: the **Technical file** panel does.
+
+The stages follow the SaMD documentation guide: greenfield stage 1 is phase 0, stage 2 phase 1, stage 3 phase 2, stage 4 phase 3, stage 5 phases 4 and 5, and stage 6 phase 6; retrofit steps A to G follow the guide's retrofit steps. The panel doesn't score individual documents for the gap assessment itself.
 
 ## Generate and approve a technical file
 
@@ -148,7 +179,8 @@ Each approver gate for the device's documentation route (Greenfield or Retrofit)
 column. Gates open in stage order: a stage can be approved only after the stage before it. The
 approver role is shown on the card. When it is your turn and you hold that role, enter your
 password or signing PIN and choose **Sign and approve this gate**; the approval is an electronic
-signature in the audit trail. The next approver is emailed when a gate opens. Nothing else on the board can be dragged or moved by hand: cards change
+signature in the audit trail. Each gate card also says whether the gate's checks on the device page pass, and
+lists any that don't. While a gate's checks don't pass it can't be signed: the card shows an alert with the failing checks instead of the signing form, and the gate-open email lists them too. The next approver is emailed when a gate opens. Nothing else on the board can be dragged or moved by hand: cards change
 when the underlying record, document or gate changes.
 
 ## People

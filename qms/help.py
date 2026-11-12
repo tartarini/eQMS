@@ -237,14 +237,16 @@ FIELD_HELP = {
                                 "contain or reference them."),
     }),
     "route": ("devices", "Documentation route", {
-        "progress": ("Documentation route", "The six stages of documenting this device, worked "
-                     "out from what the QMS already holds: the device record, its team, "
-                     "effective documents, hazards and controls, SOUP, records and builds. "
-                     "Nothing is ticked by hand, so it updates as you work. Click an open check "
-                     "to go where it is fixed. It shows that the pieces exist, not that they are "
-                     "adequate, and it doesn't decide whether a technical file can be approved."),
-        "gate": ("Gate", "A check the next stage relies on, such as every hazard having a risk "
-                 "control. Finish a stage's gates before treating the stage as done."),
+        "progress": ("Documentation route", "How far this device's documentation has got, on "
+                     "the route set on its record: Greenfield stages 1 to 6, or Retrofit steps A "
+                     "to G. Each check is worked out from what the QMS already holds, so nothing "
+                     "is ticked by hand. Click a stage in the diagram to see its checks, and an "
+                     "open check to go where it is fixed. It shows that the pieces exist, not "
+                     "that they are adequate."),
+        "gate": ("Gate", "A stage's approver gate, signed on My tasks. Its gate checks are the "
+                 "ones it relies on. Diamond colours: green approved, amber checks pass and "
+                 "awaiting sign-off, red checks not passing yet, dashed approved but checks no "
+                 "longer pass. A gate can't be signed until its gate checks pass."),
     }),
     "sign": ("getting-started", "Signature fields", {
         "comment": ("Comment", "Why you are taking this step. Required when rejecting or sending "

@@ -64,11 +64,19 @@ def record_created(record):
 
 
 def gate_open(gate):
-    """Tell the approver of a stage gate that it is now their turn."""
-    send(f"{gate.device.code} Stage {gate.stage} ready for approval",
+    """Tell the approver of a stage gate that it is now their turn, and alert them to any gate
+    checks that don't pass yet (the gate can't be signed until they do)."""
+    from . import doc_route  # avoids a circular import: doc_route -> models -> notifications
+    failing = doc_route.gate_check_failures(gate.device, gate.stage)
+    alert = ("" if not failing else
+             "It can't be signed yet: these gate checks don't pass:\n"
+             + "".join(f"- {label}\n" for label in failing)
+             + "Fix them on the device page, then sign.\n\n")
+    send(f"{gate.device.code} Stage {gate.stage} ready for approval"
+         + (" (gate checks not passing)" if failing else ""),
          f"Stage {gate.stage}: {gate.name} ({gate.route.capitalize()} route) is open for "
          f"approval by {gate.approver_role} on {gate.device.name}. The earlier stages are "
-         "approved.\n\n" + _url(reverse("qms:device_tasks", args=[gate.device.code])),
+         "approved.\n\n" + alert + _url(reverse("qms:device_tasks", args=[gate.device.code])),
          users_in_roles([gate.approver_role], gate.device))
 
 

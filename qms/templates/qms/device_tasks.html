@@ -6,6 +6,9 @@
   .kanban { display:grid; gap:14px; grid-template-columns:1fr; align-items:start; }
   @media (min-width:700px) { .kanban { grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); } }
   .lane.gate.open { border-top-color:#b45309; }
+  .gate-checks.pass { color:var(--ok); } .gate-checks.fail { color:var(--warn); }
+  .gate-alert { margin:8px 0 0; padding:8px 10px; border-radius:6px; background:#fbebeb; border-left:3px solid var(--bad); font-size:13px; }
+  .gate-alert strong { color:var(--bad); } .gate-alert ul { margin:4px 0; padding-left:18px; }
   .lane { background:var(--panel, #fff); border:1px solid var(--line, #d9dde4); border-top-width:4px; border-radius:10px; padding:12px; min-width:0; }
   .lane.todo { border-top-color:#2563eb; }
   .lane.waiting { border-top-color:#b45309; }
@@ -47,7 +50,21 @@
       <div class="kind">Approver gate · {{ route_label }}</div>
       <div class="title">{{ gate.name }}</div>
       <div class="detail">Approver: {{ gate.approver_role }}{% if gate.status == 'approved' %} · approved by {{ gate.approved_by|default:"" }} on {{ gate.approved_at|date:"d M Y" }}{% endif %}</div>
-      {% if lane.can_approve %}
+      {% if lane.stage %}
+      {% if lane.stage.gate_passed %}
+      <p class="small gate-checks pass" style="margin:6px 0 0">✓ Gate checks pass · <a href="{% url 'qms:device_detail' device.code %}#route-stage-{{ gate.stage }}">see the checks</a> {% help_for "route" "gate" %}</p>
+      {% elif gate.status == "open" %}
+      <div class="gate-alert" role="alert">
+        <strong>Can't be signed yet: gate checks not passing</strong>
+        <ul>{% for i in lane.stage.items %}{% if i.gate and not i.done %}<li>{% if i.url %}<a href="{{ i.url }}">{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}</li>{% endif %}{% endfor %}</ul>
+        <span class="small">Fix them, then sign here. <a href="{% url 'qms:device_detail' device.code %}#route-stage-{{ gate.stage }}">See all the checks</a> {% help_for "route" "gate" %}</span>
+      </div>
+      {% else %}
+      <p class="small gate-checks fail" style="margin:6px 0 0">⚠ Approved, but its gate checks no longer pass · <a href="{% url 'qms:device_detail' device.code %}#route-stage-{{ gate.stage }}">see the checks</a> {% help_for "route" "gate" %}</p>
+      {% endif %}
+      {% endif %}
+      {% if lane.can_approve and lane.stage and not lane.stage.gate_passed %}
+      {% elif lane.can_approve %}
       <form method="post" action="{% url 'qms:gate_approve' gate.pk %}" style="margin-top:8px">
         {% csrf_token %}
         <span class="label-row"><label for="gate-pw-{{ gate.pk }}" class="small">Password or signing PIN</label>{% help_for "sign" "password" %}</span>

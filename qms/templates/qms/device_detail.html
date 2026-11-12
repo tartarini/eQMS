@@ -3,8 +3,6 @@
 {% block title %}{{ device.name }} – SAMD_QMS{% endblock %}
 {% block content %}
 <style>
-  .route-bar { height:6px; background:#ecebe6; border-radius:3px; overflow:hidden; margin:10px 0 6px; }
-  .route-bar i { display:block; height:100%; background:var(--accent); }
   .route-stages { list-style:none; padding:0; margin:8px 0 0; }
   .route-stage { border-top:1px solid var(--line); }
   .route-stage summary { display:flex; gap:10px; align-items:flex-start; padding:9px 0; cursor:pointer; list-style:none; }
@@ -17,6 +15,41 @@
   .route-items li { display:flex; gap:8px; padding:2px 0; } .route-items li.ok { color:var(--muted); }
   .route-mark { flex:none; width:14px; } .route-items li.ok .route-mark { color:var(--ok); }
   .route-stage p { margin:2px 0 10px 34px; } .route-gate-open { color:var(--bad); }
+  .route-gateline { padding:6px 8px; border-radius:6px; background:#f7f7f5; }
+  .route-gateline.blocked, .route-gateline.stale { color:var(--warn); }
+  /* Route diagram: a row of stages joined by a line, with a diamond for each approver gate. */
+  .route-flow { list-style:none; padding:0; margin:18px 0 6px; display:flex; align-items:flex-start; }
+  .route-node { flex:1 1 0; min-width:0; text-align:center; position:relative; }
+  .route-node::before { content:""; position:absolute; top:17px; left:-50%; width:100%; height:2px; background:var(--line); }
+  .route-node:first-child::before { display:none; }
+  .route-node.done::before, .route-node.progress::before { background:var(--ok); }
+  .route-node a { display:block; color:inherit; text-decoration:none; position:relative; z-index:1; padding:0 2px; }
+  .route-node a:hover .route-node-title, .route-node a:focus-visible .route-node-title { text-decoration:underline; }
+  .route-dot { width:34px; height:34px; border-radius:50%; margin:0 auto 6px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; background:#ecebe6; color:var(--muted); border:2px solid transparent; }
+  .route-node.done .route-dot { background:#e5f4e4; color:var(--ok); }
+  .route-node.progress .route-dot { background:#f9eeda; color:var(--warn); }
+  .route-node.current .route-dot { border-color:var(--accent); box-shadow:0 0 0 4px #e7f1fb; }
+  .route-node-title { display:block; font-size:13px; font-weight:600; line-height:1.25; overflow-wrap:anywhere; }
+  .route-node-count { display:block; font-size:12px; color:var(--muted); }
+  .route-gate, .route-key { display:inline-block; width:16px; height:16px; transform:rotate(45deg); border:2px solid var(--bad); background:#fff; }
+  .route-gate { position:absolute; top:10px; left:-8px; z-index:2; }
+  .route-gate.approved, .route-key.approved { border-color:var(--ok); background:#e5f4e4; }
+  .route-gate.ready, .route-key.ready { border-color:var(--warn); background:#f9eeda; }
+  .route-gate.stale, .route-key.stale { border-color:var(--warn); background:#fff; border-style:dashed; }
+  .route-key { width:10px; height:10px; margin-right:6px; vertical-align:-1px; }
+  .route-legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin:8px 0; }
+  .route-flow.lead-gate { padding-left:20px; }
+  @media (max-width: 600px) {
+    .route-flow { flex-direction:column; gap:30px; }
+    .route-node { text-align:left; }
+    .route-node a { display:flex; align-items:center; gap:10px; }
+    .route-node-text { display:flex; gap:8px; align-items:baseline; }
+    .route-node-title, .route-node-count { display:inline; }
+    .route-dot { margin:0; flex:none; }
+    .route-node::before { top:-30px; left:16px; width:2px; height:30px; }
+    .route-gate { top:-24px; left:9px; }
+    .route-flow.lead-gate { padding:30px 0 0; }
+  }
   .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 </style>
 <p class="muted small">Medical device · {{ device.code }}</p>
@@ -27,14 +60,26 @@
   <div>
     <div class="panel route" id="documentation-route">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <span class="label-row"><h2 style="margin:0">Documentation route</h2>{% help_for "route" "progress" %}</span>
-        <span class="small muted">{{ route_overall }}% of checks pass{% if route_current %} · now on stage {{ route_current.number }}{% else %} · all stages done{% endif %}</span>
+        <span class="label-row"><h2 style="margin:0">Documentation route · {{ route_label }}</h2>{% help_for "route" "progress" %}</span>
+        <span class="small muted">{{ route_overall }}% of checks pass{% if route_current %} · now on {{ route_unit }} {{ route_current.number }}{% else %} · all {{ route_unit }}s done{% endif %}</span>
       </div>
-      <div class="route-bar" role="progressbar" aria-label="Documentation route overall" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ route_overall }}"><i style="width:{{ route_overall }}%"></i></div>
-      <p class="small muted">The six stages of documenting this device, worked out from its record, team, documents, risk register, SOUP and builds. Work through them in order; a gate is a check the next stage relies on. This doesn't decide whether a technical file can be approved: the Technical file panel does.</p>
+      <ol class="route-flow{% if route.0.signoff %} lead-gate{% endif %}" aria-label="{{ route_label }} route: {{ route_unit }}s and approver gates">
+        {% for s in route %}
+        <li class="route-node {{ s.status }}{% if route_current and s.number == route_current.number %} current{% endif %}">
+          {% if s.signoff %}<span class="route-gate {{ s.signoff.state }}" title="Gate: {{ s.signoff.name }} ({% if s.signoff.state == 'approved' %}approved{% elif s.signoff.state == 'ready' %}checks pass, awaiting sign-off{% elif s.signoff.state == 'stale' %}approved, but its checks no longer pass{% else %}checks not passing yet{% endif %})" aria-hidden="true"></span>{% endif %}
+          <a href="#route-stage-{{ s.number }}" data-stage="{{ s.number }}">
+            <span class="route-dot">{{ s.number }}</span>
+            <span class="route-node-text"><span class="route-node-title">{{ s.short }}</span> <span class="route-node-count">{{ s.done }}/{{ s.total }}</span></span>
+            <span class="visually-hidden">{% if s.status == 'done' %}done{% elif s.status == 'progress' %}in progress{% else %}not started{% endif %}{% if s.signoff %}; gate {{ s.signoff.name }}: {% if s.signoff.state == 'approved' %}approved{% elif s.signoff.state == 'ready' %}checks pass, awaiting sign-off{% elif s.signoff.state == 'stale' %}approved, but its checks no longer pass{% else %}checks not passing yet{% endif %}{% endif %}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="route-legend small muted"><span><i class="route-key approved"></i>gate approved</span><span><i class="route-key ready"></i>checks pass, awaiting sign-off</span><span><i class="route-key blocked"></i>checks not passing, can't be signed yet</span><span><i class="route-key stale"></i>approved, but checks no longer pass</span></p>
+      <p class="small muted">The {{ route_unit }}s of documenting this device on the {{ route_label|lower }} route, worked out from its record, team, documents, risk register, SOUP, records and builds. The route is set on the device record. A gate check is one a {{ route_unit }}'s approver gate relies on; the gate itself is signed on <a href="{% url 'qms:device_tasks' device.code %}">My tasks</a>. A gate can't be signed until its gate checks pass. The checks don't decide whether a technical file can be approved: the Technical file panel does.</p>
       <ol class="route-stages">
         {% for s in route %}
-        <li class="route-stage {{ s.status }}">
+        <li class="route-stage {{ s.status }}" id="route-stage-{{ s.number }}">
           <details{% if route_current and s.number == route_current.number %} open{% endif %}>
             <summary>
               <span class="route-num">{{ s.number }}</span>
@@ -45,15 +90,32 @@
               {% for i in s.items %}
               <li class="{% if i.done %}ok{% else %}open{% endif %}">
                 <span class="route-mark" aria-hidden="true">{% if i.done %}✓{% else %}○{% endif %}</span>
-                <span>{% if i.url and not i.done %}<a href="{{ i.url }}">{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}{% if i.gate %} <span class="badge {% if i.done %}done{% else %}bad{% endif %}">gate</span>{% endif %}{% if i.detail %} <span class="small muted">· {{ i.detail }}</span>{% endif %}<span class="visually-hidden">{% if i.done %} (done){% else %} (to do){% endif %}</span></span>
+                <span>{% if i.url and not i.done %}<a href="{{ i.url }}">{{ i.label }}</a>{% else %}{{ i.label }}{% endif %}{% if i.gate %} <span class="badge {% if i.done %}done{% else %}bad{% endif %}">gate check</span>{% endif %}{% if i.detail %} <span class="small muted">· {{ i.detail }}</span>{% endif %}<span class="visually-hidden">{% if i.done %} (done){% else %} (to do){% endif %}</span></span>
               </li>
               {% endfor %}
             </ul>
-            {% if s.gate %}<p class="small {% if s.gate_passed %}muted{% else %}route-gate-open{% endif %}"><span class="label-row" style="display:inline-flex;margin:0">Gate{% help_for "route" "gate" %}</span>: {{ s.gate }}{% if s.gate_passed %} · passed{% else %} · not yet passed{% endif %}</p>{% endif %}
+            {% if s.signoff %}
+            <p class="route-gateline small {{ s.signoff.state }}"><span class="label-row" style="display:inline-flex;margin:0">Gate{% help_for "route" "gate" %}</span>: {{ s.signoff.name }} · {% if s.signoff.state == 'approved' %}<span class="badge done">approved</span> by {{ s.signoff.approved_by }} on {{ s.signoff.approved_at|date:"d M Y" }}{% elif s.signoff.state == 'stale' %}<span class="badge warn">approved</span> by {{ s.signoff.approved_by }} on {{ s.signoff.approved_at|date:"d M Y" }}, but its checks no longer pass{% elif s.signoff.state == 'ready' %}checks pass · <a href="{% url 'qms:device_tasks' device.code %}">awaiting sign-off by {{ s.signoff.approver_role }}</a>{% else %}can't be signed until the gate checks pass · sign-off by {{ s.signoff.approver_role }} on <a href="{% url 'qms:device_tasks' device.code %}">My tasks</a>{% endif %}</p>
+            {% elif s.gate %}
+            <p class="small {% if s.gate_passed %}muted{% else %}route-gate-open{% endif %}">Gate checks: {{ s.gate }}{% if s.gate_passed %} · passed{% else %} · not yet passed{% endif %}</p>
+            {% endif %}
           </details>
         </li>
         {% endfor %}
       </ol>
+      <script>
+        (function () {
+          var panel = document.getElementById("documentation-route");
+          if (!panel) return;
+          panel.querySelectorAll(".route-flow a[data-stage]").forEach(function (link) {
+            link.addEventListener("click", function () {
+              var item = document.getElementById("route-stage-" + link.dataset.stage);
+              var details = item && item.querySelector("details");
+              if (details) details.open = true;
+            });
+          });
+        })();
+      </script>
     </div>
 
     <div class="panel">
