@@ -246,7 +246,7 @@ FIELD_HELP = {
         "gate": ("Gate", "A stage's approver gate, signed on My tasks. Its gate checks are the "
                  "ones it relies on. Diamond colours: green approved, amber checks pass and "
                  "awaiting sign-off, red checks not passing yet, dashed approved but checks no "
-                 "longer pass. Failing checks warn the approver; they don't block signing."),
+                 "longer pass. A gate can't be signed until its gate checks pass."),
     }),
     "sign": ("getting-started", "Signature fields", {
         "comment": ("Comment", "Why you are taking this step. Required when rejecting or sending "

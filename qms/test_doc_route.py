@@ -132,15 +132,48 @@ class RouteFollowsDeviceTests(Base):
         self.assertContains(resp, 'class="route-gate ready"')
         self.assertContains(resp, f'href="{reverse("qms:device_tasks", args=[self.dev.code])}"')
 
-    def test_failing_checks_warn_on_my_tasks_but_do_not_block_signing(self):
+    def test_failing_gate_checks_stop_signing_and_alert_the_approver(self):
         from . import tasks
+        from .services import TransitionError
         self.dev.classification_rule = ""
         self.dev.save()
         self.client.login(username="qa", password=PW)
         resp = self.client.get(reverse("qms:device_tasks", args=[self.dev.code]))
-        self.assertContains(resp, "Gate checks not passing: Classification rationale recorded")
+        self.assertContains(resp, "Can't be signed yet: gate checks not passing")
+        self.assertContains(resp, "Classification rationale recorded")
+        self.assertNotContains(resp, "Sign and approve this gate")
+        gate = tasks.ensure_gates(self.dev)[0]
+        with self.assertRaises(TransitionError) as caught:
+            tasks.approve_gate(gate, self.qa, PW)
+        self.assertIn("Classification rationale recorded", str(caught.exception))
+        gate.refresh_from_db()
+        self.assertEqual(gate.status, "open")
+        # Posting the form directly is refused too.
+        self.client.post(reverse("qms:gate_approve", args=[gate.pk]), {"password": PW})
+        gate.refresh_from_db()
+        self.assertEqual(gate.status, "open")
+
+    def test_once_checks_pass_the_approver_can_sign(self):
+        from . import tasks
+        self.client.login(username="qa", password=PW)
+        resp = self.client.get(reverse("qms:device_tasks", args=[self.dev.code]))
+        self.assertContains(resp, "Gate checks pass")
         self.assertContains(resp, "Sign and approve this gate")
         gate = tasks.ensure_gates(self.dev)[0]
         tasks.approve_gate(gate, self.qa, PW)
         gate.refresh_from_db()
         self.assertEqual(gate.status, "approved")
+
+    def test_gate_open_email_alerts_the_approver_to_failing_checks(self):
+        from django.core import mail
+        from . import notifications, tasks
+        self.dev.classification_rule = ""
+        self.dev.save()
+        gate = tasks.ensure_gates(self.dev)[0]
+        mail.outbox.clear()
+        with self.settings(QMS_NOTIFICATIONS_ENABLED=True), \
+                self.captureOnCommitCallbacks(execute=True):
+            notifications.gate_open(gate)
+        self.assertTrue(mail.outbox)
+        self.assertIn("gate checks not passing", mail.outbox[0].subject)
+        self.assertIn("- Classification rationale recorded", mail.outbox[0].body)

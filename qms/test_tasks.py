@@ -68,7 +68,14 @@ class TaskBoardTests(TestCase):
 
 
 class StageGateTests(TestCase):
+    """Roles, order and signatures of gates. The route's gate checks, which must also pass
+    before signing, are tested in test_doc_route; here they are taken as passing."""
+
     def setUp(self):
+        from unittest import mock
+        patcher = mock.patch("qms.doc_route.gate_check_failures", return_value=[])
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.device = Device.objects.create(name="SkinCheck", code="SKN")
         self.qa = person("qa2", self.device, "QA")
         self.cso = person("cso", self.device, "Clinical Safety Officer")

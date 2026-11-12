@@ -106,7 +106,7 @@ A diamond before a stage is that stage's **approver gate**, signed on **My tasks
 
 - **Green**: the gate is approved.
 - **Amber**: its gate checks pass and it is awaiting sign-off.
-- **Red outline**: its gate checks are not passing yet.
+- **Red outline**: its gate checks are not passing yet, so it can't be signed.
 - **Dashed amber outline**: the gate was approved, but its gate checks no longer pass, for example because a document was withdrawn. Look at what changed.
 
 Greenfield has gates before stages 2, 4, 5 and 6. Retrofit has a gate on every step, A to G.
@@ -138,7 +138,11 @@ Documents count only once they are effective and tagged with the right technical
 
 ### Checks and sign-off
 
-The checks inform the approver; they don't block signing. On **My tasks**, each gate card says whether its gate checks pass and lists any that don't, with a link to them on the device page. The approver can still sign: the checks show that the pieces exist, and the approver judges whether they are adequate. Likewise the route doesn't decide whether a technical file can be approved: the **Technical file** panel does.
+A gate can't be signed until its gate checks pass. On **My tasks**, a gate card whose checks don't pass shows an alert, **Can't be signed yet**, listing each failing check with a link to fix it, and no signing form. The email the approver gets when a gate opens lists the same failing checks. Once the checks pass, the card shows **Gate checks pass** and the signing form. Passing checks show that the pieces exist; the approver still judges whether they are adequate before signing.
+
+A gate that is already approved stays approved if a check later stops passing: its diamond turns dashed and its card says the checks no longer pass, so you can look at what changed.
+
+The route doesn't decide whether a technical file can be approved: the **Technical file** panel does.
 
 The stages follow the SaMD documentation guide: greenfield stage 1 is phase 0, stage 2 phase 1, stage 3 phase 2, stage 4 phase 3, stage 5 phases 4 and 5, and stage 6 phase 6; retrofit steps A to G follow the guide's retrofit steps. The panel doesn't score individual documents for the gap assessment itself.
 
@@ -176,7 +180,7 @@ column. Gates open in stage order: a stage can be approved only after the stage 
 approver role is shown on the card. When it is your turn and you hold that role, enter your
 password or signing PIN and choose **Sign and approve this gate**; the approval is an electronic
 signature in the audit trail. Each gate card also says whether the gate's checks on the device page pass, and
-lists any that don't. Failing checks are a warning, not a block: you can still sign. The next approver is emailed when a gate opens. Nothing else on the board can be dragged or moved by hand: cards change
+lists any that don't. While a gate's checks don't pass it can't be signed: the card shows an alert with the failing checks instead of the signing form, and the gate-open email lists them too. The next approver is emailed when a gate opens. Nothing else on the board can be dragged or moved by hand: cards change
 when the underlying record, document or gate changes.
 
 ## People

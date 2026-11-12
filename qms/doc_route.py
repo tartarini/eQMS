@@ -16,8 +16,9 @@ for a stage (``models.devices.GATES_BY_ROUTE``), the stage also carries that gat
 status, so the page shows the checks and the sign-off together.
 
 Read-only: nothing is stored or created here, so progress can't drift from the records it
-describes. The checks only inform: they don't block approving a gate, and they don't replace
-``techfile.completeness_checks`` (which decides whether a technical file build can be approved).
+describes. A stage's gate checks must pass before its approver gate can be signed
+(``tasks.approve_gate`` asks ``gate_check_failures``). The checks don't replace
+``techfile.completeness_checks``, which decides whether a technical file build can be approved.
 """
 from django.urls import reverse
 
@@ -214,7 +215,7 @@ def stages(device, data: dict, checks: list) -> list:
     or ""), "gate_passed", "signoff"}. ``signoff`` is None for a stage with no approver gate,
     else {"name", "approver_role", "status" ("open" or "approved"), "approved_by",
     "approved_at", "state"}; ``state`` is "approved", "ready" (checks pass, awaiting sign-off),
-    "blocked" (checks not passing yet) or "stale" (approved, but the checks no longer pass).
+    "blocked" (gate checks not passing, so it can't be signed yet) or "stale" (approved, but the checks no longer pass).
     """
     f = _facts(device, data, checks)
     route = device.development_route
@@ -271,3 +272,14 @@ def current_stage(stage_list: list):
 def by_number(stage_list: list) -> dict:
     """The stages keyed by number, for showing a gate's checks beside the gate."""
     return {s["number"]: s for s in stage_list}
+
+
+def gate_check_failures(device, stage: str) -> list:
+    """Labels of the gate checks that don't pass for ``stage`` of ``device``'s route; empty
+    when they all pass. Used to stop an approver gate being signed while its checks fail."""
+    from . import techfile  # techfile imports models only; imported here to keep this light
+    data = techfile.gather(device)
+    found = by_number(stages(device, data, techfile.completeness_checks(device, data))).get(stage)
+    if found is None:
+        return []
+    return [i["label"] for i in found["items"] if i["gate"] and not i["done"]]

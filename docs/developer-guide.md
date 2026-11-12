@@ -122,7 +122,7 @@ qms/
   test_doc_exchange.py  export, import, git sync, review reminders (18 tests)
   test_roles.py         roles per device, Device admin, team pages, the 0004 migration (16 tests)
   test_invitations.py   inviting, the emailed link, expiry, resend, revoke, accepting (16 tests)
-  test_doc_route.py     the documentation route's stages, gates, diagram and sign-off (12 tests)
+  test_doc_route.py     the documentation route's stages, gates, diagram and sign-off (14 tests)
   management/commands/run_oq.py   operational qualification run and traced evidence
 ```
 
@@ -730,9 +730,14 @@ records and builds. Gate checks are flagged `gate=True`.
 Each stage with an approver gate in `GATES_BY_ROUTE` carries `signoff`, read from `StageGate`
 without creating it (only `tasks.ensure_gates` creates gates, so viewing the page never sends a
 gate-open email). `signoff["state"]` is `approved`, `ready` (gate checks pass, awaiting
-sign-off), `blocked` (gate checks fail) or `stale` (approved, but the gate checks no longer pass).
-The checks only warn: `tasks.approve_gate` doesn't look at them. `device_tasks` adds each gate's
-stage (`doc_route.by_number`) to its lane so the gate card can list failing gate checks.
+sign-off), `blocked` (gate checks fail, so it can't be signed) or `stale` (approved, but the gate
+checks no longer pass). `tasks.approve_gate` refuses to sign while
+`doc_route.gate_check_failures(device, stage)` returns anything, and names the failing checks in
+the error. `device_tasks` adds each gate's stage (`doc_route.by_number`) to its lane, so the card
+shows an alert with the failing checks in place of the signing form; `notifications.gate_open`
+lists them in the email. An approved gate is never reopened by a check that later fails; it shows
+as `stale`. Tests in `test_tasks.StageGateTests` (roles, order, signatures) stub
+`gate_check_failures`; the checks themselves are tested in `test_doc_route`.
 
 The diagram is an ordered list (`.route-flow`) drawn with CSS: a circle per stage, a joining line
 from `::before`, and a rotated square (`.route-gate.<state>`) for each gate. Below 600px it runs
@@ -743,7 +748,7 @@ To add a check, add an `_item` to its builder or stage with the URL name where i
 update the help topic (`devices.md`, "Follow the documentation route"), the `route` group in
 `FIELD_HELP` if the panel's meaning changes, and `test_doc_route`. The panel heading, each gate
 line and each gate card on My tasks carry `{% help_for "route" ... %}` icons. Traced to URS-103
-and URS-109.
+and URS-117.
 
 ## Technical file generation
 
@@ -860,7 +865,7 @@ App-side support:
 The approved SAMD_QMS Validation Plan governs validation (IQ, OQ, PQ, release, change control).
 The code supports it in two ways:
 
-- **`qms/validation.py`** lists the user requirements (60 requirements, numbered URS-01 … URS-109
+- **`qms/validation.py`** lists the user requirements (68 requirements, numbered URS-01 … URS-117
   in groups, so the IDs are not contiguous) with their risk, the automated tests that verify each
   one, and the manual IQ/PQ protocols. Every test must be traced to a requirement. To add one,
   take the next unused ID, not the next integer.

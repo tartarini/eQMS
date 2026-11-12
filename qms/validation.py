@@ -536,17 +536,20 @@ REQUIREMENTS = [
       "test_qms_admin.QmsAdminTests.test_device_admin_can_still_invite_an_engineer",
       "test_qms_admin.QmsAdminTests.test_qms_admin_can_invite_as_device_admin"],
      []),
-    ("URS-109", "Devices", "The documentation route panel follows the route set on the device "
+    ("URS-117", "Devices", "The documentation route panel follows the route set on the device "
      "record (Greenfield stages 1-6 or Retrofit steps A-G), draws it as a diagram, and shows each "
      "approver gate's sign-off beside its checks: approved, awaiting sign-off, checks not passing, "
-     "or approved but checks no longer passing. Failing checks warn the approver on My tasks but "
-     "don't block signing.", "M",
+     "or approved but checks no longer passing. A gate can't be signed while its gate checks fail: "
+     "the approver's card and the gate-open email list the failing checks, and the signature is "
+     "refused.", "H",
      ["test_doc_route.RouteFollowsDeviceTests.test_retrofit_device_shows_steps_a_to_g",
       "test_doc_route.RouteFollowsDeviceTests.test_gap_assessment_is_an_effective_device_document_with_that_title",
       "test_doc_route.RouteFollowsDeviceTests.test_greenfield_gates_sit_on_stages_2_4_5_and_6",
       "test_doc_route.RouteFollowsDeviceTests.test_signoff_states_follow_checks_and_approval",
       "test_doc_route.RouteFollowsDeviceTests.test_device_page_draws_the_route_diagram",
-      "test_doc_route.RouteFollowsDeviceTests.test_failing_checks_warn_on_my_tasks_but_do_not_block_signing"],
+      "test_doc_route.RouteFollowsDeviceTests.test_failing_gate_checks_stop_signing_and_alert_the_approver",
+      "test_doc_route.RouteFollowsDeviceTests.test_once_checks_pass_the_approver_can_sign",
+      "test_doc_route.RouteFollowsDeviceTests.test_gate_open_email_alerts_the_approver_to_failing_checks"],
      []),
 ]
 
