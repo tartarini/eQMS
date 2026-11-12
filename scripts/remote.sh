@@ -7,7 +7,7 @@
 #
 #   status               containers, health, disk, last deployments
 #   health               fetch https://DOMAIN/healthz from here (version, commit, status)
-#   logs [SERVICE]       follow logs (app, scheduler, caddy, db; default all)
+#   logs [SERVICE]       follow logs (app, scheduler, web, certbot, db; default all)
 #   ssh                  interactive shell on the server in the app directory
 #   manage ARGS...       run a manage.py command in the app container
 #   shell                Django shell in the app container
@@ -137,12 +137,12 @@ case "$command" in
     on_server "cat $DIR/DEPLOYMENTS.log 2>/dev/null || echo 'none yet'"
     ;;
   tunnel)
-    # /admin/ is not served publicly (finding F7). The server's Caddy serves the whole app,
+        # /admin/ is not served publicly (finding F7). The server's Apache serves the whole app,
     # admin included, as https://localhost:8443 on its loopback interface only, and sshd
     # allows forwarding to that port only. Local port 8443 must be free.
     need_host
     echo "Admin for $ENV_NAME: https://localhost:8443/admin/  (Ctrl-C closes the tunnel)"
-    echo "The certificate is from Caddy's internal CA: accept the browser warning for localhost."
+    echo "The certificate is self-signed: accept the browser warning for localhost."
     ssh -N -o ExitOnForwardFailure=yes -p "$PORT" -L 127.0.0.1:8443:127.0.0.1:8443 "$USER_@$HOST"
     ;;
   offsite-backup)

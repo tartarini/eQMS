@@ -130,9 +130,9 @@
       loop: ["deny incoming", "allow outgoing"]
       changed_when: false
 
-    - name: Firewall - allow SSH, HTTP and HTTPS (HTTP/3 too)
+    - name: Firewall - allow SSH, HTTP and HTTPS
       ansible.builtin.command: "ufw allow {{ item }}"
-      loop: ["{{ ssh_port }}/tcp", "80/tcp", "443/tcp", "443/udp"]
+      loop: ["{{ ssh_port }}/tcp", "80/tcp", "443/tcp"]
       changed_when: false
 
     - name: Firewall - enable

@@ -1,6 +1,6 @@
 """Where Django admin may be used (finding F7).
 
-On production, Caddy does not serve /admin/ on the public site; administrators reach it through
+On production, Apache does not serve /admin/ on the public site; administrators reach it through
 an SSH tunnel to https://localhost:8443. QMS_ADMIN_HOSTS lists the hosts admin answers on
 (production: "localhost:8443"); on any other host /admin/ is a 404 here too, in case the proxy
 is misconfigured, and the header's Admin link is hidden. Empty (development) = everywhere.
