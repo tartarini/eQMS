@@ -20,9 +20,9 @@ class Command(BaseCommand):
         if Device.objects.exists() or Document.objects.exists():
             raise CommandError("Demo data needs an empty database.")
         call_command("seed_qms", "--demo", stdout=self.stdout)
-        eng, qa = User.objects.get(username="engineer"), User.objects.get(username="qa")
-        qa2, _ = User.objects.get_or_create(username="qa2", defaults={
-            "first_name": "QA reviewer", "email": "qa2@example.org"})
+        eng, qa = User.objects.get(username="engineer_person"), User.objects.get(username="qa_person")
+        qa2, _ = User.objects.get_or_create(username="qa2_person", defaults={
+            "first_name": "QA reviewer", "email": "qa2_person@example.org"})
         qa2.set_password(PW)
         qa2.save()
 
@@ -59,9 +59,9 @@ class Command(BaseCommand):
         resp.save(_actor=qa)
         for d in (skn, resp):
             services.setup_device_pms(d)
-        cso = User.objects.get(username="cso")
-        # Roles are per device. engineer: Engineer on SkinCheck, but Engineer, QA and Device
-        # admin on RespiTrack. qa2 (QA) and cso (Clinical Safety Officer): SkinCheck only.
+        cso = User.objects.get(username="cso_person")
+        # Roles are per device. engineer_person: Engineer on SkinCheck, but Engineer, QA and Device
+        # admin on RespiTrack. qa2_person (QA) and cso_person (Clinical Safety Officer): SkinCheck only.
         # qa is head of quality with All-device access.
         teams = [(skn, [(eng, [wf.ENGINEER]), (qa, [wf.DEVICE_ADMIN]), (qa2, [wf.QA]),
                         (cso, [wf.CLINICAL_SAFETY])]),
@@ -152,7 +152,7 @@ class Command(BaseCommand):
                title="App crashes when microphone permission denied", severity="minor").save()
         services.generate_pms_activities()
         self.stdout.write(self.style.SUCCESS(
-            f"Demo data loaded for {skn} and {resp}. Sign in with password {PW} as engineer "
-            "(Engineer on SkinCheck; Engineer, QA and Device admin on RespiTrack), qa (head of "
-            "quality: QA everywhere, All-device access), qa2 (QA) or cso (Clinical Safety "
+            f"Demo data loaded for {skn} and {resp}. Sign in with password {PW} as engineer_person "
+            "(Engineer on SkinCheck; Engineer, QA and Device admin on RespiTrack), qa_person (head of "
+            "quality: QA everywhere, All-device access), qa2_person (QA) or cso_person (Clinical Safety "
             "Officer), both on SkinCheck only."))

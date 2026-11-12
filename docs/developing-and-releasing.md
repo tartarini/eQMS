@@ -19,7 +19,7 @@ also Python 3.13.
 ```bash
 git clone https://github.com/your-org/eQMS.git && cd eQMS
 make dev        # build and start the dev stack: app http://localhost:8000, mail http://localhost:8025
-make demo       # demo devices and users; sign in as engineer, qa, qa2 or cso (password demo-pass-123)
+make demo       # demo devices and users; sign in as engineer_person, qa_person, qa2_person or cso_person (password demo-pass-123)
 ```
 
 To work without Docker (for example from PyCharm), see *Without Docker* in

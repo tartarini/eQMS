@@ -229,7 +229,7 @@ class PMSTests(Base):
     def test_seed_command(self):
         call_command("seed_qms", "--demo", stdout=open("/dev/null", "w"))
         self.assertEqual(PMSSchedule.objects.count(), 9)
-        self.assertTrue(User.objects.filter(username="qa", groups__name=wf.QA).exists())
+        self.assertTrue(User.objects.filter(username="qa_person", groups__name=wf.QA).exists())
 
 
 class ViewTests(Base):

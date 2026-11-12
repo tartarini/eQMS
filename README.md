@@ -78,9 +78,9 @@ To work on a staging or production server: `scripts/remote.sh status`, `logs`, `
 `createsuperuser` and more. Both scripts are described in
 [docs/deployment.md](docs/deployment.md).
 
-Sign in as `engineer`, `qa`, `qa2` or `cso` (password `demo-pass-123`). Roles are per device:
-`engineer` is an Engineer on SkinCheck but Engineer, QA and Device admin on RespiTrack; `qa` is the
-head of quality (QA organisation-wide, with All-device access); `qa2` (QA) and `cso` (Clinical
+Sign in as `engineer_person`, `qa_person`, `qa2_person` or `cso_person` (password `demo-pass-123`). Roles are per device:
+`engineer_person` is an Engineer on SkinCheck but Engineer, QA and Device admin on RespiTrack; `qa_person` is the
+head of quality (QA organisation-wide, with All-device access); `qa2_person` (QA) and `cso_person` (Clinical
 Safety Officer) are on SkinCheck only.
 
 For a clean install use `seed_qms` instead of `load_demo_data`, create a superuser, and give
