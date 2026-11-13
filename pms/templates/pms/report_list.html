@@ -1,0 +1,25 @@
+{% extends "qms/base.html" %}
+{% block title %}Surveillance reports – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>Surveillance reports</h1>
+<p class="muted small" style="max-width:720px">Tell us how a device is working for you. Every report gets a reference number, and you can link it to an issue already raised in a bug tracker.</p>
+<p>
+  {% for code, label in kinds.items %}<a class="btn" href="{% url 'pms:report_new' code %}">{{ label }}</a> {% endfor %}
+  {% if is_staff %}<a class="btn secondary" href="{% url 'pms:triage_list' %}">Triage all reports</a>{% endif %}
+</p>
+<h2>Your reports</h2>
+<table>
+  <thead><tr><th>Reference</th><th>Device</th><th>Kind</th><th>Summary</th><th>Status</th><th>Sent</th></tr></thead>
+  <tbody>
+  {% for r in reports %}
+    <tr>
+      <td><a href="{% url 'pms:report_detail' r.number %}">{{ r.number }}</a></td>
+      <td>{{ r.device.name }}</td><td>{{ r.get_kind_display }}</td><td>{{ r.title }}</td>
+      <td>{{ r.get_status_display }}</td><td>{{ r.created_at|date:"j M Y" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="muted">You have not sent any reports yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

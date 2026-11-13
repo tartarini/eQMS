@@ -1,0 +1,7 @@
+{% extends "qms/base.html" %}
+{% block title %}{{ title }} – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p style="max-width:720px">{{ text }}</p>
+{% if link %}<p><a class="btn" href="{{ link }}">Continue</a></p>{% endif %}
+{% endblock %}

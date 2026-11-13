@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "allauth.socialaccount.providers.orcid",
     "allauth.socialaccount.providers.openid_connect",
+    "allauth.mfa",  # two-factor authentication (authenticator apps), required by the pms app
+    "pms",          # post-market surveillance: feedback, complaints and vigilance reports
 ]
 
 MIDDLEWARE = [
@@ -79,6 +81,7 @@ MIDDLEWARE = [
     "qms.current_user.CurrentUserMiddleware",
     "qms.role_lens.ActiveRoleMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "qms.two_factor.TwoFactorMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -193,6 +196,14 @@ QMS_PMS_HORIZON_DAYS = 30
 # Minimum retention of records and obsolete documents after closure or withdrawal (ISO 13485
 # 4.2.5). The retention period is the longer of this and the device's expected lifetime.
 QMS_RETENTION_MIN_YEARS = 2
+
+# --- Post-market surveillance (pms app) -----------------------------------------
+# Two-factor sign-in (qms.two_factor): an authenticator app and a code each session. Always on
+# for /pms/. Set QMS_TWO_FACTOR=1 to require it on all of SAMD_QMS (production does; development,
+# staging and the test suite leave it off).
+MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
+QMS_TWO_FACTOR = os.environ.get("QMS_TWO_FACTOR", "0") == "1"
+QMS_PMS_ACTIVATION_DAYS = 2        # validity of the link that activates a new end-user account
 
 # --- Files --------------------------------------------------------------------
 # Uploaded evidence and controlled documents. Served only through login-protected views.
