@@ -32,6 +32,56 @@ def _item(label, done, url_name="", gate=False, detail=""):
             "detail": detail}
 
 
+# The steps of each route, in order: (key, short name). Greenfield stages are numbered 1 to 6,
+# Retrofit steps lettered A to G.
+ROUTE_STEPS = {
+    "greenfield": [("1", "Set-up"), ("2", "Purpose and class"), ("3", "Requirements and design"),
+                   ("4", "Risk"), ("5", "Verification and evidence"), ("6", "Release and PMS")],
+    "retrofit": [("A", "Gap assessment"), ("B", "Baseline"), ("C", "Purpose and class"),
+                 ("D", "Requirements and SOUP"), ("E", "Risk"), ("F", "Test evidence"),
+                 ("G", "Close gaps")],
+}
+# Which step a technical file section, record type or document type belongs to, for each route.
+SECTION_STEP = {
+    "greenfield": {"description": "2", "labelling": "2", "design": "3", "gspr": "3", "risk": "4",
+                   "verification": "5", "clinical": "5", "pms": "6", "declaration": "6"},
+    "retrofit": {"description": "C", "labelling": "C", "design": "D", "gspr": "D", "risk": "E",
+                 "verification": "F", "clinical": "G", "pms": "G", "declaration": "G"},
+}
+RECORD_STEP = {
+    "greenfield": {wf.CHANGE_REQUEST: "6", wf.PROBLEM_REPORT: "6", wf.COMPLAINT: "6",
+                   wf.INCIDENT: "6", wf.CAPA: "6", wf.PMS_ACTIVITY: "6", wf.NONCONFORMANCE: "6",
+                   wf.DESIGN_CONTROL: "3"},
+    "retrofit": {wf.CHANGE_REQUEST: "B", wf.PROBLEM_REPORT: "G", wf.COMPLAINT: "G",
+                 wf.INCIDENT: "G", wf.CAPA: "G", wf.PMS_ACTIVITY: "G", wf.NONCONFORMANCE: "G",
+                 wf.DESIGN_CONTROL: "D"},
+}
+
+
+def step_for(route, *, section="", record_type="", doc_type="", build=False) -> str:
+    """The step key a task belongs to on ``route``, or "" for work that isn't on the route
+    (QMS-wide documents, internal audits, management reviews)."""
+    if route not in ROUTE_STEPS:
+        return ""
+    if build:
+        return "6" if route == "greenfield" else "G"
+    if doc_type == "GAP":
+        return "A" if route == "retrofit" else ""
+    if record_type:
+        return RECORD_STEP[route].get(record_type, "")
+    return SECTION_STEP[route].get(section, "")
+
+
+def placement(route, step) -> tuple:
+    """(label, position) for a step, e.g. ("Stage 3 · Requirements and design", 3). Position is
+    1 to 7 along the route, for colouring; ("", 0) when there is no step."""
+    for position, (key, name) in enumerate(ROUTE_STEPS.get(route, []), start=1):
+        if key == step:
+            prefix = "Stage" if route == "greenfield" else "Step"
+            return f"{prefix} {key} · {name}", position
+    return "", 0
+
+
 def _facts(device, data, checks):
     """What the checks are worked out from, computed once for both routes."""
     sections = data["sections"]

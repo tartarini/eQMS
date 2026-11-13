@@ -20,17 +20,33 @@
   .card-task .detail { font-size:13px; color:var(--muted, #5b6472); }
   .card-task a { font-size:13px; }
   .empty { font-size:13px; color:var(--muted, #5b6472); margin:0; }
+  /* One colour per route step, in route order: stage 1 or step A is the first colour. */
+  .stage-1 { --stage:#6d28d9; } .stage-2 { --stage:#0f766e; } .stage-3 { --stage:#be185d; }
+  .stage-4 { --stage:#475569; } .stage-5 { --stage:#c2410c; } .stage-6 { --stage:#0369a1; }
+  .stage-7 { --stage:#3f6212; }
+  .card-task.stage-1, .card-task.stage-2, .card-task.stage-3, .card-task.stage-4,
+  .card-task.stage-5, .card-task.stage-6, .card-task.stage-7 { border-left:5px solid var(--stage); }
+  .stage-chip { display:inline-block; font-size:12px; font-weight:600; line-height:1.4; padding:1px 9px;
+                border-radius:999px; background:var(--stage, var(--line, #d9dde4)); color:#fff; margin:0 0 6px; }
+  .stage-chip.none { background:transparent; color:var(--muted, #5b6472); border:1px dashed var(--line, #d9dde4); }
+  .stage-legend { list-style:none; display:flex; flex-wrap:wrap; gap:6px; padding:0; margin:0 0 16px; }
+  .stage-legend li { font-size:12px; }
 </style>
 
 <h1 style="font-size:22px;margin:0 0 4px">My tasks for {{ device.name }}</h1>
 <p class="muted" style="margin:0 0 16px">What you have to do on this device, based on your roles here. Cards move as records, documents and technical files move through the workflow. Each approver gate for the {{ route_label|lower }} route has its own column; the approver for each gate is shown on it.</p>
+
+<ol class="stage-legend" aria-label="Route stages">
+  {% for step in stage_legend %}<li class="stage-chip stage-{{ step.position }}">{{ step.label }}</li>{% endfor %}
+</ol>
 
 <div class="kanban">
   {% for css, label, items, empty_text in columns %}
   <section class="lane {{ css }}" aria-labelledby="col-{{ css }}">
     <h2 id="col-{{ css }}">{{ label }} <span class="badge">{{ items|length }}</span></h2>
     {% for task in items %}
-    <article class="card-task">
+    <article class="card-task{% if task.position %} stage-{{ task.position }}{% endif %}">
+      {% if task.stage %}<span class="stage-chip">{{ task.stage }}</span>{% else %}<span class="stage-chip none">Not tied to a stage</span>{% endif %}
       <div class="kind">{{ task.kind }}</div>
       <div class="title">{{ task.title }}</div>
       <div class="detail">{{ task.detail }}</div>
@@ -44,9 +60,10 @@
 
   {% for lane in gate_lanes %}
   {% with gate=lane.gate %}
-  <section class="lane gate {% if gate.status == 'approved' %}done{% else %}open{% endif %}" aria-labelledby="gate-{{ gate.pk }}">
+  <section class="lane gate {% if gate.status == 'approved' %}done{% else %}open{% endif %}{% if lane.position %} stage-{{ lane.position }}{% endif %}" aria-labelledby="gate-{{ gate.pk }}">
     <h2 id="gate-{{ gate.pk }}">Stage {{ gate.stage }} <span class="badge {% if gate.status == 'approved' %}done{% else %}warn{% endif %}">{{ gate.get_status_display }}</span></h2>
-    <article class="card-task">
+    <article class="card-task{% if lane.position %} stage-{{ lane.position }}{% endif %}">
+      {% if lane.position %}<span class="stage-chip">{{ lane.step_label }}</span>{% endif %}
       <div class="kind">Approver gate · {{ route_label }}</div>
       <div class="title">{{ gate.name }}</div>
       <div class="detail">Approver: {{ gate.approver_role }}{% if gate.status == 'approved' %} · approved by {{ gate.approved_by|default:"" }} on {{ gate.approved_at|date:"d M Y" }}{% endif %}</div>
