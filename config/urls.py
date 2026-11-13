@@ -13,5 +13,6 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     # Single sign-on (Google, Microsoft, LinkedIn, ORCID, GitHub) and connected accounts
     path("accounts/", include("allauth.urls")),
+    path("pms/", include("pms.urls")),
     path("", include("qms.urls")),
 ]

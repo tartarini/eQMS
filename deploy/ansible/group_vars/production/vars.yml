@@ -1,5 +1,8 @@
 # Production-only settings: these override group_vars/qms/vars.yml for hosts in [production].
 
+# Two-factor sign-in on every page of SAMD_QMS (app.env QMS_TWO_FACTOR). Production only.
+qms_two_factor: "1"
+
 # Who may sign (finding F6): accounts connected to an institutional provider, with a verified
 # email address at the organisation's domain(s). deploy.yml refuses production without them.
 # Staging and development are unrestricted so testers can sign with demo accounts.
