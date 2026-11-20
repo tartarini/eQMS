@@ -1,6 +1,7 @@
 {% extends "admin/base.html" %}
 {% comment %}Django admin with the SAMD_QMS version, commit and copyright notice.
-Lives in config/templates (TEMPLATES DIRS), which wins over django.contrib.admin.{% endcomment %}
+Lives in qms/project_templates, which projects list in TEMPLATES DIRS
+(qms.integration.TEMPLATE_DIRS) so that it wins over django.contrib.admin.{% endcomment %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 {% block branding %}
 <div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>

@@ -5,7 +5,7 @@ ANSIBLE := cd deploy/ansible && ansible-playbook
 ENV ?= staging
 VERSION ?=
 
-.PHONY: help dev dev-down dev-reset demo shell manage test oq ui jobs logs coverage \
+.PHONY: help dev dev-down dev-reset demo shell manage test oq ui jobs logs coverage host-test \
         check provision deploy restore-test remote local-setup local
 
 help:  ## Show this help
@@ -38,6 +38,12 @@ coverage:  ## Test coverage on this machine (SQLite); needs: pip install -r requ
 	coverage run manage.py test qms
 	coverage report
 	coverage html && echo "Report: htmlcov/index.html"
+
+host-test:  ## Build the wheel and run the suite in tests/host_project, as a platform would (docs/embedding.md)
+	rm -rf dist .host-test && python -m build --wheel
+	python -m venv .host-test/venv && .host-test/venv/bin/pip install -q dist/*.whl whitenoise
+	cp -r tests/host_project .host-test/host
+	cd .host-test/host && ../venv/bin/python manage.py check && ../venv/bin/python manage.py test qms platform_host
 
 oq:  ## OQ evidence in ./oq_evidence, on the dev PostgreSQL, browser tests included: make oq NAME="Your Name"
 	DATABASE_URL=postgres://qms:qms@localhost:5432/qms scripts/local.sh oq "$(NAME)"

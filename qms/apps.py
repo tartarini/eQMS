@@ -7,4 +7,5 @@ class QmsConfig(AppConfig):
     verbose_name = "SAMD_QMS"
 
     def ready(self):
-        from . import signals  # noqa: F401
+        # QMS_* defaults are applied when qms.models is imported (see qms/models/__init__.py).
+        from . import checks, signals  # noqa: F401  (register system checks and signals)

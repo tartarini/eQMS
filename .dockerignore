@@ -13,3 +13,7 @@ deploy/env/*.env
 !deploy/env/dev.env
 *.zip
 .env
+tests/
+dist/
+build/
+*.egg-info

@@ -62,7 +62,8 @@ Three layers, with a strict direction of responsibility:
 
 ```
 config/
-  settings.py           Django settings plus every QMS_* setting (see Settings reference)
+  settings.py           the standalone project's settings: qms.integration plus QMS_* values
+                        from the environment (defaults: qms/conf.py)
   urls.py               admin, login/logout, allauth (/accounts/), qms
 qms/
   workflow.py           record types, statuses, transitions and their rules
@@ -432,6 +433,10 @@ the media directory publicly.
 `doc_exchange.py` writes the effective version of each document the user can see as folders under the device code (or `QMS`) and the type: `<number>.md` (front matter and, for markdown, the text) plus the controlled file, with `INDEX.md` and `MANIFEST.json` (SHA-256 per file). The zip is served by `document_export`. `import_markdown` reads `.md` files and zips of them: a new `number` creates a document with a draft first version, an existing one gets a draft revision; team membership is checked per file and the rule is enforced by `create_version`. `sync_git(repo, push)` syncs a local clone (`sync_folder` writes only changed files and removes files of documents no longer effective, using the previous manifest), commits if anything changed, and pushes if asked. The scheduler runs it through `export_documents --git` when `QMS_DOCS_GIT_REPO` is set.
 
 ## Settings reference
+
+Defaults live in `qms/conf.py` and apply to any `QMS_*` setting the project does not define.
+The project (`config/settings.py`) sets only what comes from the environment or the
+deployment. To run SAMD_QMS inside another project, see [embedding.md](embedding.md).
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
@@ -848,6 +853,8 @@ Infrastructure is code; the full procedure is in [deployment.md](deployment.md).
 | `deploy/ansible/` | `provision.yml` (server), `deploy.yml` (release), `restore-test.yml` (IQ-08) |
 | `.github/workflows/ci.yml` | Tests on PostgreSQL, `run_oq` artifact, infra lint, image build, smoke test, scan, push to GHCR |
 | `Makefile` | `make help` lists every shortcut |
+| `pyproject.toml` | The `samd-qms` package (qms, pms) that platforms install; see [embedding.md](embedding.md) |
+| `tests/host_project/` | A separate project that installs the wheel; CI runs the whole suite there |
 
 App-side support:
 

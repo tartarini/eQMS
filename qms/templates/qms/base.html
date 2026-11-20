@@ -97,6 +97,7 @@
 </head>
 <body>
 <header>
+  {% include "qms/_platform_nav.html" %}
   <a class="brand" href="{% url 'qms:dashboard' %}">SAMD_QMS</a>
   <span class="release" title="Version {{ qms_version }}, commit {{ qms_commit }}">v{{ qms_version }} · {{ qms_commit_short }}</span>
   {% if user.is_authenticated %}

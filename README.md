@@ -23,6 +23,9 @@ records you must validate it (ISO 13485 §4.1.6 software validation) and check i
   common changes, deployment and validation.
 - **Documenting a software medical device:** [docs/samd-documentation-guide.md](docs/samd-documentation-guide.md):
   how to document a SaMD from the start or retrofit an existing one, mapped to the SAMD_QMS records.
+- **Running inside a platform:** [docs/embedding.md](docs/embedding.md): install SAMD_QMS as
+  Django apps (`pip install samd-qms @ git+...@vX.Y.Z`) next to other applications, with shared
+  sign-in and database.
 - **User help:** built in, at `/help/` (source in `qms/help/`). Every page has a **Help** link to
   the section about that page, and every form field has a **?** icon explaining what to enter.
   It ships with each release, so it always matches the version in use.

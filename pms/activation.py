@@ -1,7 +1,9 @@
 """Activation links for new end-user accounts: signed, time-limited, and valid once."""
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core import signing
+
+User = get_user_model()
 
 SALT = "pms.activate"
 

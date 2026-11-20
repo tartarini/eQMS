@@ -5,6 +5,8 @@
 # test. On main: the image is pushed as :main and :sha-<commit> (for staging), and the README
 # badges (tests, coverage, OQ) are published to the `badges` branch.
 # On a version tag (v1.0.0): the image is pushed as :1.0.0 — the tag you deploy and validate.
+# Every run also installs the samd-qms wheel into a separate host project and runs the suite
+# there (job "package"), so platforms that install SAMD_QMS as an app get the tested behaviour.
 name: CI
 
 on:
@@ -131,6 +133,53 @@ jobs:
               commit -q -m "Badges for ${GITHUB_SHA::12}"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" badges
 
+  package:
+    name: Package and host-project tests
+    # SAMD_QMS installed from its wheel into a separate Django project (tests/host_project), as
+    # a platform installs it: the full test suite plus the integration contract
+    # (docs/embedding.md). Runs outside the checkout so nothing is imported from the sources.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Release tag matches the package version
+        if: github.ref_type == 'tag'
+        run: |
+          package=$(grep -oP '^__version__ = "\K[^"]+' qms/__init__.py)
+          if [[ "$package" != "${GITHUB_REF_NAME#v}" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME but qms.__version__ is $package. Set __version__ in qms/__init__.py first."
+            exit 1
+          fi
+
+      - name: Build the wheel
+        run: |
+          pip install build
+          python -m build --wheel
+
+      - name: Install it into a clean host project
+        run: |
+          python -m venv "$RUNNER_TEMP/host-venv"
+          "$RUNNER_TEMP/host-venv/bin/pip" install dist/*.whl whitenoise
+          cp -r tests/host_project "$RUNNER_TEMP/host"
+
+      - name: Checks and tests in the host project
+        working-directory: ${{ runner.temp }}/host
+        run: |
+          "$RUNNER_TEMP/host-venv/bin/python" manage.py check
+          "$RUNNER_TEMP/host-venv/bin/python" manage.py makemigrations --check --dry-run
+          "$RUNNER_TEMP/host-venv/bin/python" manage.py test qms platform_host
+
+      - name: Keep the wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: samd-qms-wheel-${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+          path: dist/*.whl
+          retention-days: 90
+
   infrastructure:
     name: Infrastructure checks
     runs-on: ubuntu-24.04
@@ -167,7 +216,7 @@ jobs:
 
   image:
     name: Build image
-    needs: [test, infrastructure]
+    needs: [test, package, infrastructure]
     runs-on: ubuntu-24.04
     permissions:
       contents: read

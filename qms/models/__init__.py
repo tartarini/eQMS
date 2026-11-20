@@ -1,3 +1,11 @@
+# QMS_* settings the project leaves out take their defaults now, before the models below read
+# them at import (e.g. Record's vigilance categories). Models load before AppConfig.ready().
+from django.conf import settings as _settings
+
+from ..conf import apply_defaults as _apply_defaults
+
+_apply_defaults(_settings)
+
 from .core import (AUDITED_FIELDS, Attachment, AuditedModel, AuditEvent, ImmutableError,  # noqa
                    PMSSchedule, Record, RecordLink, Signature, SigningPin, add_months,
                    sha256_of, verify_audit_chain, verify_signing_credential)

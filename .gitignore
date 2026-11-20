@@ -21,3 +21,11 @@ badges/
 # local working copies (scripts/local.sh, scripts/remote.sh)
 .env.local
 backups/
+
+# package builds (pyproject.toml) and the host-project test fixture
+dist/
+build/
+*.egg-info/
+tests/host_project/host.sqlite3
+tests/host_project/media/
+.host-test/

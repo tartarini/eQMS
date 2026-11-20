@@ -43,8 +43,11 @@ def _git_commit():
 
 
 QMS_COMMIT = os.environ.get("QMS_COMMIT", "").strip() or _git_commit() or "unknown"
-# Shown at the foot of every page and every report the software produces.
-QMS_COPYRIGHT = "Copyright 2026-2027 Daniele Tartarini"
+
+# SAMD_QMS is a Django app (qms, pms) that this project runs standalone. Everything a project
+# needs to run it comes from qms.integration, the same values a host platform uses (see
+# docs/embedding.md). QMS_* settings not set here take their defaults from qms/conf.py.
+from qms import integration as qms_integration  # noqa: E402
 
 
 # Application definition
@@ -56,53 +59,25 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "qms",
-    "django.forms",  # after qms, so qms/templates/django/forms/p.html wins
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.microsoft",
-    "allauth.socialaccount.providers.github",
-    "allauth.socialaccount.providers.orcid",
-    "allauth.socialaccount.providers.openid_connect",
-    "allauth.mfa",  # two-factor authentication (authenticator apps), required by the pms app
-    "pms",          # post-market surveillance: feedback, complaints and vigilance reports
+    *qms_integration.INSTALLED_APPS,  # qms, django.forms, allauth (+ providers, mfa), pms
 ]
 
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "qms.admin_access.AdminHostMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "qms.current_user.CurrentUserMiddleware",
-    "qms.role_lens.ActiveRoleMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
-    "qms.two_factor.TwoFactorMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
+MIDDLEWARE = qms_integration.MIDDLEWARE
 
-FORM_RENDERER = "django.forms.renderers.TemplatesSetting"  # forms use project templates
+FORM_RENDERER = qms_integration.FORM_RENDERER  # forms use project templates
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "config" / "templates"],  # admin/base_site.html override
+        "DIRS": qms_integration.TEMPLATE_DIRS,  # admin/base_site.html with the release
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "qms.context_processors.devices",
-                "qms.context_processors.page_help",
-                "qms.context_processors.release",
-                "qms.context_processors.admin_link",
+                *qms_integration.CONTEXT_PROCESSORS,
             ],
         },
     },
@@ -181,37 +156,16 @@ LOGOUT_REDIRECT_URL = "login"
 SESSION_COOKIE_AGE = 30 * 60
 SESSION_SAVE_EVERY_REQUEST = True
 
-# --- QMS settings -----------------------------------------------------------
-# Vigilance reporting deadlines, counted from "date aware".
-# VERIFY these against current MHRA guidance before relying on them.
-QMS_VIGILANCE_DEADLINES = {
-    "public_health_threat": {"label": "Serious public health threat", "days": 2},
-    "death_or_serious_deterioration": {"label": "Death or unanticipated serious deterioration", "days": 10},
-    "other_serious_incident": {"label": "Other serious incident", "days": 15},
-}
-# Approvals marked "independent" cannot be signed by the record's author.
-QMS_REQUIRE_INDEPENDENT_APPROVAL = True
-# generate_pms_activities creates activities this many days before they are due.
-QMS_PMS_HORIZON_DAYS = 30
-# Minimum retention of records and obsolete documents after closure or withdrawal (ISO 13485
-# 4.2.5). The retention period is the longer of this and the device's expected lifetime.
-QMS_RETENTION_MIN_YEARS = 2
-
 # --- Post-market surveillance (pms app) -----------------------------------------
 # Two-factor sign-in (qms.two_factor): an authenticator app and a code each session. Always on
 # for /pms/. Set QMS_TWO_FACTOR=1 to require it on all of SAMD_QMS (production does; development,
 # staging and the test suite leave it off).
-MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 QMS_TWO_FACTOR = os.environ.get("QMS_TWO_FACTOR", "0") == "1"
-QMS_PMS_ACTIVATION_DAYS = 2        # validity of the link that activates a new end-user account
 
 # --- Files --------------------------------------------------------------------
 # Uploaded evidence and controlled documents. Served only through login-protected views.
 MEDIA_ROOT = os.environ.get("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media"))
 MEDIA_URL = "/media/"
-QMS_ATTACHMENT_MAX_MB = 25
-QMS_ATTACHMENT_EXTENSIONS = [".pdf", ".docx", ".xlsx", ".csv", ".txt", ".md", ".png", ".jpg",
-                             ".jpeg", ".json", ".zip", ".log", ".html"]
 
 # --- Email --------------------------------------------------------------------
 # Defaults to printing emails to the console. Set DJANGO_EMAIL_HOST etc. for real delivery.
@@ -236,14 +190,15 @@ QMS_ALERT_EMAILS = [e for e in os.environ.get("QMS_ALERT_EMAILS", "").split(",")
 QMS_DOCS_GIT_REPO = os.environ.get("QMS_DOCS_GIT_REPO", "").strip()
 QMS_DOCS_GIT_PUSH = os.environ.get("QMS_DOCS_GIT_PUSH", "").lower() in ("1", "true", "yes")
 
+from qms.conf import DEFAULTS as _QMS_DEFAULTS  # noqa: E402
+
 QMS_SCHEDULED_JOBS = [
     ("02:30", "backup", ["/app/deploy/scripts/backup.sh"]),
-    ("03:00", "verify_audit", ["python", "manage.py", "verify_audit"]),
-    ("05:30", "generate_pms_activities", ["python", "manage.py", "generate_pms_activities"]),
-    ("05:45", "send_reminders", ["python", "manage.py", "send_reminders"]),
+    *_QMS_DEFAULTS["QMS_SCHEDULED_JOBS"],   # verify_audit, generate_pms_activities, send_reminders
 ] + ([("05:55", "export_documents", ["python", "manage.py", "export_documents",
                                     "--git", QMS_DOCS_GIT_REPO]
            + (["--push"] if QMS_DOCS_GIT_PUSH else []))] if QMS_DOCS_GIT_REPO else [])
+del _QMS_DEFAULTS
 
 LOGGING = {
     "version": 1,
@@ -254,37 +209,11 @@ LOGGING = {
     "loggers": {"django.db.backends": {"level": "WARNING"}},
 }
 QMS_BASE_URL = os.environ.get("QMS_BASE_URL", "http://127.0.0.1:8000")
-QMS_NOTIFICATIONS_ENABLED = True
-QMS_REMINDER_LOOKAHEAD_DAYS = 7
-QMS_REVIEW_REMINDER_DAYS = [60, 30, 7, 0]   # one email each, this many days before a review is due
-
-# --- Documents, training, risk, suppliers -------------------------------------
-QMS_TRAINING_DUE_DAYS = 14
-QMS_INVITATION_DAYS = 14         # invitation links expire after this many days by default
-QMS_INVITATION_MAX_DAYS = 30     # the longest expiry an inviter can choose
-QMS_SOUP_REVIEW_DAYS = 35          # SOUP anomaly lists reviewed at least monthly
-# Risk matrix: score = severity (1-5) x probability (1-5).
-QMS_RISK_ACCEPTABLE_MAX = 4        # score <= 4: acceptable
-QMS_RISK_UNACCEPTABLE_MIN = 10     # score >= 10: unacceptable; in between: reduce as far as possible
 
 # --- Authentication and single sign-on -----------------------------------------
-AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
-]
-ACCOUNT_ADAPTER = "qms.sso.AccountAdapter"
-SOCIALACCOUNT_ADAPTER = "qms.sso.SocialAccountAdapter"
-ACCOUNT_LOGIN_METHODS = {"username"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "username*"]
-ACCOUNT_EMAIL_VERIFICATION = "none"
-SOCIALACCOUNT_AUTO_SIGNUP = True
-# ORCID shares no email address: an account request collects and confirms one instead. Every
-# other route to a new account still needs a verified email (see qms.sso).
-SOCIALACCOUNT_EMAIL_REQUIRED = False
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True             # match existing users by verified email
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-SOCIALACCOUNT_LOGIN_ON_GET = False                    # provider login needs a POST (CSRF-safe)
-SOCIALACCOUNT_STORE_TOKENS = False
+AUTHENTICATION_BACKENDS = qms_integration.AUTHENTICATION_BACKENDS
+# allauth: SAMD_QMS's adapters (account rules) and sign-in options, incl. MFA_SUPPORTED_TYPES.
+globals().update(qms_integration.ACCOUNT_SETTINGS)
 
 # Providers are enabled by setting their credentials, e.g. SSO_GOOGLE_CLIENT_ID / SSO_GOOGLE_SECRET.
 # Supported: SSO_GOOGLE, SSO_MICROSOFT (+ SSO_MICROSOFT_TENANT), SSO_GITHUB,
@@ -295,18 +224,11 @@ SOCIALACCOUNT_PROVIDERS = configured_providers()
 # New SSO accounts are created only for verified emails in these domains (comma-separated).
 # Leave empty to allow SSO only for accounts an administrator has already created.
 QMS_SSO_ALLOWED_DOMAINS = [d for d in os.environ.get("QMS_SSO_ALLOWED_DOMAINS", "").split(",") if d]
-# Account requests from the landing page: who may register, and the captcha that guards it.
-# Providers by allauth id (LinkedIn is the "linkedin" OpenID Connect app).
-QMS_ACCESS_REQUEST_PROVIDERS = ["google", "microsoft", "linkedin", "orcid"]
-QMS_ACCESS_REQUEST_MINUTES = 15        # after the captcha, time allowed to finish signing in
-QMS_ACCESS_CONFIRM_DAYS = 2            # validity of the email confirmation link
+# Captcha on the landing page's account requests.
 QMS_CAPTCHA = os.environ.get("QMS_CAPTCHA", "pow")   # "pow" (self-hosted) or "turnstile"
 QMS_CAPTCHA_DIFFICULTY = int(os.environ.get("QMS_CAPTCHA_DIFFICULTY", "100000"))
-QMS_CAPTCHA_TTL_SECONDS = 600
 QMS_TURNSTILE_SITE_KEY = os.environ.get("QMS_TURNSTILE_SITE_KEY", "")
 QMS_TURNSTILE_SECRET_KEY = os.environ.get("QMS_TURNSTILE_SECRET_KEY", "")
-# Minutes after login during which an SSO-only user may set their signing PIN.
-QMS_PIN_REAUTH_MINUTES = 15
 # Hosts on which Django admin answers (finding F7; production: the SSH tunnel's
 # "localhost:8443"). Empty = every host (development).
 QMS_ADMIN_HOSTS = [h.strip().lower() for h in os.environ.get("QMS_ADMIN_HOSTS", "").split(",")

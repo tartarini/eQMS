@@ -1,0 +1,47 @@
+# SAMD_QMS as an installable package: the qms and pms Django apps, their templates, help pages
+# and migrations. The rest of this repository (config/, deploy/, Dockerfile) is the standalone
+# project that runs them; requirements.txt pins that project's full environment.
+#
+# A host platform installs a release with:
+#   pip install "samd-qms @ git+https://github.com/tartarini/eQMS@v1.0.0"
+# and configures itself as described in docs/embedding.md.
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "samd-qms"
+dynamic = ["version"]
+description = "Quality management system for organisations that make software as a medical device (Django apps)"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Daniele Tartarini" }]
+classifiers = [
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Programming Language :: Python :: 3",
+]
+# What the qms and pms apps import. Deployment choices (database driver, WSGI server, static
+# file serving) belong to the project and are in requirements.txt. Keep the ranges in step
+# with requirements.txt; CI installs this package into a separate host project to check.
+dependencies = [
+    "Django>=5.2,<6",
+    "django-allauth[socialaccount,mfa]>=65,<66",
+    "python-docx>=1.1,<2",
+    "markdown>=3.6,<4",
+]
+
+[project.urls]
+Source = "https://github.com/tartarini/eQMS"
+Documentation = "https://github.com/tartarini/eQMS/blob/main/docs/developer-guide.md"
+
+[tool.setuptools.dynamic]
+version = { attr = "qms.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["qms", "qms.*", "pms", "pms.*"]
+
+[tool.setuptools.package-data]
+qms = ["templates/**/*", "project_templates/**/*", "help/*.md"]
+pms = ["templates/**/*"]
