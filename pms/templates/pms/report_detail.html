@@ -1,0 +1,50 @@
+{% extends "qms/base.html" %}
+{% block title %}{{ report.number }} – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>{{ report.number }} · {{ report.title }}</h1>
+<p class="muted small">{{ report.get_kind_display }} about {{ report.device.name }} · sent {{ report.created_at|date:"j M Y, H:i" }} · status <strong>{{ report.get_status_display }}</strong></p>
+
+<div class="panel" style="max-width:820px">
+  <dl>
+    <dt>Reported by</dt><dd>{{ report.reporter.get_full_name|default:report.reporter.username }} ({{ report.get_reporter_type_display|default:report.reporter_type }})</dd>
+    {% if report.occurred_on %}<dt>Date it happened</dt><dd>{{ report.occurred_on|date:"j M Y" }}</dd>{% endif %}
+    {% if report.aware_on %}<dt>Date we became aware</dt><dd>{{ report.aware_on|date:"j M Y" }}</dd>{% endif %}
+    {% if report.software_version %}<dt>Software version</dt><dd>{{ report.software_version }}</dd>{% endif %}
+    {% if report.environment %}<dt>Where and how</dt><dd>{{ report.environment }}</dd>{% endif %}
+    {% if report.harm %}<dt>Harm</dt><dd>{{ report.get_harm_display }}</dd>{% endif %}
+    <dt>Description</dt><dd style="white-space:pre-wrap">{{ report.description }}</dd>
+    {% if report.steps %}<dt>Steps</dt><dd style="white-space:pre-wrap">{{ report.steps }}</dd>{% endif %}
+    <dt>Contact allowed</dt><dd>{{ report.contact_ok|yesno:"Yes,No" }}</dd>
+  </dl>
+  {% if staff and report.reporting_deadlines %}
+  <h3>Reporting clock (from the date we became aware)</h3>
+  <ul>{% for label, due in report.reporting_deadlines %}<li>{{ label }}: by {{ due|date:"j M Y" }}</li>{% endfor %}</ul>
+  {% endif %}
+</div>
+
+<h2 style="margin-top:24px">Linked issues</h2>
+<table style="max-width:820px">
+  <thead><tr><th>Tracker</th><th>Reference</th><th>Link</th></tr></thead>
+  <tbody>
+  {% for i in issues %}
+    <tr><td>{{ i.provider_label }}</td><td>{{ i.reference }}</td><td><a href="{{ i.url }}" target="_blank" rel="noopener noreferrer">Open issue</a></td></tr>
+  {% empty %}
+    <tr><td colspan="3" class="muted">No issue linked yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<form method="post" action="{% url 'pms:report_link_add' report.number %}" class="panel" style="max-width:820px;margin-top:12px">
+  {% csrf_token %}
+  {{ issue_form.as_p }}
+  <button class="btn">Link issue</button>
+</form>
+
+{% if staff %}
+<h2 style="margin-top:24px">Triage</h2>
+<form method="post" action="{% url 'pms:triage_update' report.number %}" class="panel" style="max-width:820px">
+  {% csrf_token %}
+  {{ triage_form.as_p }}
+  <button class="btn">Update status</button>
+</form>
+{% endif %}
+{% endblock %}

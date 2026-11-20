@@ -1,0 +1,26 @@
+{% extends "qms/base.html" %}
+{% block title %}Triage – SAMD_QMS{% endblock %}
+{% block content %}
+<h1>Triage surveillance reports</h1>
+<form method="get" style="margin-bottom:12px">
+  <select name="status" onchange="this.form.submit()" aria-label="Status">
+    <option value="">All statuses</option>
+    {% for code, label in statuses %}<option value="{{ code }}" {% if code == current_status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</form>
+<table>
+  <thead><tr><th>Reference</th><th>Kind</th><th>Device</th><th>Summary</th><th>Reporter</th><th>Status</th><th>Sent</th></tr></thead>
+  <tbody>
+  {% for r in reports %}
+    <tr>
+      <td><a href="{% url 'pms:report_detail' r.number %}">{{ r.number }}</a></td>
+      <td>{{ r.get_kind_display }}</td><td>{{ r.device.name }}</td><td>{{ r.title }}</td>
+      <td>{{ r.reporter.get_full_name|default:r.reporter.username }}</td>
+      <td>{{ r.get_status_display }}</td><td>{{ r.created_at|date:"j M Y" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="muted">No reports.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

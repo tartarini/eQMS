@@ -573,6 +573,58 @@ REQUIREMENTS = [
       "test_tasks.TaskStageTests.test_work_not_on_the_route_has_no_stage",
       "test_tasks.TaskStageTests.test_page_groups_by_stage_and_shows_the_route_legend"],
      []),
+    ("URS-120", "Surveillance", "New end users register with their name, email and a password, "
+     "and cannot use the surveillance pages until they open the activation link sent to their "
+     "email. The link is signed, expires after a set number of days, and works once. An email "
+     "already in use is refused.", "H",
+     ["test_pms.RegistrationTests.test_registration_creates_an_inactive_account_and_sends_an_activation_link",
+      "test_pms.RegistrationTests.test_activation_link_activates_the_account_once",
+      "test_pms.RegistrationTests.test_forged_or_expired_activation_link_does_not_activate",
+      "test_pms.RegistrationTests.test_registration_refuses_an_email_that_already_exists"],
+     []),
+    ("URS-121", "Surveillance", "Every surveillance page needs a signed-in account with an "
+     "authenticator app (TOTP) set up, and a code from that app completed in the session. This "
+     "applies whether the person signed in with a password or through single sign-on. Accounts "
+     "without an authenticator are sent to set one up first.", "H",
+     ["test_pms.SecondFactorTests.test_surveillance_pages_need_a_signed_in_account",
+      "test_pms.SecondFactorTests.test_account_without_an_authenticator_is_sent_to_set_one_up",
+      "test_pms.SecondFactorTests.test_account_must_enter_a_code_in_each_session",
+      "test_pms.SecondFactorTests.test_signed_in_with_a_code_can_use_the_pages"],
+     []),
+    ("URS-122", "Surveillance", "Feedback, complaints and suspected incidents are recorded with "
+     "the device, the kind of reporter, and the details that kind needs. A suspected incident needs "
+     "the date it happened and the date the manufacturer became aware of it; the latest reporting "
+     "dates are worked out from the awareness date. Each report gets a reference number.", "H",
+     ["test_pms.ReportTests.test_end_user_sends_feedback_and_gets_a_reference",
+      "test_pms.ReportTests.test_vigilance_report_needs_the_dates_and_harm"],
+     []),
+    ("URS-123", "Surveillance", "A reporter sees only their own reports. Only QMS staff see all "
+     "reports and change their status; an end user who tries gets a refusal and nothing changes.",
+     "H",
+     ["test_pms.ReportTests.test_reporter_sees_only_their_own_reports",
+      "test_pms.ReportTests.test_qms_staff_triage_a_report",
+      "test_pms.ReportTests.test_end_user_cannot_triage"],
+     []),
+    ("URS-124", "Surveillance", "A reporter can link a report to an issue already raised in an "
+     "external bug tracker. GitHub, GitLab, Bitbucket and Jira links show a readable reference; "
+     "other https links are kept as given; links that are not https are refused.", "M",
+     ["test_pms.LinkTests.test_github_issue_and_pull_request_links_are_recognised",
+      "test_pms.LinkTests.test_gitlab_bitbucket_and_jira_links_are_recognised",
+      "test_pms.LinkTests.test_other_https_links_are_kept_as_other_trackers",
+      "test_pms.LinkTests.test_plain_http_links_are_refused",
+      "test_pms.ReportTests.test_reporter_links_an_existing_github_issue"],
+     []),
+    ("URS-125", "Access", "In production, every page of SAMD_QMS needs a signed-in account with "
+     "an authenticator app (TOTP) and a code completed in the session, whether the person signed in "
+     "with a password or through single sign-on. The sign-in, sign-out and account-setup pages, the "
+     "account request page and health checks stay open. The rule is switched off in development, "
+     "staging and tests.", "H",
+     ["test_two_factor.QmsTwoFactorTests.test_signed_in_qms_user_without_an_authenticator_is_sent_to_set_one_up",
+      "test_two_factor.QmsTwoFactorTests.test_qms_user_with_an_authenticator_must_enter_a_code_each_session",
+      "test_two_factor.QmsTwoFactorTests.test_qms_pages_open_once_the_code_is_completed",
+      "test_two_factor.QmsTwoFactorTests.test_sign_in_and_sign_out_stay_open_without_a_code",
+      "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off"],
+     []),
 ]
 
 
