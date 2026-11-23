@@ -1,0 +1,11 @@
+#!/bin/sh
+# After git pull or a merge: apply the migrations that came with the code to the local database.
+# A backup is taken first, and only when something is pending (scripts/local.sh migrate).
+# Set up once per clone: scripts/local.sh setup (it runs: git config core.hooksPath .githooks).
+root="$(git rev-parse --show-toplevel)" || exit 0
+if [ ! -x "$root/.venv/bin/python" ]; then
+  echo "migrate: no virtualenv yet, skipped (run scripts/local.sh setup)"
+  exit 0
+fi
+"$root/scripts/local.sh" migrate || echo "migrate: failed; read the message above, then run scripts/local.sh migrate" >&2
+exit 0

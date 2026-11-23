@@ -12,8 +12,13 @@
 #   scripts/local.sh jobs              run the daily jobs once (PMS, reminders, audit check)
 #   scripts/local.sh manage ARGS...    any manage.py command, e.g. manage createsuperuser
 #   scripts/local.sh check             Django system checks and missing-migrations check
-#   scripts/local.sh reset             delete the local SQLite database and uploaded files
+#   scripts/local.sh migrate           apply pending migrations; backs up first only if any are pending
+#   scripts/local.sh backup [LABEL]    back up the local database and uploaded files to backups/local/
+#   scripts/local.sh restore DIR       restore a backup folder (made here, or copied from the server),
+#                                      then migrate its data to this code's version
+#   scripts/local.sh reset             delete the local database and uploaded files (backs up first)
 #
+# After git pull or a branch switch, the git hooks in .githooks run `migrate` for you.
 # Settings come from the environment and, if present, ./.env.local (KEY=value lines, not
 # committed). Set DATABASE_URL there to use a PostgreSQL server instead of SQLite.
 set -euo pipefail
@@ -92,6 +97,10 @@ QMS_SSO_ALLOWED_DOMAINS=
 EOF
   fi
   load_env
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    git config core.hooksPath .githooks
+    say "Git hooks on: after a pull or branch switch, pending migrations are applied (after a backup)"
+  fi
   say "Migrating the database"
   manage migrate --no-input
   if manage shell -c 'from qms.models import Device; import sys; sys.exit(Device.objects.exists())'; then
@@ -125,7 +134,7 @@ cmd_run() {
   need_venv
   PORT="${1:-8000}"
   load_env
-  manage migrate --no-input
+  cmd_migrate
   say "Serving on http://localhost:$PORT (emails print here unless DJANGO_EMAIL_HOST is set)"
   exec "$PY" manage.py runserver "127.0.0.1:$PORT"
 }
@@ -170,9 +179,152 @@ cmd_reset() {
   fi
   read -r -p "Delete db.sqlite3 and ./media (all local data)? [y/N] " answer
   [[ "$answer" == [yY]* ]] || { echo "Nothing deleted."; return; }
+  backup_now pre-reset
   rm -f db.sqlite3
   rm -rf media
   echo "Deleted. Run: scripts/local.sh setup"
+}
+
+# --- backups, migrations and restore ----------------------------------------------------
+# A local backup goes to backups/local/<stamp>-<label>/ (git-ignored), in the same layout as a
+# server backup: the database, media.tar.gz and manifest.json with SHA-256 checksums.
+# SQLite is saved as database.sqlite3, PostgreSQL as database.dump (pg_dump, custom format).
+# A server backup (deploy/scripts/backup.sh) is a PostgreSQL dump, so it restores here only
+# when DATABASE_URL points at PostgreSQL: docker compose up -d db, then set DATABASE_URL.
+
+media_root() { echo "${DJANGO_MEDIA_ROOT:-$ROOT/media}"; }
+
+db_kind() {
+  if [[ -z "${DATABASE_URL:-}" ]]; then echo sqlite; return; fi
+  case "$DATABASE_URL" in
+    postgres*) echo postgres ;;
+    *) die "only SQLite and PostgreSQL are supported (DATABASE_URL=${DATABASE_URL%%:*}...)" ;;
+  esac
+}
+
+# Run a command in the PostgreSQL service of docker compose (the local PostgreSQL).
+compose_db() {
+  docker compose version >/dev/null 2>&1 || die "PostgreSQL needs Docker here. Start it: docker compose up -d db"
+  docker compose exec -T db "$@"
+}
+
+# Keep the newest QMS_LOCAL_BACKUPS_KEEP backups (default 20); older ones are deleted.
+prune_backups() {
+  [[ -d "$ROOT/backups/local" ]] || return 0
+  find "$ROOT/backups/local" -mindepth 1 -maxdepth 1 -type d -name '2*' |
+    sort -r | tail -n +"$(( ${QMS_LOCAL_BACKUPS_KEEP:-20} + 1 ))" |
+    while IFS= read -r old; do
+      rm -rf "$old" && echo "backup: removed old backup ${old##*/}"
+    done
+  return 0
+}
+
+# backup_now LABEL: copy the database and uploads into a new backup folder.
+backup_now() {
+  local label="$1" kind dbfile stamp target partial
+  kind="$(db_kind)"
+  if [[ "$kind" == sqlite && ! -f "$ROOT/db.sqlite3" ]]; then
+    echo "Nothing to back up yet: there is no local database."
+    return 0
+  fi
+  stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  target="$ROOT/backups/local/${stamp}-${label}"
+  partial="${target}.partial"
+  mkdir -p "$partial"
+  trap 'rm -rf "$partial"' ERR
+  say "Backing up local data to backups/local/${stamp}-${label}"
+  if [[ "$kind" == postgres ]]; then
+    dbfile=database.dump
+    compose_db pg_dump -U qms -d qms --format=custom --no-owner --no-privileges > "$partial/$dbfile"
+  else
+    dbfile=database.sqlite3
+    # The sqlite3 backup API copies a consistent snapshot, even while the dev server runs.
+    "$PY" -c 'import sqlite3, sys
+src, dst = sqlite3.connect(sys.argv[1]), sqlite3.connect(sys.argv[2])
+src.backup(dst)
+dst.close(); src.close()' "$ROOT/db.sqlite3" "$partial/$dbfile"
+  fi
+  mkdir -p "$(media_root)"
+  tar -C "$(media_root)" -czf "$partial/media.tar.gz" .
+  "$PY" "$ROOT/scripts/backup_manifest.py" write "$partial" "$label" "$kind" "$dbfile"
+  mv "$partial" "$target"
+  trap - ERR
+  prune_backups
+}
+
+cmd_backup() {
+  need_venv; load_env
+  local label="${1:-manual}"
+  [[ "$label" =~ ^[a-z0-9-]+$ ]] || die "label: lower-case letters, digits and - only"
+  backup_now "$label"
+}
+
+# Apply pending migrations. Lists them, backs up, then migrates. Does nothing if none are pending.
+cmd_migrate() {
+  need_venv; load_env
+  local plan
+  plan="$(manage migrate --plan 2>&1)" || { echo "$plan" >&2; die "cannot read the migration plan (is PostgreSQL running?)"; }
+  if grep -q 'No planned migration operations' <<<"$plan"; then
+    echo "Local database is up to date with this code."
+    return 0
+  fi
+  say "Migrations to apply to your local data:"
+  grep -E '^[a-z_]+\.[0-9]{4}' <<<"$plan" | sed 's/^/  /' || true
+  backup_now pre-migrate
+  manage migrate --no-input
+}
+
+cmd_restore() {
+  need_venv; load_env
+  local src="${1:-}" kind dbfile media answer
+  [[ -n "$src" ]] || die "usage: scripts/local.sh restore <backup folder>   (folders: ls backups/local)"
+  [[ -f "$src/manifest.json" ]] || die "no manifest.json in $src"
+  src="$(cd "$src" && pwd)"
+  kind="$(db_kind)"
+  if [[ -f "$src/database.dump" ]]; then dbfile=database.dump
+  elif [[ -f "$src/database.sqlite3" ]]; then dbfile=database.sqlite3
+  else die "$src has no database.dump or database.sqlite3"
+  fi
+  if [[ "$dbfile" == database.dump && "$kind" != postgres ]]; then
+    die "this backup is PostgreSQL, but the local database is SQLite. Start PostgreSQL (docker compose up -d db), set DATABASE_URL in .env.local, then restore again."
+  fi
+  if [[ "$dbfile" == database.sqlite3 && "$kind" != sqlite ]]; then
+    die "this backup is SQLite, but DATABASE_URL is set. Unset it to restore this backup."
+  fi
+  "$PY" "$ROOT/scripts/backup_manifest.py" verify "$src"
+  media="$(media_root)"
+  [[ -n "$media" && "$media" != / ]] || die "refusing to restore into media folder '$media'"
+
+  echo "This replaces the local database and uploaded files with the backup."
+  echo "Stop the dev server first. The current local data is backed up before anything changes."
+  if [[ "${QMS_YES:-0}" != 1 ]]; then
+    read -r -p "Restore $(basename "$src")? [y/N] " answer
+    [[ "$answer" == [yY]* ]] || { echo "Nothing changed."; return 0; }
+  fi
+  backup_now pre-restore
+
+  say "Restoring the database"
+  if [[ "$kind" == postgres ]]; then
+    compose_db dropdb -U qms --if-exists qms
+    compose_db createdb -U qms qms
+    docker compose cp "$src/$dbfile" db:/tmp/restore.dump
+    compose_db pg_restore -U qms -d qms --no-owner --no-privileges --exit-on-error /tmp/restore.dump
+    compose_db rm -f /tmp/restore.dump
+  else
+    rm -f db.sqlite3 db.sqlite3-wal db.sqlite3-shm
+    cp "$src/$dbfile" db.sqlite3
+  fi
+
+  say "Restoring uploaded files"
+  rm -rf "$media"
+  mkdir -p "$media"
+  tar -C "$media" -xzf "$src/media.tar.gz"
+
+  say "Migrating the restored data to this code's version"
+  cmd_migrate
+  say "Checking the audit trail"
+  manage verify_audit
+  echo "Restored $(basename "$src"). If anything above failed, the data from before the restore is in backups/local/ (pre-restore)."
 }
 
 usage() { awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0"; }
@@ -189,6 +341,9 @@ case "$command" in
   manage) need_venv; load_env; manage "$@" ;;
   check)  cmd_check ;;
   reset)  cmd_reset ;;
+  migrate) cmd_migrate ;;
+  backup) cmd_backup "$@" ;;
+  restore) cmd_restore "$@" ;;
   help|-h|--help) usage ;;
   *) usage; exit 2 ;;
 esac

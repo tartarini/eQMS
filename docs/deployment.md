@@ -67,7 +67,10 @@ scripts/local.sh oq "Your Name"   # OQ evidence in ./oq_evidence
 scripts/local.sh jobs             # the daily jobs once: PMS activities, reminders, audit check
 scripts/local.sh check            # system checks and missing migrations
 scripts/local.sh manage createsuperuser
-scripts/local.sh reset            # delete db.sqlite3 and ./media
+scripts/local.sh migrate          # apply pending migrations (backs up first; also runs after git pull)
+scripts/local.sh backup           # back up the local database and uploads to backups/local/
+scripts/local.sh restore DIR      # restore a backup folder, then migrate it (see developing-and-releasing.md)
+scripts/local.sh reset            # delete db.sqlite3 and ./media (backs up first)
 ```
 
 Local settings live in `.env.local` (created by `setup`, not committed). To get closer to

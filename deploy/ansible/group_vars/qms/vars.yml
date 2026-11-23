@@ -3,7 +3,7 @@
 # Secrets live in vault.yml (encrypted with ansible-vault): see vault.example.yml.
 
 # --- release ---------------------------------------------------------------------
-qms_image: ghcr.io/YOUR-ORG/samd_qms          # built and pushed by CI
+qms_image: ghcr.io/tartarini/samd_qms         # built and pushed by CI (owner of the GitHub repo)
 qms_version: "1.0.0"                           # the validated release to run (image tag)
 
 # --- site ------------------------------------------------------------------------

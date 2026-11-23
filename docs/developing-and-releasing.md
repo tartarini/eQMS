@@ -57,6 +57,29 @@ make dev                             # rebuilds the image and starts the stack
 - **Check it works:** open http://localhost:8000, sign in as `engineer_person` (password
   `demo-pass-123`), and check the page you changed.
 
+### Working from PyCharm (no Docker)
+
+Set up once with `scripts/local.sh setup`, which also turns on the git hooks in `.githooks/`.
+If you set up before the hooks existed, run `git config core.hooksPath .githooks` once. Then:
+
+- **A pull or a branch switch migrates your data.** After `git pull`, a merge or a branch switch
+  (from a terminal or PyCharm's Git menu), the hooks run `scripts/local.sh migrate`. If the code
+  has migrations your database lacks, your local data is backed up to `backups/local/` first, then
+  migrated. If nothing is pending, nothing happens. Every server deploy does the same
+  (`make deploy`), so both sides move the same way.
+- **Starting the server checks too.** `scripts/local.sh run` applies pending migrations the same way.
+- **Back up before risky work:** `make local-backup`. `scripts/local.sh reset` also backs up first.
+  The newest 20 backups are kept (set `QMS_LOCAL_BACKUPS_KEEP` to change that).
+- **Restore a local backup:** stop the dev server, then
+  `make local-restore BACKUP=backups/local/<folder>`. The data from before the restore is kept in a
+  `pre-restore` backup, and the restored data is migrated to the code you have checked out.
+- **Try a new version on real server data:** copy a server backup here with
+  `scripts/remote.sh -e production fetch-backup <name>` (it lands in `backups/production/<name>`),
+  then run `make local-restore BACKUP=backups/production/<name>`. Server backups are PostgreSQL,
+  so first set `DATABASE_URL` in `.env.local` to the PostgreSQL of `docker compose up -d db`. The
+  restore replaces that local database, and the backup folder holds QMS records: delete it when
+  you have finished.
+
 ---
 
 ## 2. The everyday loop

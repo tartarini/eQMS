@@ -1,0 +1,4 @@
+#!/bin/sh
+# After switching branches: same as after a pull. $3 is 1 for a branch switch, 0 for a file checkout.
+[ "$3" = "1" ] || exit 0
+exec "$(dirname "$0")/post-merge"
