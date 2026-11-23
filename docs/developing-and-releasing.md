@@ -57,7 +57,11 @@ make dev                             # rebuilds the image and starts the stack
 - **Check it works:** open http://localhost:8000, sign in as `engineer_person` (password
   `demo-pass-123`), and check the page you changed.
 
-### Working from PyCharm (no Docker)
+### Working from PyCharm
+
+The app runs from `.venv`, and its database is PostgreSQL 16 in docker compose, the same engine
+and version as production. `scripts/local.sh` starts that container when needed, so Docker Desktop
+must be running. It is also the database `make dev` uses.
 
 Set up once with `scripts/local.sh setup`, which also turns on the git hooks in `.githooks/`.
 If you set up before the hooks existed, run `git config core.hooksPath .githooks` once. Then:
@@ -76,9 +80,8 @@ If you set up before the hooks existed, run `git config core.hooksPath .githooks
 - **Try a new version on real server data:** copy a server backup here with
   `scripts/remote.sh -e production fetch-backup <name>` (it lands in `backups/production/<name>`),
   then run `make local-restore BACKUP=backups/production/<name>`. Server backups are PostgreSQL,
-  so first set `DATABASE_URL` in `.env.local` to the PostgreSQL of `docker compose up -d db`. The
-  restore replaces that local database, and the backup folder holds QMS records: delete it when
-  you have finished.
+  like the local database, so they restore directly. The restore replaces the local database, and
+  the backup folder holds QMS records: delete it when you have finished.
 
 ---
 

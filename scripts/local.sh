@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Local development WITHOUT Docker: a virtualenv in .venv, SQLite (or your own PostgreSQL),
-# emails printed to the console. Works from a plain terminal or PyCharm's terminal.
-# For the Docker stack (PostgreSQL + Mailpit, same image as production) use `make dev` instead.
+# Local development: the app runs from a virtualenv in .venv, and the database is PostgreSQL in
+# docker compose, the same engine and version as production. Emails print to the console. Works
+# from a plain terminal or PyCharm's terminal. For the full Docker stack (the app in a container,
+# plus Mailpit) use `make dev` instead.
 #
 #   scripts/local.sh setup [--clean]   create .venv, install, migrate, load demo data
 #                                      (--clean: empty QMS with seed_qms, then createsuperuser)
@@ -19,8 +20,8 @@
 #   scripts/local.sh reset             delete the local database and uploaded files (backs up first)
 #
 # After git pull or a branch switch, the git hooks in .githooks run `migrate` for you.
-# Settings come from the environment and, if present, ./.env.local (KEY=value lines, not
-# committed). Set DATABASE_URL there to use a PostgreSQL server instead of SQLite.
+# Settings come from the environment and ./.env.local (KEY=value lines, not committed).
+# DATABASE_URL picks the database: PostgreSQL in docker compose by default, or sqlite:///db.sqlite3.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -31,6 +32,19 @@ PY="$VENV/bin/python"
 say() { printf '\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf 'local.sh: %s\n' "$*" >&2; exit 1; }
 
+# With PostgreSQL, the local database is the one in docker compose. Start it if it is not
+# running. A PostgreSQL server elsewhere (a host other than this machine) is not started here.
+ensure_db() {
+  case "$DATABASE_URL" in
+    postgres*localhost*|postgres*127.0.0.1*) ;;
+    *) return 0 ;;
+  esac
+  docker compose version >/dev/null 2>&1 ||
+    die "the local database is PostgreSQL in Docker: start Docker, or use SQLite (DATABASE_URL=sqlite:///db.sqlite3 in .env.local)"
+  docker compose up -d --wait db >/dev/null 2>&1 ||
+    die "could not start the PostgreSQL container: docker compose up -d db"
+}
+
 load_env() {
   if [[ -f .env.local ]]; then
     set -a
@@ -38,10 +52,12 @@ load_env() {
     . ./.env.local
     set +a
   fi
+  export DATABASE_URL="${DATABASE_URL:-postgres://qms:qms@localhost:5432/qms}"
   export DJANGO_DEBUG="${DJANGO_DEBUG:-1}"
   export QMS_BASE_URL="${QMS_BASE_URL:-http://localhost:${PORT:-8000}}"
   QMS_COMMIT="${QMS_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}"
   export QMS_COMMIT
+  ensure_db
 }
 
 need_venv() {
@@ -82,8 +98,9 @@ cmd_setup() {
 DJANGO_DEBUG=1
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 QMS_SSO_ALLOWED_DOMAINS=
-# Use PostgreSQL instead of SQLite (e.g. `docker compose up -d db` gives this one):
-# DATABASE_URL=postgres://qms:qms@localhost:5432/qms
+# Local database: PostgreSQL in docker compose, the same engine as production (started
+# automatically). For SQLite instead, use: DATABASE_URL=sqlite:///db.sqlite3
+DATABASE_URL=postgres://qms:qms@localhost:5432/qms
 # Real email instead of the console (e.g. `docker compose up -d mail`, UI on :8025):
 # DJANGO_EMAIL_HOST=localhost
 # DJANGO_EMAIL_PORT=1025
@@ -95,6 +112,10 @@ QMS_SSO_ALLOWED_DOMAINS=
 # SSO_ORCID_SECRET=
 # SSO_ORCID_DOMAIN=sandbox.orcid.org
 EOF
+  fi
+  if ! grep -q '^DATABASE_URL=' .env.local; then
+    printf '\n# Local database: PostgreSQL in docker compose, as in production (SQLite: sqlite:///db.sqlite3)\nDATABASE_URL=postgres://qms:qms@localhost:5432/qms\n' >> .env.local
+    say "Added DATABASE_URL (PostgreSQL) to .env.local"
   fi
   load_env
   if git rev-parse --git-dir >/dev/null 2>&1; then
@@ -174,13 +195,21 @@ cmd_check() {
 
 cmd_reset() {
   load_env
-  if [[ -n "${DATABASE_URL:-}" ]]; then
-    die "DATABASE_URL is set ($DATABASE_URL). Reset that database yourself; this only removes SQLite."
+  local answer
+  if [[ "$(db_kind)" == postgres ]]; then
+    read -r -p "Empty the local PostgreSQL database and delete ./media (all local data; this is also the make dev database)? [y/N] " answer
+    [[ "$answer" == [yY]* ]] || { echo "Nothing deleted."; return; }
+    backup_now pre-reset
+    compose_db dropdb -U qms --if-exists qms
+    compose_db createdb -U qms qms
+    rm -rf media
+    echo "Emptied. Run: scripts/local.sh setup"
+    return
   fi
-  read -r -p "Delete db.sqlite3 and ./media (all local data)? [y/N] " answer
+  read -r -p "Delete $(sqlite_file) and ./media (all local data)? [y/N] " answer
   [[ "$answer" == [yY]* ]] || { echo "Nothing deleted."; return; }
   backup_now pre-reset
-  rm -f db.sqlite3
+  rm -f "$(sqlite_file)"
   rm -rf media
   echo "Deleted. Run: scripts/local.sh setup"
 }
@@ -189,18 +218,21 @@ cmd_reset() {
 # A local backup goes to backups/local/<stamp>-<label>/ (git-ignored), in the same layout as a
 # server backup: the database, media.tar.gz and manifest.json with SHA-256 checksums.
 # SQLite is saved as database.sqlite3, PostgreSQL as database.dump (pg_dump, custom format).
-# A server backup (deploy/scripts/backup.sh) is a PostgreSQL dump, so it restores here only
-# when DATABASE_URL points at PostgreSQL: docker compose up -d db, then set DATABASE_URL.
+# A server backup (deploy/scripts/backup.sh) is a PostgreSQL dump, so it restores directly into
+# the default local database, which is PostgreSQL as in production.
 
 media_root() { echo "${DJANGO_MEDIA_ROOT:-$ROOT/media}"; }
 
 db_kind() {
-  if [[ -z "${DATABASE_URL:-}" ]]; then echo sqlite; return; fi
   case "$DATABASE_URL" in
     postgres*) echo postgres ;;
-    *) die "only SQLite and PostgreSQL are supported (DATABASE_URL=${DATABASE_URL%%:*}...)" ;;
+    sqlite:*) echo sqlite ;;
+    *) die "DATABASE_URL must be postgres://... (the default) or sqlite:///db.sqlite3" ;;
   esac
 }
+
+# The SQLite file named by DATABASE_URL (sqlite:///path). A relative path is from the project folder.
+sqlite_file() { echo "${DATABASE_URL#sqlite:///}"; }
 
 # Run a command in the PostgreSQL service of docker compose (the local PostgreSQL).
 compose_db() {
@@ -223,7 +255,7 @@ prune_backups() {
 backup_now() {
   local label="$1" kind dbfile stamp target partial
   kind="$(db_kind)"
-  if [[ "$kind" == sqlite && ! -f "$ROOT/db.sqlite3" ]]; then
+  if [[ "$kind" == sqlite && ! -f "$(sqlite_file)" ]]; then
     echo "Nothing to back up yet: there is no local database."
     return 0
   fi
@@ -242,7 +274,7 @@ backup_now() {
     "$PY" -c 'import sqlite3, sys
 src, dst = sqlite3.connect(sys.argv[1]), sqlite3.connect(sys.argv[2])
 src.backup(dst)
-dst.close(); src.close()' "$ROOT/db.sqlite3" "$partial/$dbfile"
+dst.close(); src.close()' "$(sqlite_file)" "$partial/$dbfile"
   fi
   mkdir -p "$(media_root)"
   tar -C "$(media_root)" -czf "$partial/media.tar.gz" .
@@ -286,10 +318,10 @@ cmd_restore() {
   else die "$src has no database.dump or database.sqlite3"
   fi
   if [[ "$dbfile" == database.dump && "$kind" != postgres ]]; then
-    die "this backup is PostgreSQL, but the local database is SQLite. Start PostgreSQL (docker compose up -d db), set DATABASE_URL in .env.local, then restore again."
+    die "this backup is PostgreSQL, but DATABASE_URL is SQLite. Remove that line from .env.local to use PostgreSQL."
   fi
   if [[ "$dbfile" == database.sqlite3 && "$kind" != sqlite ]]; then
-    die "this backup is SQLite, but DATABASE_URL is set. Unset it to restore this backup."
+    die "this backup is SQLite. Restore it with DATABASE_URL=sqlite:///db.sqlite3 in .env.local (or the environment)."
   fi
   "$PY" "$ROOT/scripts/backup_manifest.py" verify "$src"
   media="$(media_root)"
@@ -311,8 +343,8 @@ cmd_restore() {
     compose_db pg_restore -U qms -d qms --no-owner --no-privileges --exit-on-error /tmp/restore.dump
     compose_db rm -f /tmp/restore.dump
   else
-    rm -f db.sqlite3 db.sqlite3-wal db.sqlite3-shm
-    cp "$src/$dbfile" db.sqlite3
+    rm -f "$(sqlite_file)" "$(sqlite_file)-wal" "$(sqlite_file)-shm"
+    cp "$src/$dbfile" "$(sqlite_file)"
   fi
 
   say "Restoring uploaded files"

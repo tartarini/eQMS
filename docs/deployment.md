@@ -54,8 +54,10 @@ Microsoft accept `localhost` over HTTP for testing).
 
 ### Without Docker (virtualenv, e.g. in PyCharm)
 
-`scripts/local.sh` sets up and runs the app in `.venv` with SQLite and emails printed to the
-console. It needs Python 3.12 or newer (3.13 matches production).
+`scripts/local.sh` runs the app in `.venv`, with PostgreSQL 16 from docker compose as its database
+(the same engine as production; started automatically, so Docker must be running) and emails
+printed to the console. It needs Python 3.12 or newer (3.13 matches production). For SQLite
+instead, set `DATABASE_URL=sqlite:///db.sqlite3` in `.env.local`.
 
 ```bash
 scripts/local.sh setup            # .venv, requirements, Chromium, .env.local, migrate, demo data
@@ -70,12 +72,12 @@ scripts/local.sh manage createsuperuser
 scripts/local.sh migrate          # apply pending migrations (backs up first; also runs after git pull)
 scripts/local.sh backup           # back up the local database and uploads to backups/local/
 scripts/local.sh restore DIR      # restore a backup folder, then migrate it (see developing-and-releasing.md)
-scripts/local.sh reset            # delete db.sqlite3 and ./media (backs up first)
+scripts/local.sh reset            # empty the local database and delete ./media (backs up first)
 ```
 
-Local settings live in `.env.local` (created by `setup`, not committed). To get closer to
-production without running the app in Docker, start only the database and mail catcher with
-`docker compose up -d db mail` and uncomment `DATABASE_URL` and the `DJANGO_EMAIL_*` lines there.
+Local settings live in `.env.local` (created by `setup`, not committed). `DATABASE_URL` there
+selects the database. For emails in a mail catcher instead of the console, start it with
+`docker compose up -d mail` and uncomment the `DJANGO_EMAIL_*` lines there.
 
 In PyCharm, use `.venv/bin/python` as the project interpreter and a Django server (or
 `manage.py runserver`) run configuration with the `.env.local` values as its environment.
