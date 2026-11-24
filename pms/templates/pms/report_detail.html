@@ -1,5 +1,5 @@
 {% extends "qms/base.html" %}
-{% block title %}{{ report.number }} – SAMD_QMS{% endblock %}
+{% block title %}{{ report.number }} – {{ product_name }}{% endblock %}
 {% block content %}
 <h1>{{ report.number }} · {{ report.title }}</h1>
 <p class="muted small">{{ report.get_kind_display }} about {{ report.device.name }} · sent {{ report.created_at|date:"j M Y, H:i" }} · status <strong>{{ report.get_status_display }}</strong></p>

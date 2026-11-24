@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}Import documents · SAMD_QMS{% endblock %}
+{% block title %}Import documents · {{ product_name }}{% endblock %}
 {% block content %}
 <h1>Import markdown documents</h1>
 <p class="muted small" style="max-width:760px">Import markdown files, or a zip of them, as controlled documents. A file with a new number creates a document with a draft first version. A file with the number of an existing document adds a draft revision. Nothing becomes effective until it has been reviewed and approved as usual.</p>

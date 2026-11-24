@@ -89,7 +89,7 @@ def dispatch_pending(limit: int = 500) -> int:
                 continue
             n.attempts += 1
             try:
-                send_mail(f"[SAMD_QMS] {n.subject}", n.body, settings.DEFAULT_FROM_EMAIL,
+                send_mail(f"[{settings.QMS_PRODUCT_NAME}] {n.subject}", n.body, settings.DEFAULT_FROM_EMAIL,
                           [n.email])
             except Exception as exc:  # noqa: BLE001 - keep the message and try again later
                 n.last_error = str(exc)[:500]
@@ -317,8 +317,8 @@ def invitation(inv, link: str):
     lines = "\n".join(f"  - {Device.objects.get(pk=g['device_id']).name} ({g['device']}): "
                       f"{', '.join(g['roles'])}" for g in inv.grants)
     note = f"\nMessage from {inviter}:\n{inv.message}\n" if inv.message else ""
-    send_to("Invitation to SAMD_QMS",
-            f"{inviter} has invited you to SAMD_QMS, the quality management system for these "
+    send_to(f"Invitation to {settings.QMS_PRODUCT_NAME}",
+            f"{inviter} has invited you to {settings.QMS_PRODUCT_NAME}, the quality management system for these "
             f"medical devices, with these roles:\n\n{lines}\n{note}\n"
             f"Accept by {inv.expires_at:%d %b %Y %H:%M} UTC, using this link:\n{link}\n\n"
             "Open the link and continue with Google, Microsoft, LinkedIn or GitHub using this "
@@ -333,7 +333,7 @@ def invitation(inv, link: str):
 
 def access_confirm_email(ar, link: str):
     send_to("Confirm your email address",
-            f"Hello {ar.first_name},\n\nYou asked for an account on SAMD_QMS ({ar.ref}). Confirm "
+            f"Hello {ar.first_name},\n\nYou asked for an account on {settings.QMS_PRODUCT_NAME} ({ar.ref}). Confirm "
             f"this email address so that QA can review your request:\n{link}\n\n"
             f"The link expires in {settings.QMS_ACCESS_CONFIRM_DAYS} days. If you didn't ask "
             "for an account, ignore this email.", [ar.email])
@@ -357,11 +357,11 @@ def access_requested(ar):
 def access_decided(ar):
     if ar.status == "approved":
         lines = "\n".join(f"  - {g['device']}: {', '.join(g['roles'])}" for g in ar.grants)
-        body = (f"Hello {ar.first_name},\n\nYour SAMD_QMS account request {ar.ref} was approved. "
+        body = (f"Hello {ar.first_name},\n\nYour {settings.QMS_PRODUCT_NAME} account request {ar.ref} was approved. "
                 f"You're now on these device teams:\n\n{lines}\n\nSign in here:\n"
                 + _url(reverse("login")))
     else:
-        body = (f"Hello {ar.first_name},\n\nYour SAMD_QMS account request {ar.ref} was declined."
+        body = (f"Hello {ar.first_name},\n\nYour {settings.QMS_PRODUCT_NAME} account request {ar.ref} was declined."
                 f"\n\nReason: {ar.decision_note}\n\nIf you think this is a mistake, contact the "
                 "quality team of the organisation you applied to.")
     send_to(f"Your account request {ar.ref}", body, [ar.email])

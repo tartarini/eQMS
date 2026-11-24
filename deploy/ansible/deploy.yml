@@ -159,4 +159,4 @@
 
     - name: Summary
       ansible.builtin.debug:
-        msg: "SAMD_QMS {{ qms_version }} is live at https://{{ qms_domain }}{{ qms_url_prefix }} — {{ audit.stdout }}"
+        msg: "{{ qms_product_name }} {{ qms_version }} is live at https://{{ qms_domain }}{{ qms_url_prefix }} — {{ audit.stdout }}"

@@ -1,5 +1,6 @@
 from getpass import getpass
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.password_validation import validate_password
@@ -12,7 +13,8 @@ from qms.models import AuditEvent
 
 
 class Command(BaseCommand):
-    help = ("Create a QMS admin account. A QMS admin manages SAMD_QMS overall and is the only one "
+    help = (f"Create a QMS admin account. A QMS admin manages {settings.QMS_PRODUCT_NAME} overall "
+            "and is the only one "
             "who can appoint Device admins. The password is asked for at a prompt. This does not "
             "give access to the Django admin site (that needs a superuser: createsuperuser).")
 

@@ -1,4 +1,5 @@
 """Inviting people by email, and the page the emailed link opens."""
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
@@ -111,7 +112,8 @@ def _welcome(request, invitation):
     request.session.pop("qms_invitation_token", None)
     invitation.refresh_from_db()
     codes = ", ".join(code for code, _ in invitation.grant_lines())
-    messages.success(request, f"Welcome to SAMD_QMS. You're now on the {codes} team(s).")
+    messages.success(request, f"Welcome to {settings.QMS_PRODUCT_NAME}. You're now on the "
+                         f"{codes} team(s).")
     if invitation.grants:
         device = Device.objects.filter(pk=invitation.grants[0]["device_id"]).first()
         if device:

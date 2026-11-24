@@ -48,7 +48,7 @@ def access_request_details(request):
     """Step 3: who you are and what you need. Also shows the state of an open request."""
     user = request.user
     if has_any_role(user):
-        messages.info(request, "You already have access to SAMD_QMS.")
+        messages.info(request, f"You already have access to {settings.QMS_PRODUCT_NAME}.")
         return redirect("qms:dashboard")
     existing = ar_service.open_request(user)
     if existing:

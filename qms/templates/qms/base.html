@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}SAMD_QMS{% endblock %}</title>
+<title>{% block title %}{{ product_name }}{% endblock %}</title>
 {# Inline icon: without one, browsers request /favicon.ico on every page and get a 404. #}
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f5f8b'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11' stroke='%23fff' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
@@ -97,7 +97,7 @@
 </head>
 <body>
 <header>
-  <a class="brand" href="{% url 'qms:dashboard' %}">SAMD_QMS</a>
+  <a class="brand" href="{% url 'qms:dashboard' %}">{{ product_name }}</a>
   <span class="release" title="Version {{ qms_version }}, commit {{ qms_commit }}">v{{ qms_version }} · {{ qms_commit_short }}</span>
   {% if user.is_authenticated %}
   {% if all_devices is not None %}
@@ -149,6 +149,6 @@
   {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
   {% block content %}{% endblock %}
 </main>
-<footer class="site">{{ qms_copyright }} · SAMD_QMS v{{ qms_version }} ({{ qms_commit_short }})</footer>
+<footer class="site">{{ qms_copyright }} · {{ product_name }} v{{ qms_version }} ({{ qms_commit_short }})</footer>
 </body>
 </html>

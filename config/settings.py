@@ -45,6 +45,9 @@ def _git_commit():
 QMS_COMMIT = os.environ.get("QMS_COMMIT", "").strip() or _git_commit() or "unknown"
 # Shown at the foot of every page and every report the software produces.
 QMS_COPYRIGHT = "Copyright 2026-2027 Daniele Tartarini"
+# The product name in page headers and titles, emails, reports and the admin site. Set
+# QMS_PRODUCT_NAME to rename it (Ansible: qms_product_name in group_vars/qms/vars.yml).
+QMS_PRODUCT_NAME = os.environ.get("QMS_PRODUCT_NAME", "").strip() or "SAMD_QMS"
 
 
 # Application definition
@@ -102,6 +105,7 @@ TEMPLATES = [
                 "qms.context_processors.devices",
                 "qms.context_processors.page_help",
                 "qms.context_processors.release",
+                "qms.context_processors.product",
                 "qms.context_processors.admin_link",
                 "qms.context_processors.inbox",
             ],

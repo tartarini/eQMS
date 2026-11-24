@@ -1,9 +1,9 @@
 {% extends "qms/base.html" %}
-{% block title %}SAMD_QMS – quality management for software as a medical device{% endblock %}
+{% block title %}{{ product_name }} – quality management for software as a medical device{% endblock %}
 {% block content %}
 <section class="landing">
   <h1>Quality management for software as a medical device</h1>
-  <p class="lead">SAMD_QMS is the electronic quality management system used to develop, release and monitor software as a medical device (SaMD). It supports work to ISO 13485, IEC 62304, ISO 14971 and the UK and EU Medical Device Regulations. One installation serves many devices, each with its own team, records, risk file and technical documentation.</p>
+  <p class="lead">{{ product_name }} is the electronic quality management system used to develop, release and monitor software as a medical device (SaMD). It supports work to ISO 13485, IEC 62304, ISO 14971 and the UK and EU Medical Device Regulations. One installation serves many devices, each with its own team, records, risk file and technical documentation.</p>
   <div class="cta">
     <a class="btn" href="{% url 'qms:access_request' %}">Request an account</a>
     <a class="btn secondary" href="{% url 'login' %}">Sign in</a>

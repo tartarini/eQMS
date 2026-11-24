@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}{{ doc.number }} – SAMD_QMS{% endblock %}
+{% block title %}{{ doc.number }} – {{ product_name }}{% endblock %}
 {% block content %}
 <p class="muted small">{{ doc.get_doc_type_display }} · {% if doc.device %}<a href="{% url 'qms:device_detail' doc.device.code %}">{{ doc.device.name }}</a>{% else %}QMS-wide{% endif %}{% if doc.tech_file_section %} · Technical file: {{ doc.get_tech_file_section_display }}{% endif %}</p>
 <h1>{{ doc.number }} · {{ doc.title }}</h1>

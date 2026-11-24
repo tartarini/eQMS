@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from .help import PAGE_HELP, help_url
 from .access import accessible_devices, current_device, is_member, sees_all_devices
 
@@ -54,6 +56,11 @@ def release(request):
     return {"qms_version": settings.QMS_VERSION, "qms_commit": commit,
             "qms_commit_short": commit[:7] if commit != "unknown" else commit,
             "qms_copyright": settings.QMS_COPYRIGHT}
+
+
+def product(request):
+    """The product name for page headers and titles (QMS_PRODUCT_NAME)."""
+    return {"product_name": settings.QMS_PRODUCT_NAME}
 
 
 def admin_link(request):

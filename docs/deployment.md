@@ -389,7 +389,7 @@ provider has no client id.
 
 | Where | Setting |
 | --- | --- |
-| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `qms_url_prefix` (per host: `host_vars/<host>.yml`), `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
+| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `qms_url_prefix` (per host: `host_vars/<host>.yml`), `qms_product_name`, `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
 | `group_vars/production/vars.yml` | Production only: `qms_signer_sso_providers`, `qms_signer_email_domains`, the off-site backup method and target |
 | `group_vars/qms/vault.yml` (encrypted) | `vault_django_secret_key`, `vault_postgres_password`, `vault_smtp_password`, `vault_registry_*`, `vault_sso_*_secret`, `vault_backup_gdrive_service_account_json`, `vault_backup_crypt_*` |
 | `/opt/samd_qms/.env` (rendered) | Values substituted into `compose.prod.yaml` |

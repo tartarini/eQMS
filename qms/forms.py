@@ -495,7 +495,7 @@ class AccessRequestForm(forms.Form):
     devices = forms.CharField(max_length=300, label="Devices or projects")
     role = forms.ChoiceField(choices=ACCESS_ROLE_CHOICES, label="Role you need")
     reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}),
-                             label="What you'll use SAMD_QMS for", max_length=2000)
+                             label=f"What you'll use {settings.QMS_PRODUCT_NAME} for", max_length=2000)
     agree = forms.BooleanField(label="These details are correct, and I understand that QA will "
                                      "review them and may contact me.")
 

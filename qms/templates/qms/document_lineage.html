@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}Lineage {{ document.number }} – SAMD_QMS{% endblock %}
+{% block title %}Lineage {{ document.number }} – {{ product_name }}{% endblock %}
 {% block content %}
 <p class="muted small"><a href="{% url 'qms:document_detail' document.number %}">← {{ document.number }}</a> · {{ document.get_doc_type_display }} · {% if document.device %}<a href="{% url 'qms:device_detail' document.device.code %}">{{ document.device.name }}</a>{% else %}QMS-wide{% endif %}</p>
 <h1>Lineage · {{ document.number }} · {{ document.title }}</h1>

@@ -20,6 +20,7 @@ import zipfile
 from collections import defaultdict
 from datetime import date
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -248,7 +249,8 @@ def build_outline(device: Device, data: dict, checks: list, meta: dict) -> list:
         ("Completeness", f"{len(errors)} error(s), {len(warnings)} warning(s)"),
     ]))
     note("Structure follows EU MDR (EU) 2017/745 Annex II and III. Content is generated from "
-         "SAMD_QMS records; controlled documents are included at their effective versions. "
+         f"{settings.QMS_PRODUCT_NAME} records; controlled documents are included at their effective "
+         "versions. "
          "This file is a controlled build: changes require a new build.")
 
     # 1

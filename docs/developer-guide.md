@@ -450,6 +450,7 @@ the media directory publicly.
 | `QMS_SIGNER_SSO_PROVIDERS` | empty | Production: signers must be connected to one of these providers (env, comma-separated) |
 | `QMS_SIGNER_EMAIL_DOMAINS` | empty | Production: and have a verified email at one of these domains |
 | `QMS_TWO_FACTOR` | `0` | `1` requires an authenticator app and a code each session on every SAMD_QMS page (set on production by Ansible). The `/pms/` pages always require it. |
+| `QMS_PRODUCT_NAME` | `SAMD_QMS` | The product name in page headers and titles, emails, reports, the admin site and help. Set per server (Ansible: `qms_product_name`). |
 | `QMS_ATTACHMENT_EXTENSIONS` | pdf, docx, xlsx, csv, txt, md, png, jpg, jpeg, json, zip, log, html | Upload allowlist |
 | `QMS_NOTIFICATIONS_ENABLED` | `True` | Master switch for email |
 | `QMS_REMINDER_LOOKAHEAD_DAYS` | `7` | "Due soon" window in the daily digest |

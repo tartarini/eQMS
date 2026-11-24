@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% comment %}Django admin with the SAMD_QMS version, commit and copyright notice.
+{% comment %}Django admin with the {{ product_name }} version, commit and copyright notice.
 Lives in config/templates (TEMPLATES DIRS), which wins over django.contrib.admin.{% endcomment %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 {% block branding %}
@@ -8,4 +8,4 @@ Lives in config/templates (TEMPLATES DIRS), which wins over django.contrib.admin
 {% if user.is_anonymous %}{% include "admin/color_theme_toggle.html" %}{% endif %}
 {% endblock %}
 {% block nav-global %}{% endblock %}
-{% block footer %}<div id="footer" style="padding:12px 40px;color:var(--body-quiet-color);font-size:12px">{{ qms_copyright }} · SAMD_QMS v{{ qms_version }} ({{ qms_commit_short }})</div>{% endblock %}
+{% block footer %}<div id="footer" style="padding:12px 40px;color:var(--body-quiet-color);font-size:12px">{{ qms_copyright }} · {{ product_name }} v{{ qms_version }} ({{ qms_commit_short }})</div>{% endblock %}

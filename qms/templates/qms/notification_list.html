@@ -1,8 +1,8 @@
 {% extends "qms/base.html" %}
-{% block title %}Inbox – SAMD_QMS{% endblock %}
+{% block title %}Inbox – {{ product_name }}{% endblock %}
 {% block content %}
 <h1>Inbox</h1>
-<p class="muted small" style="max-width:760px">The messages SAMD_QMS has sent you, with the same text as the email. Open one to go to the record, device or document it is about. {% if unread %}You have {{ unread }} unread.{% else %}Nothing unread.{% endif %}</p>
+<p class="muted small" style="max-width:760px">The messages {{ product_name }} has sent you, with the same text as the email. Open one to go to the record, device or document it is about. {% if unread %}You have {{ unread }} unread.{% else %}Nothing unread.{% endif %}</p>
 {% if unread %}
 <form method="post" action="{% url 'qms:notification_read_all' %}" style="margin-bottom:12px">{% csrf_token %}<button class="btn secondary">Mark all as read</button></form>
 {% endif %}

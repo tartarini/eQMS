@@ -24,6 +24,7 @@ import re
 import zipfile
 from datetime import date
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 
@@ -164,7 +165,7 @@ def sync_git(repo: str, push: bool = False) -> dict:
     git("add", "-A")
     if not git("status", "--porcelain").strip():
         return {**counts, "committed": False, "pushed": False}
-    git("-c", "user.name=SAMD_QMS export", "-c", "user.email=qms-export@localhost",
+    git("-c", f"user.name={settings.QMS_PRODUCT_NAME} export", "-c", "user.email=qms-export@localhost",
         "commit", "-m", f"Sync controlled documents ({date.today():%Y-%m-%d})")
     if push:
         git("push")
