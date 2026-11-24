@@ -205,6 +205,7 @@ approved Change Request in SAMD_QMS.
 | `certbot` | Issues the Let's Encrypt certificate and renews it twice a day | Apache reloads by itself when a renewed certificate appears |
 | `app` | gunicorn, 3 workers × 2 threads | Read-only filesystem, no Linux capabilities, unprivileged user 10001; health check on `/healthz` |
 | `scheduler` | Daily jobs (UTC): 02:30 backup, 03:00 audit verification, 05:30 PMS activities, 05:45 reminders, 05:55 document git sync (only if `QMS_DOCS_GIT_REPO` is set) | Each failure emails `QMS_ALERT_EMAILS` |
+| `scheduler` (every minute) | Sends queued notifications and retries emails that failed (up to 5 attempts, then marked failed in the inbox) | Failures are logged |
 | `db` | PostgreSQL 16 | On an internal network with no internet route and no published port |
 
 Data lives in Docker volumes `samd_qms_pgdata`, `samd_qms_media`, `samd_qms_letsencrypt` and `samd_qms_tls`, and

@@ -1,5 +1,6 @@
 """
-Run the daily jobs in QMS_SCHEDULED_JOBS for ever (the scheduler container's command).
+Run the daily jobs in QMS_SCHEDULED_JOBS for ever (the scheduler container's command). Queued
+notifications are sent every minute while it runs.
 
 Each job runs as a separate process, so one failure can't stop the others. A failure, a
 timeout or a non-zero exit sends an alert email. Logs go to stdout for `docker compose logs`.
@@ -16,15 +17,27 @@ from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
+from django.db import close_old_connections
+
+from qms.notifications import dispatch_pending
 
 log = logging.getLogger("qms.scheduler")
 JOB_TIMEOUT_SECONDS = 2 * 60 * 60
+SWEEP_SECONDS = 60   # how often queued notifications are sent (retries included)
 
 
 def next_run(hhmm: str, now: datetime) -> datetime:
     hour, minute = (int(x) for x in hhmm.split(":"))
     candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     return candidate if candidate > now else candidate + timedelta(days=1)
+
+
+def sweep_notifications() -> None:
+    """Send queued notifications, including retries. Never stops the scheduler."""
+    try:
+        dispatch_pending()
+    except Exception:  # noqa: BLE001
+        log.exception("notification sweep failed")
 
 
 def run_job(name: str, command: list) -> bool:
@@ -76,6 +89,11 @@ class Command(BaseCommand):
             name, (when, cmd) = min(jobs.items(), key=lambda kv: next_run(kv[1][0], now))
             due = next_run(when, now)
             wait = (due - now).total_seconds()
+            if wait > SWEEP_SECONDS:
+                close_old_connections()  # the database may have dropped the idle connection
+                sweep_notifications()
+                time.sleep(SWEEP_SECONDS)
+                continue
             log.info("next job %s at %s UTC (in %d min)", name, due.strftime("%Y-%m-%d %H:%M"),
                      wait // 60)
             time.sleep(max(1, wait))

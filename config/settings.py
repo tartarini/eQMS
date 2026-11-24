@@ -103,6 +103,7 @@ TEMPLATES = [
                 "qms.context_processors.page_help",
                 "qms.context_processors.release",
                 "qms.context_processors.admin_link",
+                "qms.context_processors.inbox",
             ],
         },
     },

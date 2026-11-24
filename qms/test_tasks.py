@@ -118,7 +118,8 @@ class StageGateTests(TestCase):
 
     def test_approval_tells_the_next_approver(self):
         from django.core import mail
-        gates = tasks.ensure_gates(self.device)
+        with self.captureOnCommitCallbacks(execute=True):  # the setup commits, as in production
+            gates = tasks.ensure_gates(self.device)
         mail.outbox = []
         with self.captureOnCommitCallbacks(execute=True):
             tasks.approve_gate(gates[0], self.qa, PW)

@@ -625,6 +625,26 @@ REQUIREMENTS = [
       "test_two_factor.QmsTwoFactorTests.test_sign_in_and_sign_out_stay_open_without_a_code",
       "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off"],
      []),
+    ("URS-126", "Notifications", "Every notification is kept until it is sent, and is sent after "
+     "the change that caused it commits. A change that is rolled back notifies nobody. A message "
+     "that cannot be sent is tried again and marked as failed after the maximum attempts. Each "
+     "signed-in person sees their own notifications in the inbox, with the same text as the email, "
+     "and can open the page each one is about; nobody sees another person's notifications.", "M",
+     ["test_inbox.InboxQueueTests.test_message_is_stored_per_person_and_sent_with_a_link",
+      "test_inbox.InboxQueueTests.test_rolled_back_change_tells_nobody",
+      "test_inbox.InboxQueueTests.test_nothing_is_stored_when_notifications_are_off",
+      "test_inbox.InboxQueueTests.test_failed_send_is_kept_and_sent_on_the_next_run",
+      "test_inbox.InboxQueueTests.test_gives_up_after_the_maximum_attempts",
+      "test_inbox.InboxQueueTests.test_address_without_an_account_gets_email_but_no_inbox_entry",
+      "test_inbox.InboxQueueTests.test_dispatch_command_sends_what_is_waiting",
+      "test_inbox.InboxQueueTests.test_scheduler_sweep_sends_what_is_waiting",
+      "test_inbox.InboxViewTests.test_each_person_sees_only_their_own_notifications",
+      "test_inbox.InboxViewTests.test_opening_marks_it_read_and_goes_to_its_page",
+      "test_inbox.InboxViewTests.test_another_persons_notification_cannot_be_opened",
+      "test_inbox.InboxViewTests.test_links_to_other_sites_are_never_followed",
+      "test_inbox.InboxViewTests.test_mark_all_read_needs_a_post_and_clears_only_my_unread",
+      "test_inbox.InboxViewTests.test_header_shows_the_unread_count"],
+     []),
 ]
 
 

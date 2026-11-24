@@ -22,6 +22,16 @@ def devices(request):
     return data
 
 
+def inbox(request):
+    """How many notifications the signed-in person hasn't read, for the header."""
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {}
+    from .models import Notification
+    return {"unread_notifications": Notification.objects.filter(
+        recipient=user, read_at__isnull=True).count()}
+
+
 def page_help(request):
     """Link to the help section for the current page, shown in the header of every page."""
     match = getattr(request, "resolver_match", None)

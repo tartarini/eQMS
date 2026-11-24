@@ -117,11 +117,11 @@ class PerDeviceRoleTests(Base):
         with self.captureOnCommitCallbacks(execute=True):
             Record(device=self.a, record_type=wf.INCIDENT, title="i",
                    created_by=self.eng_a).save()
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("cso_a@example.org", mail.outbox[0].to)
-        self.assertNotIn("cso_b@example.org", mail.outbox[0].to)
-        self.assertIn("mixed@example.org", mail.outbox[0].to)     # QA on A
-        self.assertNotIn("qa_b@example.org", mail.outbox[0].to)
+        recipients = {addr for m in mail.outbox for addr in m.to}
+        self.assertIn("cso_a@example.org", recipients)
+        self.assertNotIn("cso_b@example.org", recipients)
+        self.assertIn("mixed@example.org", recipients)     # QA on A
+        self.assertNotIn("qa_b@example.org", recipients)
 
     def test_training_follows_the_role_on_the_documents_device(self):
         doc = Document(title="A procedure", doc_type="WI", device=self.a)

@@ -128,6 +128,7 @@
   <a href="{% url 'qms:supplier_list' %}">Suppliers</a>
   <a href="{% url 'qms:people' %}">People</a>
   <a href="{% url 'pms:report_list' %}">Surveillance</a>
+  <a href="{% url 'qms:notification_list' %}">Inbox{% if unread_notifications %} <span class="badge warn">{{ unread_notifications }}</span>{% endif %}</a>
   {% if manages_teams %}<a href="{% url 'qms:invitation_list' %}">Invitations</a>
   <a href="{% url 'qms:access_request_list' %}">Account requests{% if open_access_requests %} <span class="badge warn">{{ open_access_requests }}</span>{% endif %}</a>{% endif %}
   {% if sees_all_devices %}<a href="{% url 'qms:audit_log' %}">Audit</a>{% endif %}

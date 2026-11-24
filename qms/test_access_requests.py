@@ -217,9 +217,10 @@ class RequestAndReviewTests(TestCase):
         ar = AccessRequest.objects.get()
         self.assertEqual((ar.status, ar.email, ar.email_verified, ar.provider),
                          ("pending", "ada@uni.ac.uk", True, "google"))
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(set(mail.outbox[0].to),
-                         {"qa_a@example.org", "admin_b@example.org"})  # managers, not engineers
+        # one email to each manager, not to engineers
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual({m.to[0] for m in mail.outbox},
+                         {"qa_a@example.org", "admin_b@example.org"})
         self.assertContains(self.client.get(reverse("qms:access_request_details")),
                             "waiting for review")
         self.assertTrue(AuditEvent.objects.filter(object_ref=ar.ref).exists())
@@ -243,9 +244,9 @@ class RequestAndReviewTests(TestCase):
         u.refresh_from_db()
         self.assertEqual((ar.status, ar.email_verified, u.email),
                          ("pending", True, "ada@uni.ac.uk"))
-        self.assertEqual(len(mail.outbox), 2)  # now QA hears about it
+        self.assertEqual(len(mail.outbox), 3)  # now the two managers hear about it
         self.assertEqual(self.client.get(link).status_code, 200)  # reopening is harmless
-        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(len(mail.outbox), 3)
         self.assertEqual(self.client.get(link[:-3] + "xyz/").status_code, 410)
 
     def test_one_open_request_and_none_for_people_with_access(self):
