@@ -1,8 +1,9 @@
 # Deploying SAMD_QMS on a Linux VM with Let's Encrypt
 
-This guide takes a new virtual machine from nothing to a working production site at
-`https://qms.example.org`, with a certificate from Let's Encrypt that renews itself. Replace
-`qms.example.org` with your own name throughout.
+This guide takes a new virtual machine from nothing to a working production site, with a
+certificate from Let's Encrypt that renews itself. Replace `qms.example.org` with your own name
+throughout. You can publish the site at the root of that name or under a path such as `/qms`
+(section 1 explains the choice).
 
 Two routes, depending on the operating system:
 
@@ -25,6 +26,36 @@ gunicorn runs the app, PostgreSQL holds the data, and a scheduler runs the daily
 ---
 
 ## 1. Before you start
+
+### Choose the address
+
+Pick one of two addresses. Server, certificate and firewall steps are the same for both. Only
+the address and one setting differ.
+
+| Option | Address | When to choose it |
+| --- | --- | --- |
+| **A. The root of a name** (default) | `https://qms.example.org/` | The VM serves SAMD_QMS and nothing else. No path setting is needed. |
+| **B. A path on a name** | `https://qms.example.org/qms/` | You want SAMD_QMS under a path of a name your organisation already uses, such as `vht.shef.ac.uk/qms`. The root address redirects to `/qms/`. |
+
+For option B, create a host variables file before you deploy. Its name must match the inventory
+line you write in [section 3.1](#31-describe-the-server) exactly:
+
+```bash
+mkdir -p deploy/ansible/host_vars
+printf 'qms_url_prefix: "/qms"\n' > deploy/ansible/host_vars/qms.example.org.yml
+```
+
+Option B changes these details, covered in [section 4](#4-first-start):
+
+- Sign-in callbacks at each provider are `https://qms.example.org/qms/accounts/<provider>/login/callback/`.
+- The health check and the uptime monitor use `https://qms.example.org/qms/healthz`.
+- Administration is `https://localhost:8443/qms/admin/` through the SSH tunnel.
+- Use the same address everywhere in your own notes: `scripts/remote.sh health` and `status` read the path from the server.
+
+Option B needs ports 80 and 443 on this VM for SAMD_QMS alone, as in option A. If another website
+already answers on that name's ports 80 and 443 (on another machine or behind a proxy), the proxy
+must forward `/qms/` to this VM. This guide does not set that up. Ask your IT team, or see
+[Publishing under a path](deployment.md#publishing-under-a-path-eg-httpsvhtshefacukqms).
 
 **The virtual machine**
 
@@ -114,6 +145,8 @@ only). The ones that matter for the certificate and the first start:
 | `qms_image` | Your image, e.g. `ghcr.io/your-org/samd_qms` |
 | `qms_version` | The release to run, e.g. `1.0.0` (you can also pass it on the command line) |
 | `qms_domain` | `qms.example.org` (defaults to the inventory name) |
+| `qms_url_prefix` | Empty for option A. For option B, put `"/qms"` in the host variables file (above); do not set it here, or every server inherits it |
+| `qms_product_name` | The name shown in titles, headers, footers, emails and reports. Defaults to `SAMD_QMS`. Choose it before go-live. The validation records keep the name SAMD_QMS. |
 | `acme_email` | The Let's Encrypt contact address (see section 1) |
 | `admin_ssh_keys` | Public keys allowed to log in as the deploy user. Set at least one, or provisioning stops, so you cannot lock yourself out |
 | `smtp_host` and the SMTP settings | Your relay |
@@ -168,7 +201,20 @@ Continue at [section 4](#4-first-start).
 
 ## 4. First start
 
-Create the first administrator and set up roles and teams on the server:
+Create the first QMS administrator. This is the account people use to run SAMD_QMS. It asks for
+the password at a prompt, so the password does not end up in the shell history:
+
+```bash
+scripts/remote.sh -e production manage create_qms_admin <username> --email <address>
+```
+
+Run it from your workstation, in the repository. Use `-e production` as well. `remote.sh` shows the
+host name and asks you to type it before the command runs. Then sign in at the address you chose
+in section 1 (`https://qms.example.org/` or `https://qms.example.org/qms/`). The first sign-in
+asks you to set up an authenticator app, because two-factor sign-in is on in production.
+
+Only if you also need Django's own administration site (`/admin/`, through the tunnel), create a
+superuser on the server too. It is separate from the QMS administrator:
 
 ```bash
 ssh qmsdeploy@qms.example.org
@@ -176,8 +222,20 @@ cd /opt/samd_qms
 docker compose -f compose.prod.yaml exec app python manage.py createsuperuser
 ```
 
-Then sign in at `https://qms.example.org`, and follow the in-app help for setting up devices and
-teams.
+Then follow the in-app help for setting up devices, teams and roles.
+
+### Single sign-on callbacks
+
+If you use single sign-on, register the callback address with each provider, using the address you
+chose in section 1. The callback must match exactly, or sign-in fails with a redirect error.
+
+| Option | Callback to register, for each provider |
+| --- | --- |
+| A. Root of the name | `https://qms.example.org/accounts/<provider>/login/callback/` |
+| B. Path | `https://qms.example.org/qms/accounts/<provider>/login/callback/` |
+
+`<provider>` is `microsoft`, `google`, `github`, `orcid` or `linkedin`, for the ones you have
+configured.
 
 ---
 
@@ -306,8 +364,8 @@ Then, from your workstation, skip `make provision` and deploy as in [section 3.3
 In `inventory.ini`, set `ansible_user` to a user that can use `sudo` (not `qmsdeploy`). In
 `group_vars`, set `admin_ssh_keys` to the keys that should keep access.
 
-> **Note.** `provision.yml` does not yet support RHEL. These steps are the manual equivalent, and
-> `make deploy` is the same on every supported system.
+> **Note.** On RHEL 9 and 10, `make provision` does these steps for you (see the table at the top).
+> Use the steps above only for Rocky Linux, AlmaLinux and other rebuilds, or to check the result.
 
 ---
 
@@ -322,9 +380,9 @@ To change the software and release it, see [Developing and releasing](developing
 | Follow the logs | `scripts/remote.sh -e production logs web` (or `app`, `certbot`, `scheduler`, `db`) |
 | Upgrade to a new release | `make deploy ENV=production VERSION=1.0.1` (backs up first) |
 | Roll back | `make deploy ENV=production VERSION=1.0.0`. If the new release ran migrations, restore the pre-deploy backup first (see [deployment.md](deployment.md#backups-and-restore)) |
-| Administer the site | `scripts/remote.sh -e production tunnel`, then open `https://localhost:8443/admin/` |
+| Administer the site | `scripts/remote.sh -e production tunnel` (prints the address), then open `https://localhost:8443/admin/` (or `/qms/admin/` for option B) |
 | Check the certificate | [Section 5](#5-check-the-certificate) |
-| Check the health of the site | `curl -s https://qms.example.org/healthz` |
+| Check the health of the site | `curl -s https://qms.example.org/healthz` (option B: `https://qms.example.org/qms/healthz`), or `scripts/remote.sh -e production health` |
 
 The certificate renews without action. Check the expiry date now and then with section 5, and
 investigate if certbot reports failures for more than a day.
@@ -342,6 +400,9 @@ investigate if certbot reports failures for more than a day.
 | Site works over HTTP but not HTTPS | Port 443 is blocked, or the web container is not running: check `docker compose ... ps` and `logs web`. |
 | On Red Hat, the web container cannot read its files | SELinux is blocking them. Confirm the Compose file has `:z` on the `./apache` mounts, and that the files are in `/opt/samd_qms`. |
 | `make deploy` says a secret is a placeholder | Set the value in `group_vars/qms/vault.yml`, then encrypt it again. |
+| Option B: the root address does not redirect to `/qms/` | Check `qms_url_prefix` in `host_vars/<name>.yml` and redeploy. The redirect is written when the web container starts. |
+| Option B: a page or the health check is 404 | The address is missing `/qms`. Use `/qms/` for pages and `/qms/healthz` for the health check. |
+| Sign-in with single sign-on fails with a redirect or callback error | The callback registered with the provider does not match section 4, character for character (option A has no `/qms`; option B has it). |
 
 To read the certificate-related logs:
 
