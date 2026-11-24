@@ -35,8 +35,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # postgresql-client: pg_dump / pg_restore for the backup and restore scripts.
 # curl: container health checks.
+# git: document exchange syncs approved documents to a git repository (qms/doc_exchange.py).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends postgresql-client curl \
+ && apt-get install -y --no-install-recommends postgresql-client curl git \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 10001 qms \
  && useradd --system --uid 10001 --gid qms --home /app --shell /usr/sbin/nologin qms
