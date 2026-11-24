@@ -34,7 +34,7 @@ class TwoFactorMiddleware:
 
     @staticmethod
     def _needs_two_factor(request):
-        path = request.path
+        path = request.path_info  # without QMS_URL_PREFIX, so the rules below hold under a sub-path
         if not request.user.is_authenticated or path.startswith(OPEN_PREFIXES):
             return False
         return path.startswith(PMS_PREFIX) or settings.QMS_TWO_FACTOR

@@ -445,6 +445,7 @@ the media directory publicly.
 | `QMS_RISK_ACCEPTABLE_MAX` | `4` | Score ≤ this is acceptable |
 | `QMS_RISK_UNACCEPTABLE_MIN` | `10` | Score ≥ this is unacceptable |
 | `QMS_ATTACHMENT_MAX_MB` | `25` | Upload size limit |
+| `QMS_URL_PREFIX` | empty | Path the site is published under, e.g. `/qms` for `https://<domain>/qms`. Django sets `FORCE_SCRIPT_NAME` to it; the proxy removes it before the app. Middleware matches `request.path_info`, not `request.path` |
 | `QMS_ADMIN_HOSTS` | empty | Hosts where Django admin answers (production: `localhost:8443`, the SSH tunnel); empty = all |
 | `QMS_SIGNER_SSO_PROVIDERS` | empty | Production: signers must be connected to one of these providers (env, comma-separated) |
 | `QMS_SIGNER_EMAIL_DOMAINS` | empty | Production: and have a verified email at one of these domains |

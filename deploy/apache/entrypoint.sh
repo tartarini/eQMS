@@ -9,6 +9,13 @@
 set -eu
 
 : "${QMS_DOMAIN:?set QMS_DOMAIN}"
+# Sub-path the site is published under ("" for the domain root, or e.g. /qms). Normalised the
+# same way as config/settings.py: one leading slash, no trailing slash.
+p="${QMS_URL_PREFIX:-}"; p="${p#/}"; p="${p%/}"
+QMS_URL_PREFIX="${p:+/$p}"
+case "$QMS_URL_PREFIX" in
+  *[!A-Za-z0-9_/-]*) echo "QMS_URL_PREFIX may only contain letters, digits, _, - and /" >&2; exit 1 ;;
+esac
 TLS=/usr/local/apache2/tls
 LE=/etc/letsencrypt/live/$QMS_DOMAIN
 RENDERED=/usr/local/apache2/conf/extra/qms.conf
@@ -31,7 +38,11 @@ render() {
     fi
     cert="$TLS/fallback.crt"; key="$TLS/fallback.key"
   fi
-  sed -e "s|@QMS_DOMAIN@|$QMS_DOMAIN|g" -e "s|@PUBLIC_CERT@|$cert|g" -e "s|@PUBLIC_KEY@|$key|g" \
+  root_redirect=""
+  if [ -n "$QMS_URL_PREFIX" ]; then root_redirect="RedirectMatch 302 ^/\$ $QMS_URL_PREFIX/"; fi
+  sed -e "s|@QMS_DOMAIN@|$QMS_DOMAIN|g" -e "s|@URL_PREFIX@|$QMS_URL_PREFIX|g" \
+    -e "s|@ROOT_REDIRECT@|$root_redirect|g" \
+    -e "s|@PUBLIC_CERT@|$cert|g" -e "s|@PUBLIC_KEY@|$key|g" \
     /etc/apache2-templates/qms.conf.template > "$RENDERED"
 }
 

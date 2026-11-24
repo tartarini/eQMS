@@ -314,6 +314,31 @@ previous version: `make deploy ENV=production VERSION=<previous>`. If it did, re
 `pre-deploy` backup taken by that deployment (disaster-recovery steps above, using that folder),
 then deploy the previous version.
 
+### Publishing under a path, e.g. `https://vht.shef.ac.uk/qms`
+
+For a host you run for SAMD_QMS alone, the site can sit under a path instead of the root of the
+domain. Set the path for that server in a host variables file, named after the inventory entry:
+
+```yaml
+# deploy/ansible/host_vars/vht.shef.ac.uk.yml   (not secret; commit it if you like)
+qms_url_prefix: "/qms"
+```
+
+Then deploy as usual (`make deploy ENV=production VERSION=X.Y.Z`). The server's Apache serves the
+app at `https://<domain>/qms/`, redirects `https://<domain>/` there, and the Let's Encrypt
+certificate is for `<domain>` as before. Then:
+
+- Register the single sign-on callback at each provider as
+  `https://<domain>/qms/accounts/<provider>/login/callback/` (the old root callbacks no longer work).
+- The uptime check is `https://<domain>/qms/healthz`; `scripts/remote.sh health` and `status` read
+  the prefix from the server's `.env`.
+- Administration is `https://localhost:8443/qms/admin/` through `scripts/remote.sh tunnel` (the
+  command prints the address).
+- Leave `qms_url_prefix` empty for a server that has its own domain, such as the planned VM.
+
+The prefix is also set in the app as `QMS_URL_PREFIX` (see the settings reference). Development
+and tests leave it empty.
+
 ### Administration (`/admin/`) through an SSH tunnel
 
 Django admin can change accounts, groups and settings outside the QMS workflows, so it is not
@@ -354,7 +379,7 @@ provider has no client id.
 
 | Where | Setting |
 | --- | --- |
-| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
+| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `qms_url_prefix` (per host: `host_vars/<host>.yml`), `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
 | `group_vars/production/vars.yml` | Production only: `qms_signer_sso_providers`, `qms_signer_email_domains`, the off-site backup method and target |
 | `group_vars/qms/vault.yml` (encrypted) | `vault_django_secret_key`, `vault_postgres_password`, `vault_smtp_password`, `vault_registry_*`, `vault_sso_*_secret`, `vault_backup_gdrive_service_account_json`, `vault_backup_crypt_*` |
 | `/opt/samd_qms/.env` (rendered) | Values substituted into `compose.prod.yaml` |

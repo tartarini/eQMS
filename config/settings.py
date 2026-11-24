@@ -254,6 +254,14 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
     "loggers": {"django.db.backends": {"level": "WARNING"}},
 }
+# Sub-path the site is published under, e.g. QMS_URL_PREFIX=/qms for https://vht.shef.ac.uk/qms.
+# Empty (the default) serves the site from the root of its domain. When set, Django puts the
+# prefix into every URL it builds; the reverse proxy strips it before the request reaches the app
+# (deploy/apache/qms.conf.template). Middleware must match request.path_info, not request.path.
+_url_prefix = os.environ.get("QMS_URL_PREFIX", "").strip().strip("/")
+QMS_URL_PREFIX = f"/{_url_prefix}" if _url_prefix else ""
+if QMS_URL_PREFIX:
+    FORCE_SCRIPT_NAME = QMS_URL_PREFIX
 QMS_BASE_URL = os.environ.get("QMS_BASE_URL", "http://127.0.0.1:8000")
 QMS_NOTIFICATIONS_ENABLED = True
 QMS_REMINDER_LOOKAHEAD_DAYS = 7

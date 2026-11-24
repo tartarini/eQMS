@@ -331,7 +331,9 @@ REQUIREMENTS = [
      "session time-out. On production, Django admin answers only through the SSH tunnel, not "
      "on the public site.", "H",
      ["test_admin_access.AdminAccessTests.test_admin_answers_everywhere_when_no_hosts_are_set",
-      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host"], ["IQ-03"]),
+      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host",
+      "test_admin_access.AdminAccessTests.test_admin_stays_on_the_tunnel_under_a_sub_path"],
+     ["IQ-03"]),
     ("URS-92", "Operation", "Scheduled jobs (backup, PMS generation, reminders, audit "
      "verification) run daily and alert on failure.", "M",
      ["test_ops.SchedulerTests.test_next_run",
@@ -623,7 +625,8 @@ REQUIREMENTS = [
       "test_two_factor.QmsTwoFactorTests.test_qms_user_with_an_authenticator_must_enter_a_code_each_session",
       "test_two_factor.QmsTwoFactorTests.test_qms_pages_open_once_the_code_is_completed",
       "test_two_factor.QmsTwoFactorTests.test_sign_in_and_sign_out_stay_open_without_a_code",
-      "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off"],
+      "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off",
+      "test_two_factor.SubPathTwoFactorTests.test_surveillance_pages_need_a_code_under_a_sub_path"],
      []),
     ("URS-126", "Notifications", "Every notification is kept until it is sent, and is sent after "
      "the change that caused it commits. A change that is rolled back notifies nobody. A message "

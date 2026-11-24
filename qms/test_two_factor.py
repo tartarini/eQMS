@@ -34,6 +34,18 @@ class QmsTwoFactorTests(TestCase):
         self.assertEqual(self.client.get(reverse("socialaccount_connections")).status_code, 200)
 
 
+@override_settings(QMS_TWO_FACTOR=False, FORCE_SCRIPT_NAME="/qms")
+class SubPathTwoFactorTests(TestCase):
+    """Published under /qms: the surveillance code rule still applies, as the proxy strips /qms."""
+
+    def test_surveillance_pages_need_a_code_under_a_sub_path(self):
+        user = end_user("qa_seven")
+        sign_in(self.client, user, second_factor=False)
+        response = self.client.get("/pms/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("mfa_activate_totp"), response.url)
+
+
 class QmsTwoFactorOffTests(TestCase):
     """Development, staging and the test suite: QMS sign-in is unchanged."""
 

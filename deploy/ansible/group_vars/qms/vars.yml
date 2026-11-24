@@ -8,6 +8,9 @@ qms_version: "1.0.0"                           # the validated release to run (i
 
 # --- site ------------------------------------------------------------------------
 qms_domain: "{{ inventory_hostname }}"         # DNS must point here before first deploy
+# "" serves SAMD_QMS at the root of qms_domain. Set "/qms" in host_vars/<host>.yml to publish it
+# at https://<domain>/qms on a host that also serves other sites (see docs/deployment.md).
+qms_url_prefix: ""
 acme_email: it-ops@example.org                 # Let's Encrypt account / expiry notices
 qms_sso_allowed_domains: example.org
 # Who may sign (finding F6): accounts connected to these providers, with a verified email at

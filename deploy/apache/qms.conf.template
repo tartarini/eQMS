@@ -1,5 +1,8 @@
 # Rendered by entrypoint.sh: @QMS_DOMAIN@ is the public domain; @PUBLIC_CERT@ and
 # @PUBLIC_KEY@ are the Let's Encrypt certificate, or a temporary self-signed one until it exists.
+# @URL_PREFIX@ is empty (the app at the domain root) or a sub-path such as /qms (QMS_URL_PREFIX).
+# The app builds its URLs with that prefix, so Apache forwards /qms/... to the app unchanged and
+# the app sees the prefix as its script name. @ROOT_REDIRECT@ sends the bare domain to the prefix.
 
 # Public site: plain HTTP only for the Let's Encrypt challenge and the redirect to HTTPS.
 <VirtualHost *:80>
@@ -33,16 +36,19 @@
     # Tells the app the request arrived over HTTPS (settings.SECURE_PROXY_SSL_HEADER).
     RequestHeader set X-Forwarded-Proto "https"
 
+    @ROOT_REDIRECT@
+
     # Uploaded files are only ever served through login-protected app views, and the
     # administration pages are reached only through the SSH tunnel (the site below).
     RewriteEngine On
-    RewriteRule ^/(media|admin)(/|$) - [R=404,L]
+    RewriteRule ^@URL_PREFIX@/(media|admin)(/|$) - [R=404,L]
 
     ProxyRequests Off
     ProxyPreserveHost On
     ProxyTimeout 180
-    ProxyPass / http://app:8000/ retry=0
-    ProxyPassReverse / http://app:8000/
+    RedirectMatch 301 ^@URL_PREFIX@$ @URL_PREFIX@/
+    ProxyPass @URL_PREFIX@/ http://app:8000/ retry=0
+    ProxyPassReverse @URL_PREFIX@/ http://app:8000/
 
     AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json image/svg+xml
 </VirtualHost>
@@ -67,11 +73,12 @@
     RequestHeader set X-Forwarded-Proto "https"
 
     RewriteEngine On
-    RewriteRule ^/media(/|$) - [R=404,L]
+    RewriteRule ^@URL_PREFIX@/media(/|$) - [R=404,L]
 
     ProxyRequests Off
     ProxyPreserveHost On
     ProxyTimeout 180
-    ProxyPass / http://app:8000/ retry=0
-    ProxyPassReverse / http://app:8000/
+    RedirectMatch 301 ^@URL_PREFIX@$ @URL_PREFIX@/
+    ProxyPass @URL_PREFIX@/ http://app:8000/ retry=0
+    ProxyPassReverse @URL_PREFIX@/ http://app:8000/
 </VirtualHost>
