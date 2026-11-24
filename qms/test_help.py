@@ -23,6 +23,10 @@ def app_forms():
                  "TrainingRequirementForm", "HazardForm", "RiskControlForm", "SupplierForm",
                  "SupplierEvaluationForm", "SoupItemForm", "DeviceForm", "OrganisationForm"]:
         out.append((name, getattr(F, name)()))
+    from django.contrib.auth.models import AnonymousUser
+    from .models import DocumentVersion
+    out.append(("DocumentLinkForm", F.DocumentLinkForm(
+        user=AnonymousUser(), source=DocumentVersion(pk=1))))
     out.append(("TeamMemberForm", F.TeamMemberForm(device=None)))
     out.append(("TeamRolesForm", F.TeamRolesForm()))
     from .models import Device

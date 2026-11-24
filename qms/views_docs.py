@@ -6,14 +6,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
-from . import doc_exchange, services
+from . import doc_exchange, lineage, services
 from . import workflow as wf
 
 from .access import current_device, form_page, qms_member, require_access, run, scope
-from .forms import (DocumentForm, DocumentImportForm, SignForm, TrainingRequirementForm,
-                    VersionForm)
-from .models import (AuditEvent, Document, DocumentVersion, Signature, TrainingAssignment,
-                     TrainingRequirement)
+from .forms import (DocumentForm, DocumentImportForm, DocumentLinkForm, SignForm,
+                    TrainingRequirementForm, VersionForm)
+from .models import (AuditEvent, Document, DocumentLink, DocumentVersion, Signature,
+                     TrainingAssignment, TrainingRequirement)
 from .services import TransitionError
 
 
@@ -254,3 +254,39 @@ def document_import(request):
     return render(request, "qms/document_import.html", {
         "form": DocumentImportForm(), "results": results})
 
+
+@qms_member
+def document_lineage(request, number):
+    doc = get_object_or_404(Document.objects.select_related("owner", "device"), number=number)
+    require_access(request, doc.device)
+    data = lineage.build(doc, request.user)
+    for entry in data["entries"]:
+        version = entry["version"]
+        entry["link_form"] = DocumentLinkForm(user=request.user, source=version,
+                                              prefix=f"v{version.pk}")
+    return render(request, "qms/document_lineage.html", data)
+
+
+@qms_member
+@require_POST
+def version_link_add(request, pk):
+    source = get_object_or_404(DocumentVersion.objects.select_related("document__device"), pk=pk)
+    require_access(request, source.document.device)
+    form = DocumentLinkForm(request.POST, user=request.user, source=source,
+                                  prefix=f"v{source.pk}")
+    if form.is_valid():
+        run(request, services.link_versions, source, form.cleaned_data["target"],
+            form.cleaned_data["link_type"], request.user, success="Linked.")
+    else:
+        messages.error(request, "Choose a document version and a link type.")
+    return redirect("qms:document_lineage", number=source.document.number)
+
+
+@qms_member
+@require_POST
+def document_link_remove(request, pk):
+    link = get_object_or_404(DocumentLink.objects.select_related("source__document__device"),
+                             pk=pk)
+    require_access(request, link.source.document.device)
+    run(request, services.unlink_versions, link, request.user, success="Link removed.")
+    return redirect("qms:document_lineage", number=link.source.document.number)

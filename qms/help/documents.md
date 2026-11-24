@@ -21,6 +21,12 @@ A document is either **QMS-wide** (no device: procedures and policies that apply
 
 Only one revision can be in progress per document. If the file on the server changes after upload, approval is refused and the version must be returned for a fresh upload.
 
+## Lineage and linked documents
+
+**Lineage** (on a document's page) shows every version in order: what changed from the version before (the summary, and whether the file was replaced, with its checksum), who approved and signed each version, the history of that version, and the document versions it is linked to. Each linked version shows who approved it, so you can see what a version was approved against.
+
+To link a version, open **Lineage**, expand **Link to another document version** under that version, choose any version of a document you can see, and choose a link type. Links are kept in the audit trail. A link can be removed only while the version it starts from is a draft or in review; after that it stays, like the rest of an approved version.
+
 ## Periodic review and withdrawal
 
 Each document has a review period (24 months by default). As the review date approaches it appears on the dashboard. The owner and device QA are emailed once at 60, 30, 7 and 0 days before the review date, and once when it is overdue. If nothing needs changing, QA records a signed **Periodic review: no change needed**, which resets the date; otherwise create a new version. To retire a document, QA uses **Withdraw document** with a signed reason.

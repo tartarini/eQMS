@@ -144,6 +144,15 @@ ssh qmsdeploy@qms.example.org
 cd /opt/samd_qms && docker compose -f compose.prod.yaml exec app python manage.py createsuperuser
 ```
 
+A QMS admin manages SAMD_QMS overall and is the only one who can appoint Device admins. Create
+one with the command below. It asks for the password at a prompt (nothing is written to the
+shell history), puts the account in the QMS admin group, and records the creation in the audit
+trail. It does not give access to the Django admin; that still needs `createsuperuser`.
+
+```bash
+scripts/remote.sh -e production manage create_qms_admin <username> --email <address>
+```
+
 ### Working on the server day to day
 
 `scripts/remote.sh` wraps the routine SSH work. It finds the server in
@@ -164,6 +173,7 @@ scripts/remote.sh fetch-backup 20261109T023000Z-scheduled   # copy one to ./back
 scripts/remote.sh offsite-backup             # copy backups off-site now
 scripts/remote.sh -e production tunnel       # Django admin at https://localhost:8443/admin/
 scripts/remote.sh -e production createsuperuser
+scripts/remote.sh -e production manage create_qms_admin <username> --email <address>
 scripts/remote.sh -e production manage send_alert "IQ-04 test"
 ```
 

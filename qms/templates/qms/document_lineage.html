@@ -1,0 +1,62 @@
+{% extends "qms/base.html" %}
+{% load qms_help %}
+{% block title %}Lineage {{ document.number }} – SAMD_QMS{% endblock %}
+{% block content %}
+<p class="muted small"><a href="{% url 'qms:document_detail' document.number %}">← {{ document.number }}</a> · {{ document.get_doc_type_display }} · {% if document.device %}<a href="{% url 'qms:device_detail' document.device.code %}">{{ document.device.name }}</a>{% else %}QMS-wide{% endif %}</p>
+<h1>Lineage · {{ document.number }} · {{ document.title }}</h1>
+<p class="small muted">Each version in order: what changed from the version before, who approved and signed it, its history, and the document versions it is linked to, with their approvals. Links to documents you cannot see are not shown.</p>
+
+{% for e in entries %}
+<div class="panel" id="v-{{ e.version.pk }}">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+    <h2 style="margin:0">v{{ e.version.version }}</h2>
+    <span class="badge {% if e.version.status == 'effective' %}done{% elif e.version.status == 'in_review' or e.version.status == 'approved' %}warn{% endif %}">{{ e.version.get_status_display }}</span>
+  </div>
+  <p class="small muted">By {{ e.version.author|default:"—" }} · created {{ e.version.created_at|date:"d M Y" }}{% if e.version.approved_at %} · approved {{ e.version.approved_at|date:"d M Y" }}{% endif %}{% if e.version.effective_date %} · effective {{ e.version.effective_date|date:"d M Y" }}{% endif %}</p>
+
+  <h3>What changed{% if e.previous %} from v{{ e.previous.version }}{% else %} (first version){% endif %}</h3>
+  <table>
+    <tr><th style="width:20%">Summary</th><td style="white-space:pre-wrap">{{ e.version.change_summary }}</td></tr>
+    <tr><th>File</th><td>{{ e.file_change }}{% if e.version.sha256 %} <span class="muted small">checksum {{ e.version.sha256|slice:":12" }}…</span>{% endif %}</td></tr>
+    <tr><th>Change request</th><td>{% if e.version.change_request %}<a href="{% url 'qms:record_detail' e.version.change_request.ref %}">{{ e.version.change_request.ref }}</a> {{ e.version.change_request.title }}{% else %}—{% endif %}</td></tr>
+  </table>
+
+  <h3>Approvers and signatures</h3>
+  <ul class="small">
+    {% for s in e.signatures %}<li>{{ s.signer_name }} · {{ s.meaning }} · {{ s.signed_at|date:"d M Y H:i" }}{% if s.comment %} · “{{ s.comment }}”{% endif %}</li>{% empty %}<li class="muted">Not approved yet.</li>{% endfor %}
+  </ul>
+
+  <h3>Linked documents</h3>
+  <table class="small">
+    {% for item in e.links %}
+    <tr>
+      <td>{% if item.outward %}This version {{ item.link.get_link_type_display }}{% else %}{{ item.link.get_link_type_display|capfirst }} this version{% endif %}</td>
+      <td><a href="{% url 'qms:document_lineage' item.other.document.number %}">{{ item.other.document.number }} v{{ item.other.version }}</a> <span class="muted">({{ item.other.get_status_display }})</span><br>{{ item.other.document.title }}</td>
+      <td>{% for s in item.approvals %}<div>Approved by {{ s.signer_name }}, {{ s.signed_at|date:"d M Y" }}</div>{% empty %}<span class="muted">Not approved</span>{% endfor %}</td>
+      <td>{% if item.removable %}<form method="post" action="{% url 'qms:document_link_remove' item.link.pk %}">{% csrf_token %}<button class="btn secondary" style="padding:2px 8px">Remove</button></form>{% endif %}</td>
+    </tr>
+    {% empty %}<tr><td class="muted">No linked documents.</td></tr>{% endfor %}
+  </table>
+  <details class="action"><summary>Link to another document version</summary>
+    <form method="post" action="{% url 'qms:version_link_add' e.version.pk %}" class="filters" style="margin-top:8px">{% csrf_token %}
+      {% for field in e.link_form %}
+      <div><span class="label-row"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{% help_icon field %}</span>{{ field }}</div>
+      {% endfor %}
+      <div><button class="btn secondary">Add link</button></div>
+    </form>
+  </details>
+
+  <h3>History</h3>
+  <table class="small">
+    {% for ev in e.events %}
+    <tr><td style="white-space:nowrap">{{ ev.timestamp|date:"d M Y H:i" }}</td><td>{{ ev.actor_name }}</td>
+        <td><strong>{{ ev.action }}</strong>{% for k, v in ev.lines %}{% if k != "state hash" %}<div><span class="muted">{{ k }}:</span> {{ v|truncatechars:200 }}</div>{% endif %}{% endfor %}{% if ev.comment %}<div><em>“{{ ev.comment }}”</em></div>{% endif %}</td></tr>
+    {% empty %}<tr><td class="muted">No changes recorded.</td></tr>{% endfor %}
+  </table>
+</div>
+{% empty %}
+<div class="panel"><p class="muted">No versions yet. <a href="{% url 'qms:version_create' document.number %}">Add the first one.</a></p></div>
+{% endfor %}
+
+{% include "qms/_audit.html" with events=events show_subject=False %}
+{% endblock %}

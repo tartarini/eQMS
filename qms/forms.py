@@ -7,8 +7,8 @@ from django.core.validators import MaxValueValidator
 
 from . import workflow as wf
 from .models import (AUTHORISED_REP_ROLE, MANUFACTURER_ROLE, OPERATOR_ROLE_LABELS,
-                     OPERATOR_ROLES, Attachment, Device, Document, DocumentVersion, Hazard,
-                     Organisation, Record, RecordLink, RiskControl, SoupItem, Supplier,
+                     OPERATOR_ROLES, Attachment, Device, Document, DocumentLink, DocumentVersion,
+                     Hazard, Organisation, Record, RecordLink, RiskControl, SoupItem, Supplier,
                      join_operator_roles, parse_operator_roles)
 
 DATE_FIELDS = {"date_aware", "effectiveness_due", "due_date", "period_start", "period_end",
@@ -206,6 +206,26 @@ class VersionForm(DeviceScopedForm, forms.ModelForm):
         if f and hasattr(f, "size") and not getattr(f, "_committed", True):
             validate_upload(f)
         return f
+
+
+class DocumentLinkForm(forms.Form):
+    """Link a document version to another version the person can see."""
+    target = forms.ModelChoiceField(queryset=DocumentVersion.objects.none(),
+                                    label="Linked document version")
+    link_type = forms.ChoiceField(choices=DocumentLink.LINK_TYPES, label="Link type")
+
+    def __init__(self, *args, user, source, **kwargs):
+        from django.db.models import Q
+
+        from .access import accessible_devices
+        super().__init__(*args, **kwargs)
+        visible = Q(document__device__isnull=True) | Q(
+            document__device__in=accessible_devices(user))
+        self.fields["target"].queryset = (
+            DocumentVersion.objects.filter(visible).exclude(pk=source.pk)
+            .select_related("document").order_by("document__number", "-created_at"))
+        self.fields["target"].label_from_instance = lambda v: (
+            f"{v.document.number} v{v.version} ({v.get_status_display()}) · {v.document.title}")
 
 
 class TrainingRequirementForm(forms.Form):

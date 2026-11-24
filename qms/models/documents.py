@@ -3,10 +3,11 @@ from datetime import date
 
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
-from .core import AuditedModel, ImmutableError, add_months, sha256_of
+from .core import AuditEvent, AuditedModel, ImmutableError, add_months, sha256_of
 from .devices import TECH_FILE_SECTIONS
 
 DOC_TYPES = [
@@ -168,6 +169,60 @@ class DocumentVersion(AuditedModel):
             return False
         with self.file.open("rb") as f:
             return sha256_of(f) == self.sha256
+
+
+class DocumentLink(models.Model):
+    """A link from one document version to another (any document, any version).
+
+    Read as "this version <link type> the other version". Links are audited, and they are never
+    edited. One can be removed only while the version it starts from is a draft or in review,
+    as record links are, so an approved version keeps the links it was approved with.
+    """
+    LINK_TYPES = [
+        ("relates_to", "relates to"),
+        ("refers_to", "refers to"),
+        ("implements", "implements"),
+    ]
+    OPEN_STATUSES = ("draft", "in_review")
+
+    source = models.ForeignKey(DocumentVersion, on_delete=models.PROTECT,
+                               related_name="outgoing_links")
+    target = models.ForeignKey(DocumentVersion, on_delete=models.PROTECT,
+                               related_name="incoming_links")
+    link_type = models.CharField(max_length=20, choices=LINK_TYPES)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.PROTECT, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("source", "target", "link_type")]
+        ordering = ["created_at", "pk"]
+
+    def __str__(self):
+        return f"{self.source} {self.get_link_type_display()} {self.target}"
+
+    @property
+    def removable(self) -> bool:
+        return self.source.status in self.OPEN_STATUSES
+
+    def clean(self):
+        if self.source_id and self.source_id == self.target_id:
+            raise ValidationError("A version cannot be linked to itself.")
+
+    def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
+        if creating:
+            AuditEvent.log("link", obj=self.source, actor=self.created_by,
+                           changes={"link": [None, f"{self.get_link_type_display()} {self.target}"]})
+
+    def delete(self, *args, **kwargs):
+        if not self.removable:
+            raise ImmutableError(f"{self.source} is {self.source.get_status_display().lower()}; "
+                                 "its links are locked.")
+        AuditEvent.log("unlink", obj=self.source,
+                       changes={"link": [f"{self.get_link_type_display()} {self.target}", None]})
+        return super().delete(*args, **kwargs)
 
 
 class TrainingRequirement(AuditedModel):

@@ -11,9 +11,9 @@ from django.utils import timezone
 
 from . import notifications
 from . import workflow as wf
-from .models import (AuditEvent, Document, DocumentVersion, Hazard, PMSSchedule, Record,
-                     Signature, Supplier, TrainingAssignment, TrainingRequirement, add_months,
-                     verify_signing_credential)
+from .models import (AuditEvent, Document, DocumentLink, DocumentVersion, Hazard, PMSSchedule,
+                     Record, Signature, Supplier, TrainingAssignment, TrainingRequirement,
+                     add_months, verify_signing_credential)
 
 
 class TransitionError(Exception):
@@ -335,6 +335,34 @@ def obsolete_document(document: Document, user, secret: str, comment: str):
 
 
 # --- training -------------------------------------------------------------------------
+
+def link_versions(source: DocumentVersion, target: DocumentVersion, link_type: str,
+                  user) -> DocumentLink:
+    """Link ``source`` to ``target``, any version of any document the person can see. The
+    person must be on the source document's device team (any QMS member for QMS-wide ones)."""
+    from .access import can_access
+    errors = _device_error(user, source.document.device)
+    require(errors, target.document.device is None or can_access(user, target.document.device),
+            "Choose a document you can see.")
+    require(errors, source.pk != target.pk, "A version cannot be linked to itself.")
+    require(errors, not DocumentLink.objects.filter(
+        source=source, target=target, link_type=link_type).exists(),
+        "That link already exists.")
+    if errors:
+        raise TransitionError(errors)
+    return DocumentLink.objects.create(source=source, target=target, link_type=link_type,
+                                       created_by=user)
+
+
+def unlink_versions(link: DocumentLink, user) -> None:
+    """Remove a link, only while the version it starts from is a draft or in review."""
+    errors = _device_error(user, link.source.document.device)
+    require(errors, link.removable,
+            f"{link.source} is {link.source.get_status_display().lower()}; its links are locked.")
+    if errors:
+        raise TransitionError(errors)
+    link.delete()
+
 
 def _required_users(document):
     """People holding a required role: on the document's device, or anywhere for a QMS-wide

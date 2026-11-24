@@ -648,6 +648,45 @@ REQUIREMENTS = [
       "test_inbox.InboxViewTests.test_mark_all_read_needs_a_post_and_clears_only_my_unread",
       "test_inbox.InboxViewTests.test_header_shows_the_unread_count"],
      []),
+    ("URS-127", "Documents", "Each controlled document has a lineage page that shows, for each "
+     "version in order, what changed from the version before (the summary and whether the file was "
+     "replaced), who approved and signed it, its history, and the document versions it is linked to "
+     "with their approvals. A person can link a version to any document version they can see; "
+     "documents on teams they are not on are never shown. A link can be removed only while the "
+     "version it starts from is a draft or in review, and every link is recorded in the audit trail.", "M",
+     ["test_lineage.LinkTests.test_engineer_links_a_version_to_another_document_version",
+      "test_lineage.LinkTests.test_a_version_cannot_be_linked_to_itself",
+      "test_lineage.LinkTests.test_the_same_link_cannot_be_added_twice",
+      "test_lineage.LinkTests.test_a_document_on_another_team_cannot_be_linked_to",
+      "test_lineage.LinkTests.test_a_person_outside_the_source_team_cannot_link",
+      "test_lineage.LinkTests.test_the_form_offers_only_versions_the_person_can_see",
+      "test_lineage.LinkTests.test_a_link_can_be_removed_while_the_version_is_a_draft",
+      "test_lineage.LinkTests.test_links_on_an_approved_version_are_locked",
+      "test_lineage.LineageViewTests.test_lineage_shows_each_version_in_order_with_what_changed_and_who_approved",
+      "test_lineage.LineageViewTests.test_an_unchanged_file_is_reported_as_unchanged",
+      "test_lineage.LineageViewTests.test_a_linked_version_shows_the_approvers_of_that_version",
+      "test_lineage.LineageViewTests.test_links_to_documents_the_person_cannot_see_are_hidden",
+      "test_lineage.LineageViewTests.test_lineage_needs_access_to_the_document",
+      "test_lineage.LineageViewTests.test_signed_out_users_are_sent_to_sign_in",
+      "test_lineage.LineageViewTests.test_document_page_links_to_the_lineage",
+      "test_lineage.LineageViewTests.test_post_adds_a_link_from_the_lineage_page",
+      "test_lineage.LineageViewTests.test_post_removes_a_link_while_the_version_is_a_draft",
+      "test_lineage.LineageViewTests.test_a_person_outside_the_team_cannot_add_links",
+      "test_lineage.LineageViewTests.test_adding_a_link_needs_a_post"],
+     []),
+    ("URS-128", "Access", "A QMS admin account is created by an administrator from the command line. "
+     "The password is entered at a prompt and is never shown; the account is put in the QMS admin "
+     "group; a username or email already in use, or a password that fails the password rules, is "
+     "refused; and the creation is recorded in the audit trail.", "H",
+     ["test_create_qms_admin.CreateQmsAdminTests.test_creates_an_account_in_the_qms_admin_group",
+      "test_create_qms_admin.CreateQmsAdminTests.test_creation_is_recorded_in_the_audit_trail",
+      "test_create_qms_admin.CreateQmsAdminTests.test_the_group_is_created_if_it_is_missing",
+      "test_create_qms_admin.CreateQmsAdminTests.test_an_existing_username_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_an_email_already_in_use_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_mismatched_passwords_create_nothing",
+      "test_create_qms_admin.CreateQmsAdminTests.test_a_weak_password_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_email_is_required"],
+     []),
 ]
 
 

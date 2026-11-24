@@ -70,6 +70,9 @@ PAGE_HELP = {
     "version_download": ("documents", ""),
     "version_action": ("documents", "create-or-revise-a-document"),
     "document_obsolete": ("documents", "periodic-review-and-withdrawal"),
+    "document_lineage": ("documents", "lineage-and-linked-documents"),
+    "version_link_add": ("documents", "lineage-and-linked-documents"),
+    "document_link_remove": ("documents", "lineage-and-linked-documents"),
     "requirement_add": ("training", "for-qa"),
     "requirement_remove": ("training", "for-qa"),
     "my_training": ("training", ""),
@@ -301,6 +304,13 @@ FIELD_HELP = {
                  "{extensions}; up to {max_mb} MB."),
         "change_request": ("Change request", "The Change Request that authorised this revision, "
                            "if there is one."),
+    }),
+    "documentlink": ("documents", "Document link fields", {
+        "target": ("Linked document version", "The version of a document you can see that this "
+                   "version is linked to, for example the test report that verifies a "
+                   "specification version."),
+        "link_type": ("Link type", "How this version relates to the other, read as \"this "
+                      "version … the other version\". For example \"implements\" or \"refers to\"."),
     }),
     "training": ("training", "Training requirement fields", {
         "group": ("Role that must be trained", "Everyone with this role (on the document's "
@@ -580,7 +590,7 @@ FORM_GROUPS = {
     "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
     "AccessRequestForm": "accessrequest",
     "AccessApproveForm": "accessapprove", "AccessDeclineForm": "accessdecline",
-    "DocumentImportForm": "documentimport",
+    "DocumentImportForm": "documentimport", "DocumentLinkForm": "documentlink",
 }
 
 
