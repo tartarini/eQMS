@@ -37,13 +37,20 @@ the address and one setting differ.
 | **A. The root of a name** (default) | `https://qms.example.org/` | The VM serves SAMD_QMS and nothing else. No path setting is needed. |
 | **B. A path on a name** | `https://qms.example.org/qms/` | You want SAMD_QMS under a path of a name your organisation already uses, such as `vht.shef.ac.uk/qms`. The root address redirects to `/qms/`. |
 
-For option B, create a host variables file before you deploy. Its name must match the inventory
-line you write in [section 3.1](#31-describe-the-server) exactly:
+For option B, create a host variables file before you deploy. Do this on your workstation, not on
+the server, in a terminal opened at the root of the repository (the folder that contains
+`Makefile`, `docs/` and `deploy/`). The commands use relative paths, so run them from there:
 
 ```bash
+cd /path/to/SAMD_QMS            # the repository root on your workstation
 mkdir -p deploy/ansible/host_vars
 printf 'qms_url_prefix: "/qms"\n' > deploy/ansible/host_vars/qms.example.org.yml
 ```
+
+Check that the file name matches the host name on the inventory line you write in
+[section 3.1](#31-describe-the-server) exactly, character for character. Replace
+`qms.example.org` in the file name with that host name. If the two differ, Ansible ignores the
+file and the site is published at the root of the name.
 
 Option B changes these details, covered in [section 4](#4-first-start):
 
