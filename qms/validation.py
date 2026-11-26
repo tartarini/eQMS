@@ -687,6 +687,20 @@ REQUIREMENTS = [
       "test_create_qms_admin.CreateQmsAdminTests.test_a_weak_password_is_refused",
       "test_create_qms_admin.CreateQmsAdminTests.test_email_is_required"],
      []),
+    ("URS-129", "Configuration", "The product name shown in page titles, headers, footers, emails, "
+     "reports and help is set by QMS_PRODUCT_NAME and defaults to SAMD_QMS. A blank value falls back "
+     "to the default, surrounding spaces are trimmed, and a name containing HTML characters is escaped "
+     "wherever it is shown.", "L",
+     ["test_product_name.ProductNameSettingTests.test_defaults_to_samd_qms_when_not_set",
+      "test_product_name.ProductNameSettingTests.test_a_blank_value_falls_back_to_the_default",
+      "test_product_name.ProductNameSettingTests.test_is_read_from_the_environment_and_trimmed",
+      "test_product_name.ProductNameUseTests.test_pages_show_the_name_and_never_the_default",
+      "test_product_name.ProductNameUseTests.test_field_labels_use_the_name",
+      "test_product_name.ProductNameUseTests.test_field_reference_on_the_topic_page_uses_the_name",
+      "test_product_name.ProductNameUseTests.test_help_text_uses_the_name",
+      "test_product_name.ProductNameUseTests.test_a_name_with_html_characters_is_escaped_in_help",
+      "test_product_name.ProductNameUseTests.test_notification_subject_uses_the_name"],
+     []),
 ]
 
 
