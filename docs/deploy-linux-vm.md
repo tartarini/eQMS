@@ -11,7 +11,7 @@ Two routes, depending on the operating system:
 | --- | --- | --- |
 | **Ubuntu 22.04 or 24.04**, or Debian 12 | Automatically, by `make provision` (Ansible) | `make deploy` (Ansible) |
 | **Red Hat Enterprise Linux 9 or 10** | Automatically, by `make provision` (Ansible) | `make deploy` (Ansible) |
-| Rocky Linux, AlmaLinux, other rebuilds | By hand, using the steps in [section 6](#6-red-hat-family-rhel-rocky-alma) | `make deploy` (Ansible), from your workstation |
+| Rocky Linux, AlmaLinux, other rebuilds | By hand, using the steps in [section 6](#6-rocky-linux-almalinux-and-other-rebuilds-by-hand) | `make deploy` (Ansible), from your workstation |
 
 `make provision` refuses any other operating system. Rocky and AlmaLinux are not covered by the
 playbook, so they are prepared by hand. Everything after that is the same.
@@ -126,7 +126,11 @@ container retries once an hour if issuance fails, which stays inside those limit
 
 ---
 
-## 3. Ubuntu or Debian (Ansible)
+## 3. Ubuntu, Debian or Red Hat 9/10 (Ansible)
+
+This section applies to Ubuntu 22.04 and 24.04, Debian 12, RHEL 9 and RHEL 10. The steps are the
+same on all four. Rocky Linux and AlmaLinux: first do [section 6](#6-rocky-linux-almalinux-and-other-rebuilds-by-hand)
+by hand, then follow this section and skip 3.2.
 
 ### 3.1 Describe the server
 
@@ -143,6 +147,9 @@ Edit `inventory.ini` so the production host is the public name:
 [production]
 qms.example.org ansible_user=admin
 ```
+
+`ansible_user` must be an account that already exists on the server and can use `sudo`. Do not
+use `qmsdeploy`: provisioning creates that user.
 
 Edit `group_vars/qms/vars.yml` (shared settings) and `group_vars/production/vars.yml` (production
 only). The ones that matter for the certificate and the first start:
@@ -175,6 +182,8 @@ Commit only the encrypted `vault.yml`, never the plain one, and keep a copy of t
 somewhere safe. Without it, the encrypted backups cannot be decrypted.
 
 ### 3.2 Prepare the server
+
+Rocky Linux and AlmaLinux: skip this step. You prepared the server in section 6.
 
 ```bash
 make provision ENV=production
@@ -276,19 +285,18 @@ ssh qmsdeploy@qms.example.org 'cd /opt/samd_qms && docker compose -f compose.pro
 
 ---
 
-## 6. Red Hat family (RHEL, Rocky, AlmaLinux)
+## 6. Rocky Linux, AlmaLinux and other rebuilds (by hand)
 
-For RHEL 9 and 10, `make provision` does these steps for you. Read this section only if you're
-preparing Rocky Linux or AlmaLinux, or if you want to check what the playbook did. These steps are
-for RHEL 9, Rocky Linux 9 and AlmaLinux 9. Run them as a user with `sudo` on the server. They
-match what `provision.yml` does on Ubuntu.
+Use this section only for Rocky Linux 9, AlmaLinux 9 and similar rebuilds. Ubuntu, Debian, RHEL 9
+and RHEL 10 do not use it: `make provision` does these steps for them. Run the steps below as a
+user with `sudo` on the server. They match what `provision.yml` does, so the result is the same as
+[section 3.2](#32-prepare-the-server).
 
-**Docker.** For RHEL use Docker's `rhel` repository; for Rocky and AlmaLinux use the `centos` one:
+**Docker.** Use Docker's `centos` repository for Rocky Linux and AlmaLinux:
 
 ```bash
 sudo dnf -y install dnf-plugins-core
-sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-# Rocky or AlmaLinux: use https://download.docker.com/linux/centos/docker-ce.repo instead
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
@@ -367,12 +375,12 @@ sudo systemctl enable --now dnf-automatic.timer
 
 **Time sync.** `sudo dnf -y install chrony && sudo systemctl enable --now chronyd`.
 
-Then, from your workstation, skip `make provision` and deploy as in [section 3.3](#33-deploy-a-release).
-In `inventory.ini`, set `ansible_user` to a user that can use `sudo` (not `qmsdeploy`). In
-`group_vars`, set `admin_ssh_keys` to the keys that should keep access.
+Then continue from your workstation with [section 3.1](#31-describe-the-server) and
+[section 3.3](#33-deploy-a-release). Skip 3.2, since you have just done its work by hand. Two
+settings in 3.1 matter here: `ansible_user` must be the sudo account you created or already use
+(not `qmsdeploy`), and `admin_ssh_keys` must list the keys that should keep access.
 
-> **Note.** On RHEL 9 and 10, `make provision` does these steps for you (see the table at the top).
-> Use the steps above only for Rocky Linux, AlmaLinux and other rebuilds, or to check the result.
+> **Note.** RHEL 9 and RHEL 10 do not use this section. Follow [section 3](#3-ubuntu-debian-or-red-hat-910-ansible).
 
 ---
 
