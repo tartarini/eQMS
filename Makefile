@@ -1,7 +1,7 @@
 # Shortcuts for development and deployment. Run `make help`.
 SHELL := /bin/bash
 COMPOSE := docker compose
-ANSIBLE := cd deploy/ansible && ansible-playbook
+ANSIBLE := cd deploy/ansible && ansible-playbook --ask-become-pass
 ENV ?= staging
 VERSION ?=
 

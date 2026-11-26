@@ -131,6 +131,12 @@
         update_cache: true
       when: ansible_os_family == 'Debian'
 
+    - name: Remove Podman's docker command, which conflicts with Docker CE (Red Hat)
+      ansible.builtin.dnf:
+        name: podman-docker
+        state: absent
+      when: ansible_os_family == 'RedHat'
+
     - name: Install Docker Engine and the Compose plugin (Red Hat)
       ansible.builtin.dnf:
         name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
