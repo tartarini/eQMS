@@ -84,14 +84,17 @@ case "$command" in
   status)
     on_server "set -e
       echo '== containers'; $COMPOSE ps
-      echo; echo '== health'; curl -fsS --max-time 10 https://$DOMAIN/healthz || echo 'healthz FAILED'
+      prefix=\$(sed -n 's/^QMS_URL_PREFIX=//p' $DIR/.env)
+      echo; echo '== health'; curl -fsS --max-time 10 https://$DOMAIN\$prefix/healthz || echo 'healthz FAILED'
       echo; echo '== disk'; df -h / $BACKUP_HOST_DIR | sed 1d
       echo; echo '== last deployments'; tail -n 5 $DIR/DEPLOYMENTS.log 2>/dev/null || echo 'none yet'
       echo; echo '== off-site backups'; tail -n 3 $DIR/OFFSITE.log 2>/dev/null || echo 'never run'"
     ;;
   health)
     need_host
-    curl -fsS --max-time 10 "https://$DOMAIN/healthz"; echo
+    # The public path prefix (QMS_URL_PREFIX, e.g. /qms) is read from the server's .env.
+    prefix="$(on_server "sed -n 's/^QMS_URL_PREFIX=//p' $DIR/.env")"
+    curl -fsS --max-time 10 "https://$DOMAIN$prefix/healthz"; echo
     ;;
   logs)
     on_server -t "$COMPOSE logs -f --tail=200 $(quote_args "$@")"
@@ -141,7 +144,8 @@ case "$command" in
     # admin included, as https://localhost:8443 on its loopback interface only, and sshd
     # allows forwarding to that port only. Local port 8443 must be free.
     need_host
-    echo "Admin for $ENV_NAME: https://localhost:8443/admin/  (Ctrl-C closes the tunnel)"
+    prefix="$(on_server "sed -n 's/^QMS_URL_PREFIX=//p' $DIR/.env")"
+    echo "Admin for $ENV_NAME: https://localhost:8443$prefix/admin/  (Ctrl-C closes the tunnel)"
     echo "The certificate is self-signed: accept the browser warning for localhost."
     ssh -N -o ExitOnForwardFailure=yes -p "$PORT" -L 127.0.0.1:8443:127.0.0.1:8443 "$USER_@$HOST"
     ;;

@@ -33,10 +33,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_STATIC_ROOT=/app/staticfiles \
     BACKUP_DIR=/backups
 
-# postgresql-client: pg_dump / pg_restore for the backup and restore scripts.
+# postgresql-client-16: pg_dump / pg_restore for the backup and restore scripts. It must match the
+# server's major version (production runs PostgreSQL 16); Debian bookworm ships 15, so use PGDG.
 # curl: container health checks.
+# git: document exchange syncs approved documents to a git repository (qms/doc_exchange.py).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends postgresql-client curl \
+ && apt-get install -y --no-install-recommends ca-certificates curl git gnupg \
+ && install -d /usr/share/postgresql-common/pgdg \
+ && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+ && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends postgresql-client-16 \
+ && apt-get purge -y --auto-remove gnupg \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 10001 qms \
  && useradd --system --uid 10001 --gid qms --home /app --shell /usr/sbin/nologin qms

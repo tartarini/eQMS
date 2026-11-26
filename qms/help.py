@@ -70,6 +70,9 @@ PAGE_HELP = {
     "version_download": ("documents", ""),
     "version_action": ("documents", "create-or-revise-a-document"),
     "document_obsolete": ("documents", "periodic-review-and-withdrawal"),
+    "document_lineage": ("documents", "lineage-and-linked-documents"),
+    "version_link_add": ("documents", "lineage-and-linked-documents"),
+    "document_link_remove": ("documents", "lineage-and-linked-documents"),
     "requirement_add": ("training", "for-qa"),
     "requirement_remove": ("training", "for-qa"),
     "my_training": ("training", ""),
@@ -109,6 +112,9 @@ PAGE_HELP = {
     "team_remove": ("devices", "device-teams"),
     "team_roles": ("devices", "roles-on-each-device"),
     "invitation_list": ("devices", "manage-invitations"),
+    "notification_list": ("getting-started", "your-inbox"),
+    "notification_open": ("getting-started", "your-inbox"),
+    "notification_read_all": ("getting-started", "your-inbox"),
     "invitation_create": ("devices", "invite-people"),
     "invitation_revoke": ("devices", "manage-invitations"),
     "invitation_resend": ("devices", "manage-invitations"),
@@ -299,6 +305,13 @@ FIELD_HELP = {
         "change_request": ("Change request", "The Change Request that authorised this revision, "
                            "if there is one."),
     }),
+    "documentlink": ("documents", "Document link fields", {
+        "target": ("Linked document version", "The version of a document you can see that this "
+                   "version is linked to, for example the test report that verifies a "
+                   "specification version."),
+        "link_type": ("Link type", "How this version relates to the other, read as \"this "
+                      "version … the other version\". For example \"implements\" or \"refers to\"."),
+    }),
     "training": ("training", "Training requirement fields", {
         "group": ("Role that must be trained", "Everyone with this role (on the document's "
                   "device team, for device documents) is assigned the effective version now and "
@@ -391,7 +404,7 @@ FIELD_HELP = {
         "active": ("Active", "Untick when the item is no longer used. It stays on record."),
     }),
     "team": ("devices", "Team fields", {
-        "user": ("Person", "Someone who already has a SAMD_QMS account and isn't on this team "
+        "user": ("Person", "Someone who already has a {product} account and isn't on this team "
                  "yet. To add someone new, use Invite people instead."),
         "roles": ("Roles on this device", "What they can do on this device only: Engineer, QA, "
                   "Clinical Safety Officer, and Device admin (invites people and manages this "
@@ -505,7 +518,7 @@ FIELD_HELP = {
                   "role still set on a device can't be removed."),
     }),
     "signingpin": ("getting-started", "Signing PIN fields", {
-        "current_password": ("Current password", "Your SAMD_QMS password, to confirm it is "
+        "current_password": ("Current password", "Your {product} password, to confirm it is "
                              "you."),
         "pin": ("New signing PIN", "At least 6 characters, used only for signing. Don't reuse a "
                 "password, and never share it: your signature means you personally approved."),
@@ -545,7 +558,7 @@ FIELD_HELP = {
                     "team knows it, so QA can add you to the right team."),
         "role": ("Role you need", "What you'll do: Engineer, QA or Clinical Safety Officer; an "
                  "auditor who only reads; or \"Not sure\". QA decides the roles you get."),
-        "reason": ("What you'll use SAMD_QMS for", "A sentence or two, and who asked you to "
+        "reason": ("What you'll use {product} for", "A sentence or two, and who asked you to "
                    "join if anyone did. Don't include patient or participant data."),
         "agree": ("Confirmation", "Confirms the details are yours and correct. QA may contact "
                   "you to check them."),
@@ -562,8 +575,8 @@ FIELD_HELP = {
                    "factual, for example \"Not part of a device team here\"."),
     }),
     "login": ("getting-started", "Sign-in fields", {
-        "username": ("Username", "Your SAMD_QMS username, from your administrator."),
-        "password": ("Password", "Your SAMD_QMS password. If you use single sign-on, choose "
+        "username": ("Username", "Your {product} username, from your administrator."),
+        "password": ("Password", "Your {product} password. If you use single sign-on, choose "
                      "\"Continue with…\" instead."),
     }),
 }
@@ -577,11 +590,12 @@ FORM_GROUPS = {
     "TeamRolesForm": "teamroles", "InvitationForm": "invitation",
     "AccessRequestForm": "accessrequest",
     "AccessApproveForm": "accessapprove", "AccessDeclineForm": "accessdecline",
-    "DocumentImportForm": "documentimport",
+    "DocumentImportForm": "documentimport", "DocumentLinkForm": "documentlink",
 }
 
 
-def help_vars() -> dict:
+def help_vars(html: bool = False) -> dict:
+    """Values for {placeholders} in help text. ``html`` escapes them for markdown output."""
     deadlines = "; ".join(f"{v['label']}, {v['days']} days"
                           for v in settings.QMS_VIGILANCE_DEADLINES.values())
     return {
@@ -593,6 +607,7 @@ def help_vars() -> dict:
         "acceptable_max": settings.QMS_RISK_ACCEPTABLE_MAX,
         "invite_days": settings.QMS_INVITATION_DAYS,
         "invite_max_days": settings.QMS_INVITATION_MAX_DAYS,
+        "product": escape(settings.QMS_PRODUCT_NAME) if html else settings.QMS_PRODUCT_NAME,
     }
 
 
@@ -630,7 +645,8 @@ def group_field_help(group: str, field_name: str):
         return None
     topic, _title, fields = entry
     label, text = fields[field_name]
-    return label, text.format(**help_vars()), help_url(topic, field_anchor(group, field_name))
+    return (label.format(**help_vars()), text.format(**help_vars()),
+            help_url(topic, field_anchor(group, field_name)))
 
 
 def page_help_url(url_name: str):
@@ -650,12 +666,14 @@ def _fields_reference(topic: str) -> str:
         out.append(f"### {title}\n")
         for name, (label, text) in fields.items():
             out.append(f'<div class="field-help" id="{field_anchor(group, name)}" markdown="1">\n'
-                       f"**{escape(label)}**: {text.format(**help_vars())}\n</div>\n")
+                       f"**{escape(label.format(**help_vars(html=True)))}**: "
+                       f"{text.format(**help_vars(html=True))}\n</div>\n")
     return "\n".join(out)
 
 
 @lru_cache(maxsize=None)
-def _render(slug: str) -> tuple:
+def _render(slug: str, product: str) -> tuple:
+    # ``product`` is part of the cache key: the field reference names the product.
     import markdown
     source = (HELP_DIR / f"{slug}.md").read_text(encoding="utf-8")
     reference = _fields_reference(slug)
@@ -674,7 +692,8 @@ def render_topic(slug: str) -> tuple:
         raise KeyError(slug)
     if settings.DEBUG:
         _render.cache_clear()
-    return _render(slug)
+    html, toc = _render(slug, settings.QMS_PRODUCT_NAME)
+    return html.replace("SAMD_QMS", escape(settings.QMS_PRODUCT_NAME)), toc
 
 
 def topic_anchors(slug: str) -> set:

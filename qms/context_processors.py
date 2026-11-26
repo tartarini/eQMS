@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from .help import PAGE_HELP, help_url
 from .access import accessible_devices, current_device, is_member, sees_all_devices
 
@@ -22,6 +24,16 @@ def devices(request):
     return data
 
 
+def inbox(request):
+    """How many notifications the signed-in person hasn't read, for the header."""
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return {}
+    from .models import Notification
+    return {"unread_notifications": Notification.objects.filter(
+        recipient=user, read_at__isnull=True).count()}
+
+
 def page_help(request):
     """Link to the help section for the current page, shown in the header of every page."""
     match = getattr(request, "resolver_match", None)
@@ -44,6 +56,11 @@ def release(request):
     return {"qms_version": settings.QMS_VERSION, "qms_commit": commit,
             "qms_commit_short": commit[:7] if commit != "unknown" else commit,
             "qms_copyright": settings.QMS_COPYRIGHT}
+
+
+def product(request):
+    """The product name for page headers and titles (QMS_PRODUCT_NAME)."""
+    return {"product_name": settings.QMS_PRODUCT_NAME}
 
 
 def admin_link(request):

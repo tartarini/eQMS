@@ -1,9 +1,9 @@
 {% extends "qms/base.html" %}
-{% block title %}{{ title }} – SAMD_QMS help{% endblock %}
+{% block title %}{{ title }} – {{ product_name }} help{% endblock %}
 {% block content %}
 <div class="help-layout">
   <nav class="help-nav panel" aria-label="Help topics">
-    <p class="small muted" style="margin:0 0 6px"><a href="{% url 'qms:help_index' %}">SAMD_QMS help</a></p>
+    <p class="small muted" style="margin:0 0 6px"><a href="{% url 'qms:help_index' %}">{{ product_name }} help</a></p>
     <ul>
       {% for slug, name, summary in topics %}
       <li><a href="{% url 'qms:help_topic' slug %}"{% if slug == topic %} aria-current="page"{% endif %}>{{ name }}</a></li>
@@ -21,7 +21,7 @@
     {{ content }}
     {% else %}
     <h1>Help</h1>
-    <p>How to use SAMD_QMS. This guide is part of the release you are using, so it always matches what you see. On any page, <strong>Help</strong> in the top bar opens the section about that page, and the <span class="help-icon" aria-hidden="true">?</span> beside a form field explains what to enter.</p>
+    <p>How to use {{ product_name }}. This guide is part of the release you are using, so it always matches what you see. On any page, <strong>Help</strong> in the top bar opens the section about that page, and the <span class="help-icon" aria-hidden="true">?</span> beside a form field explains what to enter.</p>
     <dl class="help-topics">
       {% for slug, name, summary in topics %}
       <dt><a href="{% url 'qms:help_topic' slug %}">{{ name }}</a></dt><dd>{{ summary }}</dd>

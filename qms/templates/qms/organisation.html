@@ -1,5 +1,5 @@
 {% extends "qms/base.html" %}
-{% block title %}Organisation – SAMD_QMS{% endblock %}
+{% block title %}Organisation – {{ product_name }}{% endblock %}
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
   <h1>{% if org %}{{ org.name }}{% else %}Organisation{% endif %}</h1>

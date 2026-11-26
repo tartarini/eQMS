@@ -133,7 +133,7 @@
 
     - name: Wait until the site answers over HTTPS
       ansible.builtin.uri:
-        url: "https://{{ qms_domain }}/healthz"
+        url: "https://{{ qms_domain }}{{ qms_url_prefix }}/healthz"
         return_content: true
       register: health
       until: health.status == 200 and health.json.version == qms_version
@@ -159,4 +159,4 @@
 
     - name: Summary
       ansible.builtin.debug:
-        msg: "SAMD_QMS {{ qms_version }} is live at https://{{ qms_domain }} — {{ audit.stdout }}"
+        msg: "{{ qms_product_name }} {{ qms_version }} is live at https://{{ qms_domain }}{{ qms_url_prefix }} — {{ audit.stdout }}"

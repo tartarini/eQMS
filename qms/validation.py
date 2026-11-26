@@ -331,7 +331,9 @@ REQUIREMENTS = [
      "session time-out. On production, Django admin answers only through the SSH tunnel, not "
      "on the public site.", "H",
      ["test_admin_access.AdminAccessTests.test_admin_answers_everywhere_when_no_hosts_are_set",
-      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host"], ["IQ-03"]),
+      "test_admin_access.AdminAccessTests.test_admin_only_through_the_tunnel_host",
+      "test_admin_access.AdminAccessTests.test_admin_stays_on_the_tunnel_under_a_sub_path"],
+     ["IQ-03"]),
     ("URS-92", "Operation", "Scheduled jobs (backup, PMS generation, reminders, audit "
      "verification) run daily and alert on failure.", "M",
      ["test_ops.SchedulerTests.test_next_run",
@@ -623,7 +625,81 @@ REQUIREMENTS = [
       "test_two_factor.QmsTwoFactorTests.test_qms_user_with_an_authenticator_must_enter_a_code_each_session",
       "test_two_factor.QmsTwoFactorTests.test_qms_pages_open_once_the_code_is_completed",
       "test_two_factor.QmsTwoFactorTests.test_sign_in_and_sign_out_stay_open_without_a_code",
-      "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off"],
+      "test_two_factor.QmsTwoFactorOffTests.test_qms_pages_do_not_ask_for_a_code_when_the_setting_is_off",
+      "test_two_factor.SubPathTwoFactorTests.test_surveillance_pages_need_a_code_under_a_sub_path"],
+     []),
+    ("URS-126", "Notifications", "Every notification is kept until it is sent, and is sent after "
+     "the change that caused it commits. A change that is rolled back notifies nobody. A message "
+     "that cannot be sent is tried again and marked as failed after the maximum attempts. Each "
+     "signed-in person sees their own notifications in the inbox, with the same text as the email, "
+     "and can open the page each one is about; nobody sees another person's notifications.", "M",
+     ["test_inbox.InboxQueueTests.test_message_is_stored_per_person_and_sent_with_a_link",
+      "test_inbox.InboxQueueTests.test_rolled_back_change_tells_nobody",
+      "test_inbox.InboxQueueTests.test_nothing_is_stored_when_notifications_are_off",
+      "test_inbox.InboxQueueTests.test_failed_send_is_kept_and_sent_on_the_next_run",
+      "test_inbox.InboxQueueTests.test_gives_up_after_the_maximum_attempts",
+      "test_inbox.InboxQueueTests.test_address_without_an_account_gets_email_but_no_inbox_entry",
+      "test_inbox.InboxQueueTests.test_dispatch_command_sends_what_is_waiting",
+      "test_inbox.InboxQueueTests.test_scheduler_sweep_sends_what_is_waiting",
+      "test_inbox.InboxViewTests.test_each_person_sees_only_their_own_notifications",
+      "test_inbox.InboxViewTests.test_opening_marks_it_read_and_goes_to_its_page",
+      "test_inbox.InboxViewTests.test_another_persons_notification_cannot_be_opened",
+      "test_inbox.InboxViewTests.test_links_to_other_sites_are_never_followed",
+      "test_inbox.InboxViewTests.test_mark_all_read_needs_a_post_and_clears_only_my_unread",
+      "test_inbox.InboxViewTests.test_header_shows_the_unread_count"],
+     []),
+    ("URS-127", "Documents", "Each controlled document has a lineage page that shows, for each "
+     "version in order, what changed from the version before (the summary and whether the file was "
+     "replaced), who approved and signed it, its history, and the document versions it is linked to "
+     "with their approvals. A person can link a version to any document version they can see; "
+     "documents on teams they are not on are never shown. A link can be removed only while the "
+     "version it starts from is a draft or in review, and every link is recorded in the audit trail.", "M",
+     ["test_lineage.LinkTests.test_engineer_links_a_version_to_another_document_version",
+      "test_lineage.LinkTests.test_a_version_cannot_be_linked_to_itself",
+      "test_lineage.LinkTests.test_the_same_link_cannot_be_added_twice",
+      "test_lineage.LinkTests.test_a_document_on_another_team_cannot_be_linked_to",
+      "test_lineage.LinkTests.test_a_person_outside_the_source_team_cannot_link",
+      "test_lineage.LinkTests.test_the_form_offers_only_versions_the_person_can_see",
+      "test_lineage.LinkTests.test_a_link_can_be_removed_while_the_version_is_a_draft",
+      "test_lineage.LinkTests.test_links_on_an_approved_version_are_locked",
+      "test_lineage.LineageViewTests.test_lineage_shows_each_version_in_order_with_what_changed_and_who_approved",
+      "test_lineage.LineageViewTests.test_an_unchanged_file_is_reported_as_unchanged",
+      "test_lineage.LineageViewTests.test_a_linked_version_shows_the_approvers_of_that_version",
+      "test_lineage.LineageViewTests.test_links_to_documents_the_person_cannot_see_are_hidden",
+      "test_lineage.LineageViewTests.test_lineage_needs_access_to_the_document",
+      "test_lineage.LineageViewTests.test_signed_out_users_are_sent_to_sign_in",
+      "test_lineage.LineageViewTests.test_document_page_links_to_the_lineage",
+      "test_lineage.LineageViewTests.test_post_adds_a_link_from_the_lineage_page",
+      "test_lineage.LineageViewTests.test_post_removes_a_link_while_the_version_is_a_draft",
+      "test_lineage.LineageViewTests.test_a_person_outside_the_team_cannot_add_links",
+      "test_lineage.LineageViewTests.test_adding_a_link_needs_a_post"],
+     []),
+    ("URS-128", "Access", "A QMS admin account is created by an administrator from the command line. "
+     "The password is entered at a prompt and is never shown; the account is put in the QMS admin "
+     "group; a username or email already in use, or a password that fails the password rules, is "
+     "refused; and the creation is recorded in the audit trail.", "H",
+     ["test_create_qms_admin.CreateQmsAdminTests.test_creates_an_account_in_the_qms_admin_group",
+      "test_create_qms_admin.CreateQmsAdminTests.test_creation_is_recorded_in_the_audit_trail",
+      "test_create_qms_admin.CreateQmsAdminTests.test_the_group_is_created_if_it_is_missing",
+      "test_create_qms_admin.CreateQmsAdminTests.test_an_existing_username_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_an_email_already_in_use_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_mismatched_passwords_create_nothing",
+      "test_create_qms_admin.CreateQmsAdminTests.test_a_weak_password_is_refused",
+      "test_create_qms_admin.CreateQmsAdminTests.test_email_is_required"],
+     []),
+    ("URS-129", "Configuration", "The product name shown in page titles, headers, footers, emails, "
+     "reports and help is set by QMS_PRODUCT_NAME and defaults to SAMD_QMS. A blank value falls back "
+     "to the default, surrounding spaces are trimmed, and a name containing HTML characters is escaped "
+     "wherever it is shown.", "L",
+     ["test_product_name.ProductNameSettingTests.test_defaults_to_samd_qms_when_not_set",
+      "test_product_name.ProductNameSettingTests.test_a_blank_value_falls_back_to_the_default",
+      "test_product_name.ProductNameSettingTests.test_is_read_from_the_environment_and_trimmed",
+      "test_product_name.ProductNameUseTests.test_pages_show_the_name_and_never_the_default",
+      "test_product_name.ProductNameUseTests.test_field_labels_use_the_name",
+      "test_product_name.ProductNameUseTests.test_field_reference_on_the_topic_page_uses_the_name",
+      "test_product_name.ProductNameUseTests.test_help_text_uses_the_name",
+      "test_product_name.ProductNameUseTests.test_a_name_with_html_characters_is_escaped_in_help",
+      "test_product_name.ProductNameUseTests.test_notification_subject_uses_the_name"],
      []),
 ]
 

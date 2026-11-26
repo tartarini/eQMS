@@ -1,0 +1,22 @@
+{% extends "qms/base.html" %}
+{% block title %}Inbox – {{ product_name }}{% endblock %}
+{% block content %}
+<h1>Inbox</h1>
+<p class="muted small" style="max-width:760px">The messages {{ product_name }} has sent you, with the same text as the email. Open one to go to the record, device or document it is about. {% if unread %}You have {{ unread }} unread.{% else %}Nothing unread.{% endif %}</p>
+{% if unread %}
+<form method="post" action="{% url 'qms:notification_read_all' %}" style="margin-bottom:12px">{% csrf_token %}<button class="btn secondary">Mark all as read</button></form>
+{% endif %}
+<div class="panel">
+  {% for n in items %}
+  <div class="transition" {% if not n.read_at %}style="border-left:3px solid var(--warn); padding-left:10px"{% endif %}>
+    <strong>{% if n.path %}<a href="{% url 'qms:notification_open' n.pk %}">{{ n.subject }}</a>{% else %}{{ n.subject }}{% endif %}</strong>
+    {% if not n.read_at %}<span class="badge warn">unread</span>{% endif %}
+    {% if n.status == "failed" %}<span class="badge bad">email not delivered</span>{% elif n.status == "pending" %}<span class="badge">email waiting to send</span>{% endif %}
+    <div class="muted small">{{ n.created_at|date:"d M Y H:i" }}</div>
+    <div class="small" style="white-space:pre-wrap; margin-top:4px">{{ n.body }}</div>
+  </div>
+  {% empty %}
+  <p class="muted">No notifications yet. They appear here when someone needs you to act, or a record, document or training item you work on changes.</p>
+  {% endfor %}
+</div>
+{% endblock %}

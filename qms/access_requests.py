@@ -73,7 +73,8 @@ def submit(request, user, data: dict) -> AccessRequest:
     errors = []
     require(errors, open_request(user) is None, "You already have a request waiting.")
     from .access import has_any_role
-    require(errors, not has_any_role(user), "You already have access to SAMD_QMS.")
+    require(errors, not has_any_role(user),
+            f"You already have access to {settings.QMS_PRODUCT_NAME}.")
     if errors:
         raise TransitionError(errors)
     known = verified_email(user)

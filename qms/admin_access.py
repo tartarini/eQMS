@@ -19,6 +19,7 @@ class AdminHostMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith("/admin/") and not admin_allowed(request):
+        # path_info, not path: under QMS_URL_PREFIX, request.path starts with the prefix.
+        if request.path_info.startswith("/admin/") and not admin_allowed(request):
             raise Http404
         return self.get_response(request)

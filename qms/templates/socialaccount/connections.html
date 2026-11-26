@@ -2,12 +2,12 @@
 {% load socialaccount qms_help %}
 {% comment %}Replaces allauth's "Account Connections" page: QMS wording, POST buttons, and an
 explanation when no sign-in provider is switched on.{% endcomment %}
-{% block title %}Connected accounts – SAMD_QMS{% endblock %}
+{% block title %}Connected accounts – {{ product_name }}{% endblock %}
 {% block content %}
 <div class="panel" style="max-width:640px;margin:20px auto">
   <h1>Connected accounts</h1>
   <p class="muted small">Sign in with an account you already have elsewhere (Google, Microsoft,
-    LinkedIn, ORCID or GitHub) instead of your SAMD_QMS password. Connecting an account gives
+    LinkedIn, ORCID or GitHub) instead of your {{ product_name }} password. Connecting an account gives
     no extra access: your role and device teams still decide what you can see.</p>
 
   <h2 class="label-row">Connected {% help_for "connections" "account" %}</h2>
@@ -47,7 +47,7 @@ explanation when no sign-in provider is switched on.{% endcomment %}
     the vault), then restart. The README's "Single sign-on" section lists the variables and
     redirect URLs for each provider.</p>
   {% else %}
-  <p class="helptext">Ask your SAMD_QMS administrator if you would like to use single sign-on.</p>
+  <p class="helptext">Ask your {{ product_name }} administrator if you would like to use single sign-on.</p>
   {% endif %}
   {% endif %}
 </div>

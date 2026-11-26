@@ -54,8 +54,10 @@ Microsoft accept `localhost` over HTTP for testing).
 
 ### Without Docker (virtualenv, e.g. in PyCharm)
 
-`scripts/local.sh` sets up and runs the app in `.venv` with SQLite and emails printed to the
-console. It needs Python 3.12 or newer (3.13 matches production).
+`scripts/local.sh` runs the app in `.venv`, with PostgreSQL 16 from docker compose as its database
+(the same engine as production; started automatically, so Docker must be running) and emails
+printed to the console. It needs Python 3.12 or newer (3.13 matches production). For SQLite
+instead, set `DATABASE_URL=sqlite:///db.sqlite3` in `.env.local`.
 
 ```bash
 scripts/local.sh setup            # .venv, requirements, Chromium, .env.local, migrate, demo data
@@ -67,12 +69,15 @@ scripts/local.sh oq "Your Name"   # OQ evidence in ./oq_evidence
 scripts/local.sh jobs             # the daily jobs once: PMS activities, reminders, audit check
 scripts/local.sh check            # system checks and missing migrations
 scripts/local.sh manage createsuperuser
-scripts/local.sh reset            # delete db.sqlite3 and ./media
+scripts/local.sh migrate          # apply pending migrations (backs up first; also runs after git pull)
+scripts/local.sh backup           # back up the local database and uploads to backups/local/
+scripts/local.sh restore DIR      # restore a backup folder, then migrate it (see developing-and-releasing.md)
+scripts/local.sh reset            # empty the local database and delete ./media (backs up first)
 ```
 
-Local settings live in `.env.local` (created by `setup`, not committed). To get closer to
-production without running the app in Docker, start only the database and mail catcher with
-`docker compose up -d db mail` and uncomment `DATABASE_URL` and the `DJANGO_EMAIL_*` lines there.
+Local settings live in `.env.local` (created by `setup`, not committed). `DATABASE_URL` there
+selects the database. For emails in a mail catcher instead of the console, start it with
+`docker compose up -d mail` and uncomment the `DJANGO_EMAIL_*` lines there.
 
 In PyCharm, use `.venv/bin/python` as the project interpreter and a Django server (or
 `manage.py runserver`) run configuration with the `.env.local` values as its environment.
@@ -139,6 +144,15 @@ ssh qmsdeploy@qms.example.org
 cd /opt/samd_qms && docker compose -f compose.prod.yaml exec app python manage.py createsuperuser
 ```
 
+A QMS admin manages SAMD_QMS overall and is the only one who can appoint Device admins. Create
+one with the command below. It asks for the password at a prompt (nothing is written to the
+shell history), puts the account in the QMS admin group, and records the creation in the audit
+trail. It does not give access to the Django admin; that still needs `createsuperuser`.
+
+```bash
+scripts/remote.sh -e production manage create_qms_admin <username> --email <address>
+```
+
 ### Working on the server day to day
 
 `scripts/remote.sh` wraps the routine SSH work. It finds the server in
@@ -159,6 +173,7 @@ scripts/remote.sh fetch-backup 20261109T023000Z-scheduled   # copy one to ./back
 scripts/remote.sh offsite-backup             # copy backups off-site now
 scripts/remote.sh -e production tunnel       # Django admin at https://localhost:8443/admin/
 scripts/remote.sh -e production createsuperuser
+scripts/remote.sh -e production manage create_qms_admin <username> --email <address>
 scripts/remote.sh -e production manage send_alert "IQ-04 test"
 ```
 
@@ -200,6 +215,7 @@ approved Change Request in SAMD_QMS.
 | `certbot` | Issues the Let's Encrypt certificate and renews it twice a day | Apache reloads by itself when a renewed certificate appears |
 | `app` | gunicorn, 3 workers × 2 threads | Read-only filesystem, no Linux capabilities, unprivileged user 10001; health check on `/healthz` |
 | `scheduler` | Daily jobs (UTC): 02:30 backup, 03:00 audit verification, 05:30 PMS activities, 05:45 reminders, 05:55 document git sync (only if `QMS_DOCS_GIT_REPO` is set) | Each failure emails `QMS_ALERT_EMAILS` |
+| `scheduler` (every minute) | Sends queued notifications and retries emails that failed (up to 5 attempts, then marked failed in the inbox) | Failures are logged |
 | `db` | PostgreSQL 16 | On an internal network with no internet route and no published port |
 
 Data lives in Docker volumes `samd_qms_pgdata`, `samd_qms_media`, `samd_qms_letsencrypt` and `samd_qms_tls`, and
@@ -308,6 +324,31 @@ previous version: `make deploy ENV=production VERSION=<previous>`. If it did, re
 `pre-deploy` backup taken by that deployment (disaster-recovery steps above, using that folder),
 then deploy the previous version.
 
+### Publishing under a path, e.g. `https://vht.shef.ac.uk/qms`
+
+For a host you run for SAMD_QMS alone, the site can sit under a path instead of the root of the
+domain. Set the path for that server in a host variables file, named after the inventory entry:
+
+```yaml
+# deploy/ansible/host_vars/vht.shef.ac.uk.yml   (not secret; commit it if you like)
+qms_url_prefix: "/qms"
+```
+
+Then deploy as usual (`make deploy ENV=production VERSION=X.Y.Z`). The server's Apache serves the
+app at `https://<domain>/qms/`, redirects `https://<domain>/` there, and the Let's Encrypt
+certificate is for `<domain>` as before. Then:
+
+- Register the single sign-on callback at each provider as
+  `https://<domain>/qms/accounts/<provider>/login/callback/` (the old root callbacks no longer work).
+- The uptime check is `https://<domain>/qms/healthz`; `scripts/remote.sh health` and `status` read
+  the prefix from the server's `.env`.
+- Administration is `https://localhost:8443/qms/admin/` through `scripts/remote.sh tunnel` (the
+  command prints the address).
+- Leave `qms_url_prefix` empty for a server that has its own domain, such as the planned VM.
+
+The prefix is also set in the app as `QMS_URL_PREFIX` (see the settings reference). Development
+and tests leave it empty.
+
 ### Administration (`/admin/`) through an SSH tunnel
 
 Django admin can change accounts, groups and settings outside the QMS workflows, so it is not
@@ -348,7 +389,7 @@ provider has no client id.
 
 | Where | Setting |
 | --- | --- |
-| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
+| `group_vars/qms/vars.yml` | `qms_image`, `qms_version`, `qms_domain`, `qms_url_prefix` (per host: `host_vars/<host>.yml`), `qms_product_name`, `acme_email`, SMTP, `alert_emails`, `qms_sso_allowed_domains`, SSO client ids, `admin_ssh_keys`, `backup_retention_days`, `backup_offsite_*`, `backup_gdrive_*`, `gunicorn_workers` |
 | `group_vars/production/vars.yml` | Production only: `qms_signer_sso_providers`, `qms_signer_email_domains`, the off-site backup method and target |
 | `group_vars/qms/vault.yml` (encrypted) | `vault_django_secret_key`, `vault_postgres_password`, `vault_smtp_password`, `vault_registry_*`, `vault_sso_*_secret`, `vault_backup_gdrive_service_account_json`, `vault_backup_crypt_*` |
 | `/opt/samd_qms/.env` (rendered) | Values substituted into `compose.prod.yaml` |

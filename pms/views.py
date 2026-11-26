@@ -44,7 +44,7 @@ def register(request):
         link = request.build_absolute_uri(
             reverse("pms:activate", args=[activation.activation_token(user)]))
         send_mail(
-            "Activate your SAMD_QMS surveillance account",
+            f"Activate your {settings.QMS_PRODUCT_NAME} surveillance account",
             f"Hello {d['full_name']},\n\nOpen this link to activate your account. It is valid "
             f"for {settings.QMS_PMS_ACTIVATION_DAYS} days and can be used once:\n\n{link}\n\n"
             "If you did not register, ignore this email.",

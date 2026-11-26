@@ -15,7 +15,8 @@ x-app: &app
     QMS_VERSION: ${QMS_VERSION}
     DJANGO_ALLOWED_HOSTS: ${QMS_DOMAIN:?set QMS_DOMAIN},app,127.0.0.1,localhost
     DJANGO_CSRF_TRUSTED_ORIGINS: https://${QMS_DOMAIN}
-    QMS_BASE_URL: https://${QMS_DOMAIN}
+    QMS_URL_PREFIX: ${QMS_URL_PREFIX:-}   # "" at the domain root, or e.g. /qms (see docs/deployment.md)
+    QMS_BASE_URL: https://${QMS_DOMAIN}${QMS_URL_PREFIX:-}
     QMS_ADMIN_HOSTS: localhost:8443     # Django admin only through the SSH tunnel (F7)
     DJANGO_DEBUG: "0"
     QMS_MIGRATE_ON_START: "0"
@@ -84,6 +85,7 @@ services:
     entrypoint: ["/bin/sh", "/usr/local/bin/qms-entrypoint.sh"]
     environment:
       QMS_DOMAIN: ${QMS_DOMAIN}
+      QMS_URL_PREFIX: ${QMS_URL_PREFIX:-}
     ports:
       - "80:80"
       - "443:443"

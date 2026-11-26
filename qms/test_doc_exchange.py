@@ -240,10 +240,10 @@ class ReviewReminderTests(TestCase):
             self.assertEqual(notifications.review_reminders(), 1)
         with self.captureOnCommitCallbacks(execute=True):
             self.assertEqual(notifications.review_reminders(), 0)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn(doc.number, mail.outbox[0].subject)
-        self.assertIn(self.owner.email, mail.outbox[0].to)
-        self.assertIn(self.qa.email, mail.outbox[0].to)
+        # one email to each person: the owner and QA
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertTrue(all(doc.number in m.subject for m in mail.outbox))
+        self.assertEqual({m.to[0] for m in mail.outbox}, {self.owner.email, self.qa.email})
         self.assertEqual(ReviewReminder.objects.filter(document=doc).count(), 1)
 
     def test_no_email_far_from_the_review_date(self):
@@ -256,6 +256,6 @@ class ReviewReminderTests(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             notifications.review_reminders()
             notifications.review_reminders()
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("overdue", mail.outbox[0].subject)
+        self.assertEqual(len(mail.outbox), 2)  # once to each person, not once per run
+        self.assertTrue(all("overdue" in m.subject for m in mail.outbox))
         self.assertTrue(ReviewReminder.objects.filter(document=doc, stage=0).exists())

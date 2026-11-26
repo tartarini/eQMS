@@ -105,3 +105,13 @@ The **Dashboard** shows open records by type, upcoming and overdue deadlines, op
 | Training assigned | Each person who needs it |
 | New single sign-on user waiting for a role | QA and administrators |
 | Daily digest of overdue and due-soon items (next 7 days) | Each person with items, and QA |
+
+## Your inbox
+
+Every message SAMD_QMS emails you is also in your **Inbox**, in the header, with the same text.
+The number next to it counts the messages you haven't read. Open a message to go to the record,
+device or document it is about; it is then marked as read. **Mark all as read** clears the count.
+
+If an email can't be delivered, the message stays in your inbox and is sent again automatically.
+The inbox says so until it goes out. Messages to an address with no SAMD_QMS account (such as an
+invitation) are emailed only.

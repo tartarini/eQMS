@@ -165,13 +165,13 @@ class Command(BaseCommand):
 def _report_html(env, summary, rows, outcomes):
     e = html.escape
     badge = lambda v: {"pass": "#e5f4e4", "fail": "#fbebeb", "manual": "#e7f1fb"}.get(v, "#f9eeda")  # noqa: E731
-    out = ["<!doctype html><html lang='en'><head><meta charset='utf-8'><title>SAMD_QMS OQ report"
+    out = ["<!doctype html><html lang='en'><head><meta charset='utf-8'><title>" + e(settings.QMS_PRODUCT_NAME) + " OQ report"
            "</title><style>body{font:14px/1.45 system-ui,sans-serif;max-width:1100px;margin:24px "
            "auto;padding:0 16px;color:#1d1d1b}table{border-collapse:collapse;width:100%;margin:"
            "10px 0 20px;font-size:13px}th,td{border:1px solid #c9c8c2;padding:5px 7px;text-align:"
            "left;vertical-align:top}th{background:#f0efec}code{font-size:11.5px;overflow-wrap:anywhere}table.trace td:nth-child(3){width:30%}table.trace td:nth-child(4){width:42%}.sig td{height:42px}"
            "@media print{tr{break-inside:avoid}}</style></head><body>",
-           f"<h1>SAMD_QMS operational qualification report</h1>",
+           f"<h1>{e(settings.QMS_PRODUCT_NAME)} operational qualification report</h1>",
            f"<p><strong>Result: {e(summary['overall'])}</strong> — {summary['tests_passed']} of "
            f"{summary['tests_run']} automated tests passed; {summary['requirements']} "
            f"requirements traced.</p>", "<h2>Environment</h2><table>"]

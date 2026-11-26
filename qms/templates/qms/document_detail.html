@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}{{ doc.number }} – SAMD_QMS{% endblock %}
+{% block title %}{{ doc.number }} – {{ product_name }}{% endblock %}
 {% block content %}
 <p class="muted small">{{ doc.get_doc_type_display }} · {% if doc.device %}<a href="{% url 'qms:device_detail' doc.device.code %}">{{ doc.device.name }}</a>{% else %}QMS-wide{% endif %}{% if doc.tech_file_section %} · Technical file: {{ doc.get_tech_file_section_display }}{% endif %}</p>
 <h1>{{ doc.number }} · {{ doc.title }}</h1>
@@ -14,6 +14,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <h2 style="margin:0">Versions</h2>
         <div>{% if not doc.obsolete %}<a class="btn secondary" href="{% url 'qms:document_edit' doc.number %}">Edit details</a>
+          <a class="btn secondary" href="{% url 'qms:document_lineage' doc.number %}">Lineage</a>
           {% if not open_version %}<a class="btn" href="{% url 'qms:version_create' doc.number %}">New version</a>{% endif %}{% endif %}</div>
       </div>
       {% if doc.description %}<p style="white-space:pre-wrap">{{ doc.description }}</p>{% endif %}

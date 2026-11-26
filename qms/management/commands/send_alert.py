@@ -14,6 +14,6 @@ class Command(BaseCommand):
         recipients = settings.QMS_ALERT_EMAILS
         if not recipients:
             raise CommandError("QMS_ALERT_EMAILS is not set; nobody to alert.")
-        send_mail(f"[SAMD_QMS ALERT] {subject}", body or subject, settings.DEFAULT_FROM_EMAIL,
+        send_mail(f"[{settings.QMS_PRODUCT_NAME} ALERT] {subject}", body or subject, settings.DEFAULT_FROM_EMAIL,
                   recipients)
         self.stdout.write(f"Alert sent to {', '.join(recipients)}")

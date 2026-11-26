@@ -1,12 +1,12 @@
 # Shortcuts for development and deployment. Run `make help`.
 SHELL := /bin/bash
 COMPOSE := docker compose
-ANSIBLE := cd deploy/ansible && ansible-playbook
+ANSIBLE := cd deploy/ansible && ansible-playbook --ask-become-pass
 ENV ?= staging
 VERSION ?=
 
 .PHONY: help dev dev-down dev-reset demo shell manage test oq ui jobs logs coverage \
-        check provision deploy restore-test remote local-setup local
+        check provision deploy restore-test remote local-setup local local-backup local-restore
 
 help:  ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -77,3 +77,10 @@ local-setup:  ## Virtualenv + SQLite + demo data, no Docker (scripts/local.sh)
 
 local:  ## Run the app from .venv on http://localhost:8000
 	scripts/local.sh run
+
+local-backup:  ## Back up the local database and uploads now (to backups/local/)
+	scripts/local.sh backup
+
+local-restore:  ## Restore a backup into the local data, then migrate: make local-restore BACKUP=backups/local/<folder>
+	@test -n "$(BACKUP)" || (echo "Set BACKUP to a backup folder, e.g. BACKUP=backups/local/<folder>" && exit 1)
+	scripts/local.sh restore "$(BACKUP)"

@@ -1,5 +1,5 @@
 Django>=5.2,<6
-django-allauth[socialaccount,mfa]>=65,<66
+django-allauth[socialaccount,mfa]==65.22.1  # 65.23 breaks test_orcid_registration_end_to_end (complete_social_login)
 python-docx>=1.1,<2
 dj-database-url>=2.2,<4
 psycopg[binary]>=3.2,<4

@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}Account requests – SAMD_QMS{% endblock %}
+{% block title %}Account requests – {{ product_name }}{% endblock %}
 {% block content %}
 <h1>Account requests</h1>
 <p class="muted small" style="max-width:760px">People who requested an account from the home page and registered with single sign-on. They see nothing until you approve them onto a device team you manage. {% if can_decline %}As QA you can also decline a request; the reason is emailed to them.{% endif %}</p>

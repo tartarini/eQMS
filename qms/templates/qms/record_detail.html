@@ -1,6 +1,6 @@
 {% extends "qms/base.html" %}
 {% load qms_help %}
-{% block title %}{{ record.ref }} – SAMD_QMS{% endblock %}
+{% block title %}{{ record.ref }} – {{ product_name }}{% endblock %}
 {% block content %}
 <p class="muted small"><a href="{% url 'qms:device_detail' record.device.code %}">{{ record.device.name }}</a> · {{ record.type_label }}</p>
 <h1>{{ record.ref }} · {{ record.title }}</h1>

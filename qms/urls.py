@@ -1,7 +1,7 @@
 from django.urls import path
 
-from . import (views, views_access, views_devices, views_docs, views_help, views_invitations,
-               views_risk)
+from . import (views, views_access, views_devices, views_docs, views_help, views_inbox,
+               views_invitations, views_risk)
 
 app_name = "qms"
 
@@ -43,6 +43,10 @@ urlpatterns = [
     path("documents/<str:number>/training/", views_docs.requirement_add, name="requirement_add"),
     path("versions/<int:pk>/edit/", views_docs.version_edit, name="version_edit"),
     path("versions/<int:pk>/download/", views_docs.version_download, name="version_download"),
+    path("documents/<str:number>/lineage/", views_docs.document_lineage, name="document_lineage"),
+    path("versions/<int:pk>/links/", views_docs.version_link_add, name="version_link_add"),
+    path("document-links/<int:pk>/remove/", views_docs.document_link_remove,
+         name="document_link_remove"),
     path("versions/<int:pk>/<str:action>/", views_docs.version_action, name="version_action"),
     path("training-requirements/<int:pk>/remove/", views_docs.requirement_remove,
          name="requirement_remove"),
@@ -82,6 +86,9 @@ urlpatterns = [
     path("role/", views_devices.set_role, name="set_role"),
     # Invitations (the accept page is open: the emailed link is the credential)
     path("invitations/", views_invitations.invitation_list, name="invitation_list"),
+    path("inbox/", views_inbox.notification_list, name="notification_list"),
+    path("inbox/<int:pk>/open/", views_inbox.notification_open, name="notification_open"),
+    path("inbox/read-all/", views_inbox.notification_read_all, name="notification_read_all"),
     path("invitations/new/", views_invitations.invitation_create, name="invitation_create"),
     path("invitations/<int:pk>/revoke/", views_invitations.invitation_revoke,
          name="invitation_revoke"),

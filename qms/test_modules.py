@@ -284,9 +284,10 @@ class NotificationTests(Base):
         DeviceMembership.objects.create(device=self.device, user=cso)
         with self.captureOnCommitCallbacks(execute=True):
             inc = Record.objects.create(device=self.device, record_type=wf.INCIDENT, title="Wrong score sent to GP")
-        self.assertEqual(len(mail.outbox), 1)
+        # one email per person: the CSO and each QA on the team
         self.assertIn("URGENT", mail.outbox[0].subject)
-        self.assertIn(cso.email, mail.outbox[0].to)
+        self.assertIn(cso.email, {m.to[0] for m in mail.outbox})
+        self.assertTrue(all(len(m.to) == 1 for m in mail.outbox))
         mail.outbox.clear()
         with self.captureOnCommitCallbacks(execute=True):
             inc.owner = self.eng
